@@ -1,0 +1,47 @@
+import React, { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Search } from "lucide-react";
+// import { useUserData } from "@/hook/useUserData";
+import SideDrawer from "./SideDrawer";
+import { icons } from "@/constants/icons";
+
+const Navbar = () => {
+  const [show, setShow] = useState(false);
+  //   const { user } = useUserData();
+  //   let imageUrl = "https://i.pravatar.cc/300";
+  //   if (user?.image) {
+  //     imageUrl = user.image;
+  //   }
+  const handleShow = () => {
+    setShow(!show);
+  };
+  return (
+    <div className="flex items-center justify-end gap-6 p-4 pt-8 pr-20 ">
+      {show && (
+        <Input
+          placeholder="Search"
+          className="w-1/4 rounded-2xl"
+          style={{
+            outline: "none",
+            boxShadow: "none",
+          }}
+        />
+      )}
+
+      <div onClick={handleShow}>
+        <img src={icons.search} alt="search" />
+      </div>
+      <div>
+        <SideDrawer />
+      </div>
+      <div className="flex items-center gap-4">
+        <Avatar>
+          <AvatarImage src={"https://i.pravatar.cc/300"} />
+        </Avatar>
+      </div>
+    </div>
+  );
+};
+
+export default Navbar;
