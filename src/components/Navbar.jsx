@@ -4,7 +4,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Search } from "lucide-react";
 // import { useUserData } from "@/hook/useUserData";
 import SideDrawer from "./SideDrawer";
-import { icons } from "@/constants/icons";
+import { SearchIcon } from "@/constants/icons";
 
 const Navbar = () => {
   const [show, setShow] = useState(false);
@@ -29,8 +29,8 @@ const Navbar = () => {
         />
       )}
 
-      <div onClick={handleShow}>
-        <img src={icons.search} alt="search" />
+      <div onClick={handleShow} className="cursor-pointer text-[#54819A]">
+        <SearchIcon />
       </div>
       <div>
         <SideDrawer />

@@ -2,40 +2,56 @@ import React from "react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { NavLink } from "react-router-dom";
-import { icons } from "@/constants/icons";
+import {
+  DashboardIcon,
+  EmployeeIcon,
+  SalaryCalculationIcon,
+  AttendanceIcon,
+  EmployeeManagementIcon,
+  DeviceManagementIcon,
+  AdminManagementIcon,
+  TaskManagementIcon,
+  LeaveManagementIcon,
+  RulesIcon,
+  LogoutIcon,
+} from "@/constants/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const links = [
-  { label: "Dashboard", icon: icons.dashboard, path: "/" },
-  { label: "Employee", icon: icons.employee, path: "/all-project" },
+  { label: "Dashboard", icon: DashboardIcon, path: "/" },
+  { label: "Employee", icon: EmployeeIcon, path: "/employee" },
   {
     label: "Salary calculation",
-    icon: icons.salaryCalculation,
-    path: "/all-task",
+    icon: SalaryCalculationIcon,
+    path: "/salary-calculation",
   },
-  { label: "Attendance", icon: icons.attendance, path: "/task-report" },
+  { label: "Attendance", icon: AttendanceIcon, path: "/attendance" },
   {
     label: "Employee management",
-    icon: icons.employeeManagement,
-    path: "/bugs",
+    icon: EmployeeManagementIcon,
+    path: "/employee-management",
   },
   {
     label: "Device management",
-    icon: icons.deviceManagement,
-    path: "/employees",
+    icon: DeviceManagementIcon,
+    path: "/device-management",
   },
   {
     label: "Admin management",
-    icon: icons.adminManagement,
-    path: "/employees",
+    icon: AdminManagementIcon,
+    path: "/admin-management",
   },
-  { label: "Task management", icon: icons.taskManagement, path: "/employees" },
+  {
+    label: "Task management",
+    icon: TaskManagementIcon,
+    path: "/task-management",
+  },
   {
     label: "Leave management",
-    icon: icons.leaveManagement,
-    path: "/employees",
+    icon: LeaveManagementIcon,
+    path: "/leave-management",
   },
-  { label: "Rules", icon: icons.rules, path: "/employees" },
+  { label: "Rules", icon: RulesIcon, path: "/rules" },
 ];
 
 const Sidebar = () => {
@@ -103,16 +119,14 @@ const Sidebar = () => {
               to={link.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm font-medium hover:text-[#004368] transition-all rounded-lg",
-                  isActive && " text-[#004368] "
+                  "flex items-center gap-3 px-4 py-2 text-sm font-medium transition-all relative",
+                  isActive
+                    ? "text-[#004368] before:absolute before:left-[-30px] before:top-0 before:bottom-0 before:w-1 before:bg-[#004368]"
+                    : "text-[#BDBDBD] hover:text-[#004368]"
                 )
               }
-              style={({ isActive }) => ({
-                color: isActive ? "#004368" : "#BDBDBD",
-                outline: "none",
-              })}
             >
-              <img src={link.icon} alt="icons" className="w-5" />
+              <link.icon />
               <span>{link.label}</span>
             </NavLink>
           ))}
@@ -120,18 +134,22 @@ const Sidebar = () => {
       </div>
       <div className="pl-9">
         <div
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 justify-between"
           onClick={() => {
             localStorage.removeItem("user");
             window.location.href = "/sign-in";
           }}
         >
-          <Avatar>
-            <AvatarImage src="https://i.pravatar.cc/300" />
-            <AvatarFallback>CN</AvatarFallback>
-          </Avatar>
-          <p className="text-[#2A2A2A] text-[14px]  font-[600] ">MD G R Pias</p>
-          <img src={icons.logout} alt="log out" className="w-5 ml-2" />
+          <div className="flex items-center gap-2">
+            <Avatar>
+              <AvatarImage src="https://i.pravatar.cc/300" />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+            <p className="text-[#2A2A2A] text-[14px]  font-[600] ">
+              MD G R Pias
+            </p>
+          </div>
+          <LogoutIcon />
         </div>
       </div>
     </aside>

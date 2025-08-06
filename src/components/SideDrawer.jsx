@@ -9,7 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { icons } from "@/constants/icons";
+import { NotificationIcon } from "@/constants/icons";
 // import { useNavigate } from "react-router-dom";
 // import useTaskColumns from "@/hook/useTasksData";
 // import useTaskData from "@/hook/useTaskData";
@@ -46,8 +46,8 @@ const SideDrawer = () => {
     <Drawer open={isOpen} onOpenChange={setIsOpen} direction="right">
       <DrawerTrigger asChild>
         <div className="relative p-1 rounded-full">
-          <div className="w-7 h-7 flex items-center justify-center rounded-full">
-            <img src={icons.notification} alt="notification" />
+          <div className="w-7 h-7 flex items-center justify-center rounded-full text-[#54819A]">
+            <NotificationIcon />
           </div>
           {/* {unreadCount > 0 && (
             <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1">
