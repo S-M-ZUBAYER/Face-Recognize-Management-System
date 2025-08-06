@@ -125,8 +125,10 @@
   -webkit-backdrop-filter: blur(4px);
 }
 
-/* Custom filter for active SVG icons */
-.svg-active {
-  filter: brightness(0) saturate(100%) invert(8%) sepia(100%) saturate(1000%)
-    hue-rotate(200deg) brightness(0.3) contrast(1);
+/* globals.css */
+input:-webkit-autofill {
+  box-shadow: 0 0 0px 1000px white inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  color: #004368 !important;
 }

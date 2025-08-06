@@ -2,6 +2,8 @@ import { Route, Routes, Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import Animated404 from "../components/404";
+import Dashboard from "../pages/Dashboard";
+import SignInPage from "../pages/SignInPage";
 
 const AppLayout = () => {
   return (
@@ -21,9 +23,10 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<AppLayout />}>
-        <Route index element={<div>Home</div>} />
+        <Route index element={<Dashboard />} />
         <Route path="*" element={<Animated404 />} />
       </Route>
+      <Route path="/signin" element={<SignInPage />} />
     </Routes>
   );
 };
