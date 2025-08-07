@@ -10,31 +10,32 @@ import {
   AbsentEmployeeIcon,
   LatePunchIcon,
 } from "../constants/icons";
-
+import { useEmployeeData } from "@/hook/useEmployeeData";
 function Dashboard() {
+  const { totalEmployees, totalPresent, totalAbsent, totalLate, isLoading } =
+    useEmployeeData();
   const cards = [
     {
       title: "Total Employee",
-      count: 1000,
+      count: totalEmployees,
       icon: <TotalEmployeeIcon className="text-xl text-blue-500" />,
     },
     {
       title: "Present",
-      count: 990,
+      count: totalPresent,
       icon: <PresentEmployeeIcon className="text-xl text-green-500" />,
     },
     {
       title: "Absent",
-      count: 10,
+      count: totalAbsent,
       icon: <AbsentEmployeeIcon className="text-xl text-red-500" />,
     },
     {
       title: "Late Punch",
-      count: 5,
+      count: totalLate,
       icon: <LatePunchIcon className="text-xl text-yellow-500" />,
     },
   ];
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -49,6 +50,7 @@ function Dashboard() {
             title={card.title}
             count={card.count}
             icon={card.icon}
+            isLoading={isLoading}
           />
         ))}
       </div>

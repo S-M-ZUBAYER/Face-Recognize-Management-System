@@ -39,14 +39,12 @@ export default function Signin() {
         }
       );
       const data = await res.json();
-      console.log("Sign-in response:", data);
 
       if (res.ok && !data.error) {
         const response = await fetch(
           `https://grozziie.zjweiting.com:3091/grozziie-attendance/admin/admin-info?email=${values.userEmail}`
         );
         const userInfo = await response.json();
-        console.log("Admin info:", userInfo);
 
         if (userInfo?.id) {
           const deviceMACs = userInfo.devices.map((device) => device.deviceMAC);

@@ -1,7 +1,7 @@
 import React from "react";
-import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { NavLink } from "react-router-dom";
+import { useUserData } from "@/hook/useUserData";
 import {
   DashboardIcon,
   EmployeeIcon,
@@ -16,6 +16,7 @@ import {
   LogoutIcon,
 } from "@/constants/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { base64ToImage } from "@/lib/base64Toimage";
 
 const links = [
   { label: "Dashboard", icon: DashboardIcon, path: "/" },
@@ -55,6 +56,11 @@ const links = [
 ];
 
 const Sidebar = () => {
+  const { user } = useUserData();
+  let imageUrl = "https://i.pravatar.cc/300";
+  if (user?.photo) {
+    imageUrl = base64ToImage(user.photo);
+  }
   return (
     <aside className="w-80 h-screen  border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0] ">
       <div className=" flex flex-col justify-center items-center">
@@ -137,16 +143,17 @@ const Sidebar = () => {
           className="flex items-center gap-2 justify-between"
           onClick={() => {
             localStorage.removeItem("user");
+            localStorage.removeItem("deviceMACs");
             window.location.href = "/sign-in";
           }}
         >
           <div className="flex items-center gap-2">
-            <Avatar>
-              <AvatarImage src="https://i.pravatar.cc/300" />
+            <Avatar className="w-[2vw]">
+              <AvatarImage src={imageUrl} />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
-            <p className="text-[#2A2A2A] text-[14px]  font-[600] ">
-              MD G R Pias
+            <p className="text-[#2A2A2A] text-[14px]  font-[700] uppercase ">
+              {user?.userName}
             </p>
           </div>
           <LogoutIcon />
