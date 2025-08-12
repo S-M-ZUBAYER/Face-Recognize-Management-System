@@ -1,12 +1,22 @@
 import { create } from "zustand";
 
 export const useEmployeeStore = create((set) => ({
+  // Loading state
   isLoading: false,
   setIsLoading: (value) => set({ isLoading: value }),
-  employees: null,
-  setEmployees: (employees) => set({ employees: employees }),
-  attendance: null,
-  setAttendance: (attendance) => set({ attendance: attendance }),
+
+  // Employees & Salary Rules
+  employees: [],
+  setEmployees: (employees) => set({ employees }),
+  globalSalaryRules: [],
+  setGlobalSalaryRules: (salaryRules) =>
+    set({ globalSalaryRules: salaryRules }),
+
+  // Attendance
+  attendance: [],
+  setAttendance: (attendance) => set({ attendance }),
+
+  // Totals
   totalEmployees: 0,
   setTotalEmployees: (total) => set({ totalEmployees: total }),
   totalPresent: 0,
@@ -15,4 +25,10 @@ export const useEmployeeStore = create((set) => ({
   setTotalAbsent: (total) => set({ totalAbsent: total }),
   totalLate: 0,
   setTotalLate: (total) => set({ totalLate: total }),
+
+  // Flags to check if data has been loaded once
+  hasFetchedEmployees: false,
+  setHasFetchedEmployees: (value) => set({ hasFetchedEmployees: value }),
+  hasFetchedSalaryRules: false,
+  setHasFetchedSalaryRules: (value) => set({ hasFetchedSalaryRules: value }),
 }));
