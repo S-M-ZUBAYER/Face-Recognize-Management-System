@@ -144,7 +144,7 @@ const Sidebar = () => {
           onClick={() => {
             localStorage.removeItem("user");
             localStorage.removeItem("deviceMACs");
-            window.location.href = "/sign-in";
+            window.location.href = "/signin";
           }}
         >
           <div className="flex items-center gap-2">

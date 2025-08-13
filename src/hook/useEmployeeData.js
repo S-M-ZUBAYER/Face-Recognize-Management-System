@@ -58,6 +58,7 @@ export const useEmployeeData = () => {
         email: emp.email,
         salaryRules: parseSalaryRules(emp),
         deviceMAC: emp.deviceMAC,
+        designation: emp.designation,
       }));
 
       setEmployees(simplifiedEmployees);
@@ -210,6 +211,7 @@ export const useEmployeeData = () => {
     isLoading,
     selectedDate,
     setSelectedDate,
+    fetchAllEmployeeData,
     refreshData: async () => {
       const empList = await fetchAllEmployeeData();
       await fetchGlobalSalaryRules();
