@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/popover";
 
 import { ChevronRight } from "lucide-react";
+import { format } from "date-fns";
+import { useEmployeeData } from "@/hook/useEmployeeData";
 
 function formatDate(date) {
   if (!date) {
@@ -29,6 +31,8 @@ export function DatePicker() {
   const [date, setDate] = React.useState(new Date());
   const [month, setMonth] = React.useState(date);
   const [value, setValue] = React.useState(formatDate(date));
+  const { setSelectedDate } = useEmployeeData();
+  console.log(format(date, "yyyy-MM-dd"));
 
   return (
     <div className="flex flex-col gap-3">
@@ -57,6 +61,7 @@ export function DatePicker() {
                 setDate(date);
                 setValue(formatDate(date));
                 setOpen(false);
+                setSelectedDate(format(date, "yyyy-MM-dd"));
               }}
             />
           </PopoverContent>

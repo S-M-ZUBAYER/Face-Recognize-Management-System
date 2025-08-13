@@ -12,8 +12,15 @@ import {
 } from "../constants/icons";
 import { useEmployeeData } from "@/hook/useEmployeeData";
 function Dashboard() {
-  const { totalEmployees, totalPresent, totalAbsent, totalLate, isLoading } =
-    useEmployeeData();
+  const {
+    totalEmployees,
+    totalPresent,
+    totalAbsent,
+    totalLate,
+    isLoading,
+    employees,
+  } = useEmployeeData();
+  console.log(totalEmployees, totalAbsent, totalAbsent, totalLate, employees);
   const cards = [
     {
       title: "Total Employee",
