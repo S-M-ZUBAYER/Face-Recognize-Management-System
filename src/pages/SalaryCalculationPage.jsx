@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
-import EmployeeTable from "@/components/employee/EmployeeTable";
 import { useEmployeeData } from "@/hook/useEmployeeData";
 import RunningManLoader from "@/components/FancyLoader";
+import SalaryTable from "@/components/salaryCalculation/SalaryTable";
 
-function EmployeePage() {
+function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
   const { employees, fetchAllEmployeeData } = useEmployeeData();
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +41,7 @@ function EmployeePage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-[600]">Employee List</h1>
+      <h1 className="text-xl font-[600]">Salary calculation</h1>
       <EmployeeFilterTabs
         filters={filters}
         activeFilter={activeFilter}
@@ -50,10 +50,10 @@ function EmployeePage() {
       {isLoading ? (
         <RunningManLoader />
       ) : (
-        <EmployeeTable employees={getFilteredEmployees()} />
+        <SalaryTable employees={getFilteredEmployees()} />
       )}
     </div>
   );
 }
 
-export default EmployeePage;
+export default SalaryCalculationPage;

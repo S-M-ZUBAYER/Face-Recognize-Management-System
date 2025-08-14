@@ -1,13 +1,12 @@
 import { useState, useMemo } from "react";
-import { QrCode, EllipsisVerticalIcon } from "lucide-react";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
-import { ShowQrCodeModal } from "./ShowQrcodeModal";
 import image from "@/constants/image";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ITEMS_PER_PAGE = 10;
 
-function EmployeeTable({ employees }) {
+function SalaryTable({ employees }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
@@ -25,35 +24,42 @@ function EmployeeTable({ employees }) {
 
   return (
     <>
+      <div className="flex items-center gap-2.5 ">
+        <Checkbox />
+        <p className="text-[#8AA9BA] font-semibold">Select All</p>
+      </div>
       <div className="overflow-x-auto bg-white shadow rounded-xl">
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500 border-b">
-            <tr className="bg-[#E6ECF0] ">
-              <th className="p-3">Sl</th>
+            <tr className="bg-[#E6ECF0]">
+              <th className="p-3">Select</th>
               <th className="p-3">Name</th>
               <th className="p-3">Employee ID</th>
               <th className="p-3">Designation</th>
               <th className="p-3">Department</th>
-              <th className="p-3">QR Code</th>
-              <th className="p-3">Action</th>
+              <th className="p-3">Salary</th>
+              <th className="p-3">Working Days</th>
+              <th className="p-3">Present</th>
+              <th className="p-3">Absent</th>
+              <th className="p-3">Edit</th>
             </tr>
           </thead>
           <tbody>
             {paginatedEmployee.map((emp, idx) => (
               <tr key={idx} className="border-b">
-                <td className="p-3">{String(idx + 1).padStart(2, "0")}</td>
+                <td className="p-3">
+                  <Checkbox />
+                </td>
                 <td className="p-3">{emp.name}</td>
                 <td className="p-3">{emp.employeeId}</td>
                 <td className="p-3">{emp.designation}</td>
                 <td className="p-3">{emp.department}</td>
+                <td className="p-3">{emp.salary}</td>
+                <td className="p-3">):</td>
+                <td className="p-3">):</td>
+                <td className="p-3">):</td>
                 <td className="p-3">
-                  <ShowQrCodeModal
-                    deviceMAC={emp.deviceMAC}
-                    employeeId={emp.employeeId}
-                  />
-                </td>
-                <td className="p-3">
-                  <img src={image.horizontal} alt="horizontal" />
+                  <img src={image.Edit} alt="horizontal" />
                 </td>
               </tr>
             ))}
@@ -72,4 +78,4 @@ function EmployeeTable({ employees }) {
   );
 }
 
-export default EmployeeTable;
+export default SalaryTable;
