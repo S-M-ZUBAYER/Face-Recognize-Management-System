@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeTable from "@/components/employee/EmployeeTable";
 import { useEmployeeData } from "@/hook/useEmployeeData";
-import RunningManLoader from "@/components/FancyLoader";
+import FancyLoader from "@/components/FancyLoader";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
@@ -48,7 +48,7 @@ function EmployeePage() {
         onFilterChange={setActiveFilter}
       />
       {isLoading ? (
-        <RunningManLoader />
+        <FancyLoader />
       ) : (
         <EmployeeTable employees={getFilteredEmployees()} />
       )}

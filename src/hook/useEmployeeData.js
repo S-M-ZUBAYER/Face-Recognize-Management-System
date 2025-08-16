@@ -43,7 +43,7 @@ export const useEmployeeData = () => {
       const responses = await Promise.all(
         deviceMACs.map((mac) =>
           axios.get(
-            `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac}`
+            `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}`
           )
         )
       );
@@ -107,7 +107,7 @@ export const useEmployeeData = () => {
         const responses = await Promise.all(
           deviceMACs.map((mac) =>
             axios.get(
-              `https://grozziie.zjweiting.com:3091/grozziie-attendance/attendance/attendance-by-date-device?macId=${mac}&date=${date}`
+              `https://grozziie.zjweiting.com:3091/grozziie-attendance/attendance/attendance-by-date-device?macId=${mac.deviceMAC}&date=${date}`
             )
           )
         );

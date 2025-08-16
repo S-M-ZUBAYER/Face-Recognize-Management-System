@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import { useEmployeeData } from "@/hook/useEmployeeData";
-import RunningManLoader from "@/components/FancyLoader";
+import FancyLoader from "@/components/FancyLoader";
 import SalaryTable from "@/components/salaryCalculation/SalaryTable";
 
 function SalaryCalculationPage() {
@@ -48,7 +48,7 @@ function SalaryCalculationPage() {
         onFilterChange={setActiveFilter}
       />
       {isLoading ? (
-        <RunningManLoader />
+        <FancyLoader />
       ) : (
         <SalaryTable employees={getFilteredEmployees()} />
       )}

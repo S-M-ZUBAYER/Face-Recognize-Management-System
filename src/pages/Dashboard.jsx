@@ -46,7 +46,9 @@ function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Attendance Overview</h1>
+        <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F] mb-5">
+          Attendance Overview
+        </p>
         <DashboardDatePicker />
       </div>
 

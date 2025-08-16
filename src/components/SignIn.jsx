@@ -47,7 +47,11 @@ export default function Signin() {
         const userInfo = await response.json();
 
         if (userInfo?.id) {
-          const deviceMACs = userInfo.devices.map((device) => device.deviceMAC);
+          const deviceMACs = userInfo.devices.map((device) => ({
+            deviceMAC: device.deviceMAC,
+            deviceName: device.deviceName,
+          }));
+
           localStorage.setItem("user", JSON.stringify(data.data));
           localStorage.setItem("deviceMACs", JSON.stringify(deviceMACs));
           toast.success("Login successful");
