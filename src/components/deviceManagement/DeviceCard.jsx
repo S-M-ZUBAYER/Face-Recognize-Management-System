@@ -11,29 +11,26 @@ function DeviceCard({ deviceName, MacAddress, EmployeeCount, onSelect }) {
 
   return (
     <div className="border border-[#E6ECF0] py-4 px-2 rounded-lg">
-      {/* Icon */}
       <div className="flex items-center justify-center pb-6">
         <img src={image.deviceIcon} alt="Device Icon" />
       </div>
 
-      {/* Info List */}
       <div className="pb-4 font-poppins">
         {infoItems.map(({ label, value }) => (
           <div
             key={label}
             className="flex items-center justify-between text-center pb-2 "
           >
-            <p className=" text-[#004368] text-[12px] font-poppins-regular font-[500] ">
+            <p className=" text-[#004368] text-[12px] font-poppins-regular font-[500]">
               {label}
             </p>
-            <p className="text-[#464646] font-poppins-regular font-[400] text-[12px] ">
+            <p className="text-[#464646] font-poppins-regular font-[400] text-[12px]">
               {value}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Select Button */}
       <Button
         onClick={onSelect}
         className="w-full bg-transparent text-[#004368] hover:bg-transparent"

@@ -9,6 +9,7 @@ import SalaryCalculationPage from "@/pages/SalaryCalculationPage";
 import Warehouse from "@/components/salaryCalculation/test";
 import DeviceManagementPage from "@/pages/DeviceManagementPage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
+import EmployeeManagementPage from "@/pages/EmployeeManagementPage";
 
 const AppLayout = () => {
   return (
@@ -34,6 +35,10 @@ const AppRoutes = () => {
         {/* <Route path="attendance" element={<Warehouse />} /> */}
         <Route path="device-management" element={<DeviceManagementPage />} />
         <Route path="admin-management" element={<AdminManagementPage />} />
+        <Route
+          path="employee-management"
+          element={<EmployeeManagementPage />}
+        />
         <Route path="*" element={<Animated404 />} />
       </Route>
       <Route path="/signin" element={<SignInPage />} />
