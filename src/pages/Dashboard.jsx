@@ -11,6 +11,7 @@ import {
   LatePunchIcon,
 } from "../constants/icons";
 import { useEmployeeData } from "@/hook/useEmployeeData";
+
 function Dashboard() {
   const {
     totalEmployees,
@@ -19,8 +20,18 @@ function Dashboard() {
     totalLate,
     isLoading,
     employees,
+    absentEmployees,
+    attendedEmployees,
   } = useEmployeeData();
-  console.log(totalEmployees, totalAbsent, totalAbsent, totalLate, employees);
+
+  console.log(
+    employees,
+    "Employees in Dashboard",
+    absentEmployees,
+    "Absent Employees",
+    attendedEmployees,
+    "Attended Employees"
+  );
   const cards = [
     {
       title: "Total Employee",

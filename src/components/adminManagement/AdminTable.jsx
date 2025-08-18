@@ -28,24 +28,24 @@ function AdminTable({ admins }) {
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500 border-b">
             <tr className="bg-[#E6ECF0]">
-              <th className="p-3">Select</th>
               <th className="p-3">Name</th>
               <th className="p-3">Email</th>
               <th className="p-3">Devices</th>
               <th className="p-3">Status</th>
+              <th className="p-3">Details</th>
               <th className="p-3">Action</th>
             </tr>
           </thead>
           <tbody>
             {paginatedEmployee.map((emp, idx) => (
               <tr key={idx} className="border-b">
-                <td className="p-3">
-                  <Checkbox />
-                </td>
                 <td className="p-3">{emp.adminName}</td>
                 <td className="p-3">{emp.adminEmail}</td>
                 <td className="p-3">{emp.devices.length}</td>
-                <td className="p-3">{emp.department || ":)"}</td>
+                <td className="p-3">
+                  {emp.loggedIn === true ? "Active" : "Inactive"}
+                </td>
+                <td className="p-3">View </td>
                 <td className="p-3">
                   <img src={image.deleteIcon} alt="horizontal" />
                 </td>

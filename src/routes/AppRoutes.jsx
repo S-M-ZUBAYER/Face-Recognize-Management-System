@@ -10,6 +10,7 @@ import Warehouse from "@/components/salaryCalculation/test";
 import DeviceManagementPage from "@/pages/DeviceManagementPage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
 import EmployeeManagementPage from "@/pages/EmployeeManagementPage";
+import AttendancePage from "@/pages/AttendancePage";
 
 const AppLayout = () => {
   return (
@@ -39,6 +40,7 @@ const AppRoutes = () => {
           path="employee-management"
           element={<EmployeeManagementPage />}
         />
+        <Route path="attendance" element={<AttendancePage />} />
         <Route path="*" element={<Animated404 />} />
       </Route>
       <Route path="/signin" element={<SignInPage />} />
