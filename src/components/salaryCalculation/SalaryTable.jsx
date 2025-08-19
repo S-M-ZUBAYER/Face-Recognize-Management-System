@@ -28,23 +28,43 @@ function SalaryTable({ employees }) {
         <Checkbox />
         <p className="text-[#8AA9BA] font-semibold">Select All</p>
       </div>
-      <div className="overflow-x-auto bg-white shadow rounded-xl">
-        <table className="w-full text-left text-sm">
-          <thead className="text-gray-500 border-b">
-            <tr className="bg-[#E6ECF0]">
-              <th className="p-3">Select</th>
-              <th className="p-3">Name</th>
-              <th className="p-3">Employee ID</th>
-              <th className="p-3">Designation</th>
-              <th className="p-3">Department</th>
-              <th className="p-3">Salary</th>
-              <th className="p-3">Working Days</th>
-              <th className="p-3">Present</th>
-              <th className="p-3">Absent</th>
-              <th className="p-3">Edit</th>
+      <div className="overflow-x-auto ">
+        <table className="w-full">
+          <thead className="bg-[#E6ECF0]">
+            <tr>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Select
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Name
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Employee ID
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Designation
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Department
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Salary
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Working Days
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Present
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Absent
+              </th>
+              <th className="text-left p-4 text-sm font-medium text-gray-700">
+                Edit
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[#E6ECF0]">
             {paginatedEmployee.map((emp, idx) => (
               <tr key={idx} className="border-b">
                 <td className="p-3">

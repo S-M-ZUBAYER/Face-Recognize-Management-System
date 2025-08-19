@@ -18,8 +18,8 @@ const AttendanceFilters = ({
           onClick={() => onFilterChange(filter.key)}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             activeFilter === filter.key
-              ? "bg-blue-600 text-white"
-              : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+              ? "bg-[#004368] text-[#E6ECF0] "
+              : "bg-white text-[#B0C5D0] hover:bg-gray-100 border border-[#B0C5D0] "
           }`}
         >
           {filter.label}

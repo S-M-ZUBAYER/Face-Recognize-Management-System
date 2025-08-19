@@ -6,7 +6,7 @@ import FancyLoader from "@/components/FancyLoader";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { employees, fetchAllEmployeeData } = useEmployeeData();
+  const { employees, fetchEmployees } = useEmployeeData();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -14,14 +14,14 @@ function EmployeePage() {
       const loadEmployees = async () => {
         setIsLoading(true);
         try {
-          await fetchAllEmployeeData();
+          await fetchEmployees();
         } finally {
           setIsLoading(false);
         }
       };
       loadEmployees();
     }
-  }, [employees, fetchAllEmployeeData]);
+  }, [employees, fetchEmployees]);
 
   const filters = [
     "All Employees",

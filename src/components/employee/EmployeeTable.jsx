@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { QrCode, EllipsisVerticalIcon } from "lucide-react";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
 import { ShowQrCodeModal } from "./ShowQrcodeModal";

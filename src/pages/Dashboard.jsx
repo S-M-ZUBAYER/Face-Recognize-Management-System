@@ -25,6 +25,14 @@ function Dashboard() {
   } = useEmployeeData();
 
   console.log(
+    "totalEmployees",
+    totalEmployees,
+    "totalPresent",
+    totalPresent,
+    "totalAbsent",
+    totalAbsent,
+    "totalLate",
+    totalLate,
     employees,
     "Employees in Dashboard",
     absentEmployees,
