@@ -47,12 +47,12 @@ const links = [
     icon: TaskManagementIcon,
     path: "/task-management",
   },
-  {
-    label: "Leave management",
-    icon: LeaveManagementIcon,
-    path: "/leave-management",
-  },
-  { label: "Rules", icon: RulesIcon, path: "/rules" },
+  // {
+  //   label: "Leave management",
+  //   icon: LeaveManagementIcon,
+  //   path: "/leave-management",
+  // },
+  // { label: "Rules", icon: RulesIcon, path: "/rules" },
 ];
 
 const Sidebar = () => {

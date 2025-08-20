@@ -49,38 +49,12 @@ const EmployeeAttendance = () => {
 
   return (
     <div className="p-6 space-y-4">
-      {/* <AttendanceHeader
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-        /> */}
-
       <AttendanceFilters
         activeFilter={activeFilter}
         onFilterChange={handleFilterChange}
         attendedCount={attendedEmployees.length}
         absentCount={absentEmployees.length}
       />
-
-      {/* Select All Checkbox */}
-      <div className="flex items-center gap-2 mb-4">
-        <input
-          type="checkbox"
-          checked={
-            selectedEmployees.length === currentEmployees.length &&
-            currentEmployees.length > 0
-          }
-          ref={(el) => {
-            if (el) {
-              el.indeterminate =
-                selectedEmployees.length > 0 &&
-                selectedEmployees.length < currentEmployees.length;
-            }
-          }}
-          onChange={handleSelectAll}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <span className="text-sm text-gray-600">Select All</span>
-      </div>
 
       <AttendanceTable
         employees={currentEmployees}

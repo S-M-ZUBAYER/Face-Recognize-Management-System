@@ -3,9 +3,9 @@ import image from "@/constants/image";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-function ExportButton({ paginatedEmployee }) {
+function ExportButton({ selectedEmployeeData }) {
   const handleExport = () => {
-    const filteredData = paginatedEmployee;
+    const filteredData = selectedEmployeeData;
 
     const worksheet = XLSX.utils.json_to_sheet(filteredData);
     const workbook = XLSX.utils.book_new();

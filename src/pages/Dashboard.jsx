@@ -19,27 +19,35 @@ function Dashboard() {
     totalAbsent,
     totalLate,
     isLoading,
-    employees,
-    absentEmployees,
-    attendedEmployees,
+    selectedDate,
+    // employees,
+    // absentEmployees,
+    // attendedEmployees,
   } = useEmployeeData();
 
-  console.log(
-    "totalEmployees",
-    totalEmployees,
-    "totalPresent",
+  console.log("Dashboard Re-render:", {
+    selectedDate,
     totalPresent,
-    "totalAbsent",
     totalAbsent,
-    "totalLate",
     totalLate,
-    employees,
-    "Employees in Dashboard",
-    absentEmployees,
-    "Absent Employees",
-    attendedEmployees,
-    "Attended Employees"
-  );
+  });
+
+  // console.log(
+  //   "totalEmployees",
+  //   totalEmployees,
+  //   "totalPresent",
+  //   totalPresent,
+  //   "totalAbsent",
+  //   totalAbsent,
+  //   "totalLate",
+  //   totalLate,
+  //   employees,
+  //   "Employees in Dashboard",
+  //   absentEmployees,
+  //   "Absent Employees",
+  //   attendedEmployees,
+  //   "Attended Employees"
+  // );
   const cards = [
     {
       title: "Total Employee",

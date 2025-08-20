@@ -1,24 +1,18 @@
 import * as React from "react";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
 
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-import { ChevronRight } from "lucide-react";
-import { format } from "date-fns";
 import { useEmployeeData } from "@/hook/useEmployeeData";
 
 function formatDate(date) {
-  if (!date) {
-    return "";
-  }
-
+  if (!date) return "";
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "long",
@@ -28,11 +22,18 @@ function formatDate(date) {
 
 export function DatePicker() {
   const [open, setOpen] = React.useState(false);
-  const [date, setDate] = React.useState(new Date());
-  const [month, setMonth] = React.useState(date);
-  const [value, setValue] = React.useState(formatDate(date));
-  const { setSelectedDate } = useEmployeeData();
-  console.log(format(date, "yyyy-MM-dd"));
+
+  // ✅ get selectedDate and setter from your hook
+  const { selectedDate, setSelectedDate } = useEmployeeData();
+
+  React.useEffect(() => {
+    console.log(selectedDate);
+  }, [selectedDate]);
+
+  // Convert string date from hook into JS Date
+  const selectedDateObj = selectedDate ? new Date(selectedDate) : new Date();
+
+  const [month, setMonth] = React.useState(selectedDateObj);
 
   return (
     <div className="flex flex-col gap-3">
@@ -41,7 +42,7 @@ export function DatePicker() {
           <PopoverTrigger asChild>
             <div className="flex items-center gap-4 border border-[#B0C5D0] rounded-lg px-4 py-2 cursor-pointer">
               <CalendarIcon className="size-4 text-gray-500" />
-              <p>{value}</p>
+              <p>{formatDate(selectedDateObj)}</p>
               <ChevronRight className="size-4 text-gray-500" />
             </div>
           </PopoverTrigger>
@@ -53,15 +54,14 @@ export function DatePicker() {
           >
             <Calendar
               mode="single"
-              selected={date}
+              selected={selectedDateObj}
               captionLayout="dropdown"
               month={month}
               onMonthChange={setMonth}
               onSelect={(date) => {
-                setDate(date);
-                setValue(formatDate(date));
+                if (!date) return;
+                setSelectedDate(format(date, "yyyy-MM-dd")); // ✅ update hook state
                 setOpen(false);
-                setSelectedDate(format(date, "yyyy-MM-dd"));
               }}
             />
           </PopoverContent>

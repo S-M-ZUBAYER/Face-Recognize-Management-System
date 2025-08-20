@@ -8,6 +8,25 @@ const ITEMS_PER_PAGE = 10;
 
 function SalaryTable({ employees }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedEmployees(employees.map((emp) => emp.employeeId || emp.id));
+    } else {
+      setSelectedEmployees([]);
+    }
+  };
+
+  const handleSelectEmployee = (employeeId) => {
+    setSelectedEmployees((prev) => {
+      if (prev.includes(employeeId)) {
+        return prev.filter((id) => id !== employeeId);
+      } else {
+        return [...prev, employeeId];
+      }
+    });
+  };
 
   const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
 
@@ -22,10 +41,24 @@ function SalaryTable({ employees }) {
     }
   };
 
+  const isAllSelected =
+    selectedEmployees.length === employees.length && employees.length > 0;
+  const isIndeterminate =
+    selectedEmployees.length > 0 && selectedEmployees.length < employees.length;
+
+  // Get selected employee data to pass to ExportButton
+  const selectedEmployeeData = employees.filter((emp) =>
+    selectedEmployees.includes(emp.employeeId || emp.id)
+  );
+
   return (
     <>
       <div className="flex items-center gap-2.5 ">
-        <Checkbox />
+        <Checkbox
+          checked={isAllSelected}
+          indeterminate={isIndeterminate}
+          onCheckedChange={handleSelectAll}
+        />
         <p className="text-[#8AA9BA] font-semibold">Select All</p>
       </div>
       <div className="overflow-x-auto ">
@@ -66,20 +99,27 @@ function SalaryTable({ employees }) {
           </thead>
           <tbody className="divide-y divide-[#E6ECF0]">
             {paginatedEmployee.map((emp, idx) => (
-              <tr key={idx} className="border-b">
+              <tr key={emp.employeeId || emp.id || idx} className="border-b">
                 <td className="p-3">
-                  <Checkbox />
+                  <Checkbox
+                    checked={selectedEmployees.includes(
+                      emp.employeeId || emp.id
+                    )}
+                    onCheckedChange={() =>
+                      handleSelectEmployee(emp.employeeId || emp.id)
+                    }
+                  />
                 </td>
                 <td className="p-3">{emp.name}</td>
-                <td className="p-3">{emp.employeeId}</td>
+                <td className="p-3">{emp.employeeId || emp.id}</td>
                 <td className="p-3">{emp.designation}</td>
                 <td className="p-3">{emp.department}</td>
                 <td className="p-3">{emp.salary}</td>
-                <td className="p-3">):</td>
-                <td className="p-3">):</td>
-                <td className="p-3">):</td>
+                <td className="p-3">{emp.workingDays || "-"}</td>
+                <td className="p-3">{emp.present || "-"}</td>
+                <td className="p-3">{emp.absent || "-"}</td>
                 <td className="p-3">
-                  <img src={image.Edit} alt="horizontal" />
+                  <img src={image.Edit} alt="edit" />
                 </td>
               </tr>
             ))}
@@ -92,7 +132,7 @@ function SalaryTable({ employees }) {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton paginatedEmployee={paginatedEmployee} />
+        <ExportButton selectedEmployeeData={selectedEmployeeData} />
       </div>
     </>
   );

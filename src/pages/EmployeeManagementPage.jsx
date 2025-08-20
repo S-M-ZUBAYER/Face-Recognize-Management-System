@@ -1,3 +1,4 @@
+import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeManagementTable from "@/components/employeeManagement/EmployeeManagementTable";
 import React from "react";
 
@@ -6,7 +7,7 @@ const employees = [
     id: "TG0642",
     name: "Md Golam Rabbani Pias",
     designation: "Product Designer",
-    department: "Software Development",
+    department: "Information Technology",
     workHour: "8 Hours",
     overtime: "No",
   },
@@ -14,7 +15,7 @@ const employees = [
     id: "TG0643",
     name: "Priya Sharma",
     designation: "Frontend Developer",
-    department: "Software Development",
+    department: "Information Technology",
     workHour: "8 Hours",
     overtime: "Yes",
   },
@@ -22,7 +23,7 @@ const employees = [
     id: "TG0644",
     name: "John Smith",
     designation: "QA Engineer",
-    department: "Quality Assurance",
+    department: "Research and Development",
     workHour: "8 Hours",
     overtime: "No",
   },
@@ -30,7 +31,7 @@ const employees = [
     id: "TG0645",
     name: "Chen Wei",
     designation: "Lead Backend Engineer",
-    department: "Software Development",
+    department: "Information Technology",
     workHour: "9 Hours",
     overtime: "No",
   },
@@ -86,7 +87,7 @@ const employees = [
     id: "TG0652",
     name: "Marco Rossi",
     designation: "Business Analyst",
-    department: "Business Development",
+    department: "Information Technology",
     workHour: "9 Hours",
     overtime: "Yes",
   },
@@ -109,9 +110,36 @@ const employees = [
 ];
 
 function EmployeeManagementPage() {
+  const [activeFilter, setActiveFilter] = React.useState("All Employees");
+
+  const filters = [
+    "All Employees",
+    "Information Technology",
+    "Marketing",
+    "Research and Development",
+    "E-commerce",
+    "Customer Support",
+    "Finance",
+  ];
+
+  // Filter employees based on activeFilter
+  const getFilteredEmployees = () => {
+    if (activeFilter === "All Employees") return employees;
+    return employees.filter((emp) => emp.department === activeFilter);
+  };
+
   return (
     <>
-      <EmployeeManagementTable employees={employees} />
+      <div className="p-6 space-y-4">
+        <h1 className="text-xl font-[600]">Employee Management</h1>
+        <EmployeeFilterTabs
+          filters={filters}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
+
+        <EmployeeManagementTable employees={getFilteredEmployees()} />
+      </div>
     </>
   );
 }

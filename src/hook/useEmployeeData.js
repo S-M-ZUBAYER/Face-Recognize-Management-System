@@ -1,13 +1,12 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import axios from "axios";
 import { parseSalaryRules } from "@/lib/parseSalaryRules";
 import { stringifiedArrays } from "@/lib/stringifiedArrays";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 export const useEmployeeData = () => {
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const { selectedDate, setSelectedDate } = useAttendanceStore();
 
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
 
@@ -17,7 +16,8 @@ export const useEmployeeData = () => {
       queryKey: ["employees", mac.deviceMAC],
       queryFn: async () => {
         const res = await axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}`
+          // `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}`
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}/simple`
         );
         return res.data.map((emp) => ({
           name: emp.name,

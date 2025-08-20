@@ -1,4 +1,5 @@
 import { MoreHorizontal } from "lucide-react";
+import { Checkbox } from "../ui/checkbox";
 
 const AttendanceEmployeeRow = ({
   employee,
@@ -8,10 +9,9 @@ const AttendanceEmployeeRow = ({
 }) => (
   <tr className="hover:bg-gray-50">
     <td className="p-4">
-      <input
-        type="checkbox"
+      <Checkbox
         checked={isSelected}
-        onChange={() => onSelect(employee.employeeId)}
+        onCheckedChange={() => onSelect(employee.id)}
         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
       />
     </td>

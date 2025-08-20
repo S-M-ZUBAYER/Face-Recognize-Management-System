@@ -1,22 +1,32 @@
 import React, { useState, useMemo } from "react";
-
 import AttendanceTableHeader from "./AttendanceTableHeader";
 import AttendanceEmployeeRow from "./AttendanceEmployeeRow";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
+import { Checkbox } from "../ui/checkbox";
 
 const ITEMS_PER_PAGE = 10;
-const AttendanceTable = ({
-  employees,
-  selectedEmployees,
-  onSelectAll,
-  onSelectEmployee,
-  showOvertime = true,
-}) => {
-  const isAllSelected =
-    selectedEmployees.length === employees.length && employees.length > 0;
-  const isIndeterminate =
-    selectedEmployees.length > 0 && selectedEmployees.length < employees.length;
+const AttendanceTable = ({ employees }) => {
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      // Use employeeId consistently (or id, depending on your data structure)
+      setSelectedEmployees(employees.map((emp) => emp.employeeId || emp.id));
+    } else {
+      setSelectedEmployees([]);
+    }
+  };
+
+  const handleSelectEmployee = (employeeId) => {
+    setSelectedEmployees((prev) => {
+      if (prev.includes(employeeId)) {
+        return prev.filter((id) => id !== employeeId);
+      } else {
+        return [...prev, employeeId];
+      }
+    });
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -33,25 +43,42 @@ const AttendanceTable = ({
     }
   };
 
+  const isAllSelected =
+    selectedEmployees.length === employees.length && employees.length > 0;
+  const isIndeterminate =
+    selectedEmployees.length > 0 && selectedEmployees.length < employees.length;
+
+  const selectedEmployeeData = employees.filter((emp) =>
+    selectedEmployees.includes(emp.employeeId || emp.id)
+  );
+
   return (
     <>
+      <div className="flex items-center gap-2.5 ">
+        <Checkbox
+          checked={isAllSelected}
+          indeterminate={isIndeterminate}
+          onCheckedChange={handleSelectAll}
+        />
+        <p className="text-[#8AA9BA] font-semibold">Select All</p>
+      </div>
       <div className="bg-white  overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <AttendanceTableHeader
-              isAllSelected={isAllSelected}
-              isIndeterminate={isIndeterminate}
-              onSelectAll={onSelectAll}
-            />
+            <AttendanceTableHeader />
             <tbody className="divide-y divide-[#E6ECF0] ">
               {paginatedEmployee.length > 0 ? (
                 paginatedEmployee.map((employee) => (
                   <AttendanceEmployeeRow
-                    key={employee.employeeId}
+                    key={employee.employeeId || employee.id}
                     employee={employee}
-                    isSelected={selectedEmployees.includes(employee.employeeId)}
-                    onSelect={onSelectEmployee}
-                    showOvertime={showOvertime}
+                    isSelected={selectedEmployees.includes(
+                      employee.employeeId || employee.id
+                    )}
+                    onSelect={() =>
+                      handleSelectEmployee(employee.employeeId || employee.id)
+                    }
+                    showOvertime={true}
                   />
                 ))
               ) : (
@@ -71,7 +98,7 @@ const AttendanceTable = ({
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton paginatedEmployee={paginatedEmployee} />
+        <ExportButton selectedEmployeeData={selectedEmployeeData} />
       </div>
     </>
   );

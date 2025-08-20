@@ -5,6 +5,7 @@ import qrCodeIcon from "../assets/image/qr-code.svg";
 import Edit from "../assets/image/edit.svg";
 import deviceIcon from "../assets/image/deviceIcon.svg";
 import deleteIcon from "../assets/image/delete-01.svg";
+import settingIcon from "../assets/image/setting.svg";
 
 export default {
   logo,
@@ -14,4 +15,5 @@ export default {
   Edit,
   deviceIcon,
   deleteIcon,
+  settingIcon,
 };
