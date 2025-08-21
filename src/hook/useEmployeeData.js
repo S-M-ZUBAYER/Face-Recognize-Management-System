@@ -1,219 +1,128 @@
-import { useEffect, useState, useCallback } from "react";
+import { useMemo } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import axios from "axios";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseSalaryRules } from "@/lib/parseSalaryRules";
 import { stringifiedArrays } from "@/lib/stringifiedArrays";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 export const useEmployeeData = () => {
-  const {
-    employees,
-    setEmployees,
-    totalEmployees,
-    setTotalEmployees,
-    totalPresent,
-    setTotalPresent,
-    totalAbsent,
-    setTotalAbsent,
-    attendance,
-    setAttendance,
-    isLoading,
-    setIsLoading,
-    totalLate,
-    setTotalLate,
-    globalSalaryRules,
-    setGlobalSalaryRules,
-    hasFetchedEmployees,
-    setHasFetchedEmployees,
-    hasFetchedSalaryRules,
-    setHasFetchedSalaryRules,
-  } = useEmployeeStore();
+  const { selectedDate, setSelectedDate } = useAttendanceStore();
 
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
 
-  const [deviceMACs] = useState(() =>
-    JSON.parse(localStorage.getItem("deviceMACs") || "[]")
-  );
+  // Employees per deviceMAC
+  const employeeQueries = useQueries({
+    queries: deviceMACs.map((mac) => ({
+      queryKey: ["employees", mac.deviceMAC],
+      queryFn: async () => {
+        const res = await axios.get(
+          // `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}`
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}/simple`
+        );
+        return res.data.map((emp) => ({
+          name: emp.name,
+          employeeId: emp.employeeId,
+          department: emp.department,
+          salary: emp.salary,
+          email: emp.email,
+          designation: emp.designation,
+          deviceMAC: emp.deviceMAC,
+          salaryRules: parseSalaryRules(emp),
+        }));
+      },
+    })),
+  });
 
-  /** ✅ Fetch employees — only once per reload */
-  const fetchAllEmployeeData = useCallback(async () => {
-    if (hasFetchedEmployees) return employees; // Prevent re-fetch
-    try {
-      const responses = await Promise.all(
-        deviceMACs.map((mac) =>
-          axios.get(
-            `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac}`
-          )
-        )
-      );
+  const employees = employeeQueries
+    .map((q) => q.data)
+    .filter(Boolean)
+    .flat();
 
-      const allEmployees = responses.flatMap((res) => res.data);
-
-      const simplifiedEmployees = allEmployees.map((emp) => ({
-        name: emp.name,
-        employeeId: emp.employeeId,
-        department: emp.department,
-        salary: emp.salary,
-        email: emp.email,
-        salaryRules: parseSalaryRules(emp),
-        deviceMAC: emp.deviceMAC,
-      }));
-
-      setEmployees(simplifiedEmployees);
-      setTotalEmployees(simplifiedEmployees.length);
-      setHasFetchedEmployees(true);
-      return simplifiedEmployees;
-    } catch (error) {
-      console.error("Error fetching employee data:", error);
-      return [];
-    }
-  }, [
-    deviceMACs,
-    employees,
-    hasFetchedEmployees,
-    setEmployees,
-    setTotalEmployees,
-    setHasFetchedEmployees,
-  ]);
-
-  /** ✅ Fetch global salary rules — only once per reload */
-  const fetchGlobalSalaryRules = useCallback(async () => {
-    if (hasFetchedSalaryRules) return globalSalaryRules; // Prevent re-fetch
-    try {
+  // Global salary rules
+  const { data: globalSalaryRules = [] } = useQuery({
+    queryKey: ["salaryRules"],
+    queryFn: async () => {
       const res = await axios.get(
         "https://grozziie.zjweiting.com:3091/grozziie-attendance/salaryRules/all"
       );
-      const normalData = stringifiedArrays(res.data);
-      setGlobalSalaryRules(normalData);
-      setHasFetchedSalaryRules(true);
-      return normalData;
-    } catch (error) {
-      console.error("Error fetching salary rules:", error);
-      return [];
-    }
-  }, [
-    globalSalaryRules,
-    hasFetchedSalaryRules,
-    setGlobalSalaryRules,
-    setHasFetchedSalaryRules,
-  ]);
-
-  /** ✅ Fetch attendance for specific date */
-  const fetchAttendanceData = useCallback(
-    async (date, employeesList) => {
-      try {
-        const responses = await Promise.all(
-          deviceMACs.map((mac) =>
-            axios.get(
-              `https://grozziie.zjweiting.com:3091/grozziie-attendance/attendance/attendance-by-date-device?macId=${mac}&date=${date}`
-            )
-          )
-        );
-
-        const allAttendance = responses.flatMap((res) => res.data);
-        setAttendance(allAttendance);
-        setTotalPresent(allAttendance.length);
-
-        let lateCount = 0;
-        allAttendance.forEach((att) => {
-          const employee = employeesList.find(
-            (e) => e.employeeId === att.empId
-          );
-          if (employee && att.checkIn) {
-            try {
-              const checkInArray = JSON.parse(att.checkIn);
-              const actualCheckIn = checkInArray?.[0];
-
-              let expectedTime = employee.salaryRules?.[0]?.param1;
-              if (!expectedTime && globalSalaryRules.length > 0) {
-                const globalRule = globalSalaryRules.find(
-                  (rule) => rule.deviceMAC === employee.deviceMAC
-                );
-                expectedTime = globalRule?.param1;
-              }
-
-              if (
-                actualCheckIn &&
-                expectedTime &&
-                actualCheckIn > expectedTime
-              ) {
-                lateCount++;
-              }
-            } catch {
-              console.warn("Invalid checkIn format", att.checkIn);
-            }
-          }
-        });
-
-        setTotalLate(lateCount);
-      } catch (error) {
-        console.error("Error fetching attendance data:", error);
-      }
+      return stringifiedArrays(res.data);
     },
-    [
-      deviceMACs,
-      setAttendance,
-      setTotalPresent,
-      setTotalLate,
-      globalSalaryRules,
-    ]
+  });
+
+  // Attendance per deviceMAC + selectedDate
+  const attendanceQueries = useQueries({
+    queries: deviceMACs.map((mac) => ({
+      queryKey: ["attendance", mac.deviceMAC, selectedDate],
+      queryFn: async () => {
+        const res = await axios.get(
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance/attendance/attendance-by-date-device`,
+          { params: { macId: mac.deviceMAC, date: selectedDate } }
+        );
+        return res.data;
+      },
+    })),
+  });
+
+  const attendanceData = attendanceQueries
+    .map((q) => q.data)
+    .filter(Boolean)
+    .flat();
+
+  // Derive attended & absent
+  const attendedIds = attendanceData.map((att) => att.empId);
+  const attendedEmployees = employees.filter((emp) =>
+    attendedIds.includes(emp.employeeId)
+  );
+  const absentEmployees = employees.filter(
+    (emp) => !attendedIds.includes(emp.employeeId)
   );
 
-  /** ✅ Auto fetch when selectedDate changes */
-  useEffect(() => {
-    if (deviceMACs.length === 0) return;
-    let ignore = false;
+  // Calculate late employees
+  const totalLate = useMemo(() => {
+    return attendanceData.filter((att) => {
+      const employee = attendedEmployees.find(
+        (e) => e.employeeId === att.empId
+      );
+      if (!employee || !att.checkIn) return false;
 
-    const fetchData = async () => {
-      setIsLoading(true);
       try {
-        const empList = await fetchAllEmployeeData();
-        await fetchGlobalSalaryRules();
-        if (!ignore) {
-          await fetchAttendanceData(
-            selectedDate,
-            empList.length ? empList : employees
+        const checkInArray = JSON.parse(att.checkIn);
+        const actualCheckIn = checkInArray?.[0];
+
+        let expectedTime = employee.salaryRules?.[0]?.param1;
+        if (!expectedTime) {
+          const globalRule = globalSalaryRules.find(
+            (rule) => rule.deviceMAC === employee.deviceMAC
           );
+          expectedTime = globalRule?.param1;
         }
-      } finally {
-        if (!ignore) setIsLoading(false);
+
+        return actualCheckIn && expectedTime && actualCheckIn > expectedTime;
+      } catch {
+        return false;
       }
-    };
-
-    fetchData();
-    return () => {
-      ignore = true;
-    };
-  }, [
-    deviceMACs,
-    selectedDate,
-    fetchAllEmployeeData,
-    fetchGlobalSalaryRules,
-    fetchAttendanceData,
-    employees,
-    setIsLoading,
-  ]);
-
-  /** ✅ Auto calculate absent count */
-  useEffect(() => {
-    setTotalAbsent(Math.max(totalEmployees - totalPresent, 0));
-  }, [totalEmployees, totalPresent, setTotalAbsent]);
+    }).length;
+  }, [attendanceData, attendedEmployees, globalSalaryRules]);
 
   return {
     employees,
-    totalEmployees,
-    totalPresent,
-    totalAbsent,
+    attendedEmployees,
+    absentEmployees,
+    globalSalaryRules,
+    totalEmployees: employees.length,
+    totalPresent: attendedEmployees.length,
+    totalAbsent: absentEmployees.length,
     totalLate,
-    attendance,
-    isLoading,
     selectedDate,
     setSelectedDate,
-    refreshData: async () => {
-      const empList = await fetchAllEmployeeData();
-      await fetchGlobalSalaryRules();
-      await fetchAttendanceData(selectedDate, empList);
+    isLoading:
+      employeeQueries.some((q) => q.isLoading) ||
+      attendanceQueries.some((q) => q.isLoading),
+    fetchEmployees: () =>
+      employeeQueries.forEach((q) => q.refetch && q.refetch()),
+    refreshData: () => {
+      employeeQueries.forEach((q) => q.refetch && q.refetch());
+      attendanceQueries.forEach((q) => q.refetch && q.refetch());
     },
   };
 };

@@ -11,6 +11,7 @@ import {
   LatePunchIcon,
 } from "../constants/icons";
 import { useEmployeeData } from "@/hook/useEmployeeData";
+
 function Dashboard() {
   const {
     totalEmployees,
@@ -18,9 +19,35 @@ function Dashboard() {
     totalAbsent,
     totalLate,
     isLoading,
-    employees,
+    selectedDate,
+    // employees,
+    // absentEmployees,
+    // attendedEmployees,
   } = useEmployeeData();
-  console.log(totalEmployees, totalAbsent, totalAbsent, totalLate, employees);
+
+  console.log("Dashboard Re-render:", {
+    selectedDate,
+    totalPresent,
+    totalAbsent,
+    totalLate,
+  });
+
+  // console.log(
+  //   "totalEmployees",
+  //   totalEmployees,
+  //   "totalPresent",
+  //   totalPresent,
+  //   "totalAbsent",
+  //   totalAbsent,
+  //   "totalLate",
+  //   totalLate,
+  //   employees,
+  //   "Employees in Dashboard",
+  //   absentEmployees,
+  //   "Absent Employees",
+  //   attendedEmployees,
+  //   "Attended Employees"
+  // );
   const cards = [
     {
       title: "Total Employee",
@@ -46,7 +73,9 @@ function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Attendance Overview</h1>
+        <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F] mb-5">
+          Attendance Overview
+        </p>
         <DashboardDatePicker />
       </div>
 

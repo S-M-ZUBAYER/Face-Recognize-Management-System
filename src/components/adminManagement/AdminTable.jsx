@@ -1,20 +1,20 @@
 import { useState, useMemo } from "react";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
-import { ShowQrCodeModal } from "./ShowQrcodeModal";
 import image from "@/constants/image";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ITEMS_PER_PAGE = 10;
 
-function EmployeeTable({ employees }) {
+function AdminTable({ admins }) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(admins.length / ITEMS_PER_PAGE);
 
   const paginatedEmployee = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return employees.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [currentPage, employees]);
+    return admins.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [currentPage, admins]);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -27,32 +27,27 @@ function EmployeeTable({ employees }) {
       <div className="overflow-x-auto bg-white shadow rounded-xl">
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500 border-b">
-            <tr className="bg-[#E6ECF0] ">
-              <th className="p-3">Sl</th>
+            <tr className="bg-[#E6ECF0]">
               <th className="p-3">Name</th>
-              <th className="p-3">Employee ID</th>
-              <th className="p-3">Designation</th>
-              <th className="p-3">Department</th>
-              <th className="p-3">QR Code</th>
+              <th className="p-3">Email</th>
+              <th className="p-3">Devices</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Details</th>
               <th className="p-3">Action</th>
             </tr>
           </thead>
           <tbody>
             {paginatedEmployee.map((emp, idx) => (
               <tr key={idx} className="border-b">
-                <td className="p-3">{String(idx + 1).padStart(2, "0")}</td>
-                <td className="p-3">{emp.name}</td>
-                <td className="p-3">{emp.employeeId}</td>
-                <td className="p-3">{emp.designation}</td>
-                <td className="p-3">{emp.department}</td>
+                <td className="p-3">{emp.adminName}</td>
+                <td className="p-3">{emp.adminEmail}</td>
+                <td className="p-3">{emp.devices.length}</td>
                 <td className="p-3">
-                  <ShowQrCodeModal
-                    deviceMAC={emp.deviceMAC}
-                    employeeId={emp.employeeId}
-                  />
+                  {emp.loggedIn === true ? "Active" : "Inactive"}
                 </td>
+                <td className="p-3">View </td>
                 <td className="p-3">
-                  <img src={image.horizontal} alt="horizontal" />
+                  <img src={image.deleteIcon} alt="horizontal" />
                 </td>
               </tr>
             ))}
@@ -71,4 +66,4 @@ function EmployeeTable({ employees }) {
   );
 }
 
-export default EmployeeTable;
+export default AdminTable;

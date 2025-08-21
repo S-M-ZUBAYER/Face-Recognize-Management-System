@@ -47,12 +47,12 @@ const links = [
     icon: TaskManagementIcon,
     path: "/task-management",
   },
-  {
-    label: "Leave management",
-    icon: LeaveManagementIcon,
-    path: "/leave-management",
-  },
-  { label: "Rules", icon: RulesIcon, path: "/rules" },
+  // {
+  //   label: "Leave management",
+  //   icon: LeaveManagementIcon,
+  //   path: "/leave-management",
+  // },
+  // { label: "Rules", icon: RulesIcon, path: "/rules" },
 ];
 
 const Sidebar = () => {
@@ -72,7 +72,7 @@ const Sidebar = () => {
             viewBox="0 0 145 28"
             fill="none"
           >
-            <g clip-path="url(#clip0_769_7740)">
+            <g clipPath="url(#clip0_769_7740)">
               <path
                 d="M14.1496 17.5833V13.0209H25.9495V23.8071C24.8016 24.9157 23.1409 25.8905 20.9644 26.7343C18.788 27.5781 16.5853 28 14.3535 28C11.5186 28 9.04502 27.4064 6.93852 26.2164C4.8291 25.0292 3.24412 23.3299 2.18358 21.1215C1.12304 18.9101 0.592773 16.5067 0.592773 13.9083C0.592773 11.0888 1.18423 8.5836 2.36713 6.3926C3.55296 4.19869 5.28361 2.51689 7.56493 1.34719C9.30433 0.451003 11.4662 0 14.0564 0C17.4215 0 20.0525 0.704146 21.9434 2.11535C23.8372 3.52655 25.0521 5.47314 25.597 7.96093L20.1603 8.97641C19.7786 7.64668 19.0589 6.59628 18.0042 5.82812C16.9495 5.05996 15.6326 4.67297 14.0564 4.67297C11.6643 4.67297 9.76176 5.42949 8.3516 6.94544C6.93852 8.4614 6.23344 10.7077 6.23344 13.6872C6.23344 16.8995 6.94726 19.3116 8.37782 20.9178C9.80838 22.524 11.6818 23.327 14.001 23.327C15.1489 23.327 16.2969 23.103 17.4507 22.652C18.6044 22.2039 19.5921 21.6569 20.4196 21.0167V17.5833H14.1496Z"
                 fill="#004368"
@@ -144,7 +144,7 @@ const Sidebar = () => {
           onClick={() => {
             localStorage.removeItem("user");
             localStorage.removeItem("deviceMACs");
-            window.location.href = "/sign-in";
+            window.location.href = "/signin";
           }}
         >
           <div className="flex items-center gap-2">
