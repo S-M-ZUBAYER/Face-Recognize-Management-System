@@ -107,6 +107,14 @@ const employees = [
     workHour: "8 Hours",
     overtime: "Yes",
   },
+  {
+    id: "TG0784",
+    name: "marina petkova",
+    designation: "Cloud Architect",
+    department: "IT & Operations",
+    workHour: "8 Hours",
+    overtime: "Yes",
+  },
 ];
 
 function EmployeeManagementPage() {
