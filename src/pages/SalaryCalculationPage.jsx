@@ -1,27 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
-import { useEmployeeData } from "@/hook/useEmployeeData";
+
 import FancyLoader from "@/components/FancyLoader";
 import SalaryTable from "@/components/salaryCalculation/SalaryTable";
+import { useSalaryCalculationData } from "@/hook/useSalaryCalculationData";
 
 function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { employees, fetchAllEmployeeData } = useEmployeeData();
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (employees.length === 0) {
-      const loadEmployees = async () => {
-        setIsLoading(true);
-        try {
-          await fetchAllEmployeeData();
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      loadEmployees();
-    }
-  }, [employees, fetchAllEmployeeData]);
+  const { isLoading, enrichedEmployees } = useSalaryCalculationData();
+  console.log(enrichedEmployees);
 
   const filters = [
     "All Employees",
@@ -35,8 +23,8 @@ function SalaryCalculationPage() {
 
   // Filter employees based on activeFilter
   const getFilteredEmployees = () => {
-    if (activeFilter === "All Employees") return employees;
-    return employees.filter((emp) => emp.department === activeFilter);
+    if (activeFilter === "All Employees") return enrichedEmployees;
+    return enrichedEmployees.filter((emp) => emp.department === activeFilter);
   };
 
   return (

@@ -3,6 +3,7 @@ import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
 import image from "@/constants/image";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "../ui/button";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -65,34 +66,34 @@ function SalaryTable({ employees }) {
         <table className="w-full">
           <thead className="bg-[#E6ECF0]">
             <tr>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Select
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Name
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Employee ID
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Designation
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Department
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Salary
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Working Days
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Present
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Absent
               </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Edit
               </th>
             </tr>
@@ -114,10 +115,10 @@ function SalaryTable({ employees }) {
                 <td className="p-3">{emp.employeeId || emp.id}</td>
                 <td className="p-3">{emp.designation}</td>
                 <td className="p-3">{emp.department}</td>
-                <td className="p-3">{emp.salary}</td>
-                <td className="p-3">{emp.workingDays || "-"}</td>
-                <td className="p-3">{emp.present || "-"}</td>
-                <td className="p-3">{emp.absent || "-"}</td>
+                <td className="p-3">{emp.salary || 0}</td>
+                <td className="p-3">{emp.workingDays || 0}</td>
+                <td className="p-3">{emp.present || 0}</td>
+                <td className="p-3">{emp.absent || 0}</td>
                 <td className="p-3">
                   <img src={image.Edit} alt="edit" />
                 </td>
@@ -133,6 +134,9 @@ function SalaryTable({ employees }) {
           totalPages={totalPages}
         />
         <ExportButton selectedEmployeeData={selectedEmployeeData} />
+        <Button className="flex items-center gap-2 bg-[#004368] hover:bg-[#004368] text-[#EAEAEA] px-8 py-1 rounded-lg font-bold">
+          Calculate salary
+        </Button>
       </div>
     </>
   );

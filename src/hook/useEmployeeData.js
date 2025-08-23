@@ -3,6 +3,7 @@ import { useQuery, useQueries } from "@tanstack/react-query";
 import axios from "axios";
 import { parseSalaryRules } from "@/lib/parseSalaryRules";
 import { stringifiedArrays } from "@/lib/stringifiedArrays";
+import extractSalaryAndRate from "@/lib/extractSalaryAndRate";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 export const useEmployeeData = () => {
@@ -23,11 +24,11 @@ export const useEmployeeData = () => {
           name: emp.name,
           employeeId: emp.employeeId,
           department: emp.department,
-          salary: emp.salary,
           email: emp.email,
           designation: emp.designation,
-          deviceMAC: emp.deviceMAC,
+          deviceMAC: mac.deviceMAC,
           salaryRules: parseSalaryRules(emp),
+          salaryInfo: extractSalaryAndRate(emp.payPeriod),
         }));
       },
     })),

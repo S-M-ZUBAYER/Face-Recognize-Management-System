@@ -10,7 +10,7 @@ const EmployeeManagementTable = ({ employees }) => {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedEmployees(employees.map((emp) => emp.id));
+      setSelectedEmployees(employees.map((emp) => emp.employeeId || emp.id));
     } else {
       setSelectedEmployees([]);
     }
@@ -48,7 +48,7 @@ const EmployeeManagementTable = ({ employees }) => {
 
   // Get selected employee data to pass to ExportButton
   const selectedEmployeeData = employees.filter((emp) =>
-    selectedEmployees.includes(emp.id)
+    selectedEmployees.includes(emp.employeeId || emp.id)
   );
 
   return (
@@ -96,9 +96,12 @@ const EmployeeManagementTable = ({ employees }) => {
               <tr key={employee.id} className="hover:bg-gray-50">
                 <td className="p-3">
                   <Checkbox
-                    checked={selectedEmployees.includes(employee.id)}
-                    onCheckedChange={() => handleSelectEmployee(employee.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={selectedEmployees.includes(
+                      employee.employeeId || employee.id
+                    )}
+                    onCheckedChange={() =>
+                      handleSelectEmployee(employee.employeeId || employee.id)
+                    }
                   />
                 </td>
                 <td className="p-3 text-sm text-gray-900">{employee.name}</td>
