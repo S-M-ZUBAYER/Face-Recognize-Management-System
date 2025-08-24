@@ -9,7 +9,6 @@ function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
 
   const { isLoading, enrichedEmployees } = useSalaryCalculationData();
-  console.log(enrichedEmployees);
 
   const filters = [
     "All Employees",
@@ -29,7 +28,9 @@ function SalaryCalculationPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-[600]">Salary calculation</h1>
+      <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
+        Salary calculation
+      </p>
       <EmployeeFilterTabs
         filters={filters}
         activeFilter={activeFilter}

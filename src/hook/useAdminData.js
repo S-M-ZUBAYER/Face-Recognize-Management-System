@@ -1,12 +1,12 @@
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useUserData } from "./useUserData";
-import { useAdminStore } from "../zustand/useAdminStore";
+// import { useAdminStore } from "../zustand/useAdminStore";
 
 export const useAdminData = () => {
   const { deviceMACs } = useUserData();
-  const { admins, setAdmins } = useAdminStore();
+  // const { admins, setAdmins } = useAdminStore();
 
   const fetchAdmins = async () => {
     if (!deviceMACs || deviceMACs.length === 0) return [];
@@ -22,7 +22,7 @@ export const useAdminData = () => {
   };
 
   const {
-    data: queryAdmins = [],
+    data: admins = [],
     isLoading,
     error,
     refetch,
@@ -33,15 +33,15 @@ export const useAdminData = () => {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  // 🔄 Sync React Query data into Zustand
-  useEffect(() => {
-    if (queryAdmins.length > 0) {
-      setAdmins(queryAdmins);
-    }
-  }, [queryAdmins, setAdmins]);
+  // Sync React Query data into Zustand
+  // useEffect(() => {
+  //   if (queryAdmins.length > 0) {
+  //     setAdmins(queryAdmins);
+  //   }
+  // }, [queryAdmins, setAdmins]);
 
   return {
-    admins, // always comes from Zustand
+    admins,
     isLoading,
     error,
     refetch,

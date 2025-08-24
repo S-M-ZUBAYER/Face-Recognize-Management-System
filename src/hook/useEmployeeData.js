@@ -34,6 +34,12 @@ export const useEmployeeData = () => {
     })),
   });
 
+  //  Build counts per deviceMAC
+  const employeeCounts = deviceMACs.map((mac, idx) => ({
+    deviceMAC: mac.deviceMAC,
+    count: employeeQueries[idx].data ? employeeQueries[idx].data.length : 0,
+  }));
+
   const employees = employeeQueries
     .map((q) => q.data)
     .filter(Boolean)
@@ -107,6 +113,7 @@ export const useEmployeeData = () => {
 
   return {
     employees,
+    employeeCounts,
     attendedEmployees,
     absentEmployees,
     globalSalaryRules,
