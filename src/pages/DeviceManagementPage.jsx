@@ -22,7 +22,7 @@ function DeviceManagementPage() {
           device management
         </p>
         <div className="grid grid-cols-4 gap-4 mt-4">
-          {deviceMACs ? (
+          {merged ? (
             merged.map((device, index) => (
               <DeviceCard
                 key={index}

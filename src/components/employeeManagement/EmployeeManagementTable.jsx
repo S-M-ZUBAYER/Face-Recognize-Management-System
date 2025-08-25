@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
-import image from "@/constants/image";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
 import { Checkbox } from "../ui/checkbox";
+import EmployeeModal from "./EmployeeModal";
 
 const ITEMS_PER_PAGE = 10;
 const EmployeeManagementTable = ({ employees }) => {
@@ -105,7 +105,9 @@ const EmployeeManagementTable = ({ employees }) => {
                   />
                 </td>
                 <td className="p-3 text-sm text-gray-900">{employee.name}</td>
-                <td className="p-3 text-sm text-gray-600">{employee.id}</td>
+                <td className="p-3 text-sm text-gray-600">
+                  {employee.employeeId}
+                </td>
                 <td className="p-3 text-sm text-gray-600">
                   {employee.designation}
                 </td>
@@ -127,9 +129,7 @@ const EmployeeManagementTable = ({ employees }) => {
                   </span>
                 </td>
                 <td className="p-3">
-                  <button>
-                    <img src={image.settingIcon} alt="setting" />
-                  </button>
+                  <EmployeeModal />
                 </td>
               </tr>
             ))}

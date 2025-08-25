@@ -1,32 +1,39 @@
-import { useUserStore } from "@/zustand/useUserStore";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export const useUserData = () => {
-  const { user, setUser, deviceMACs, setDeviceMACs } = useUserStore();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const fetchUserData = async () => {
     try {
       const storedUser = localStorage.getItem("user");
       const storedDeviceMACs = localStorage.getItem("deviceMACs");
-      if (storedDeviceMACs) {
-        const parsedDeviceMACs = JSON.parse(storedDeviceMACs);
-        setDeviceMACs(parsedDeviceMACs);
-      }
+
+      let parsedUser = null;
+      let parsedDeviceMACs = [];
+
       if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        parsedUser = JSON.parse(storedUser);
       }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage:", error);
-    } finally {
-      setLoading(false);
+      if (storedDeviceMACs) {
+        parsedDeviceMACs = JSON.parse(storedDeviceMACs);
+      }
+
+      return { user: parsedUser, deviceMACs: parsedDeviceMACs };
+    } catch (err) {
+      console.error("Failed to parse from localStorage:", err);
+      throw err;
     }
-  }, [setUser, setDeviceMACs]);
+  };
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["userData"],
+    queryFn: fetchUserData,
+    staleTime: Infinity,
+    cacheTime: Infinity,
+  });
 
   return {
-    user,
-    deviceMACs,
-    loading,
+    user: data?.user ?? null,
+    deviceMACs: data?.deviceMACs ?? [],
+    loading: isLoading,
+    error: isError,
   };
 };
