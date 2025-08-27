@@ -42,7 +42,7 @@ export default function Signin() {
 
       if (res.ok && !data.error) {
         const response = await fetch(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance/admin/admin-info?email=${values.userEmail}`
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admin-info?email=${values.userEmail}`
         );
         const userInfo = await response.json();
 

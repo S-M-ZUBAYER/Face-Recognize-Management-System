@@ -21,13 +21,18 @@ function Dashboard() {
     isLoading,
 
     employees,
+    globalSalaryRules,
     // absentEmployees,
     // attendedEmployees,
   } = useEmployeeData();
 
-  console.log("Dashboard Re-render:", {
-    employees,
-  });
+  console.log(
+    "Dashboard Re-render:",
+    {
+      employees,
+    },
+    globalSalaryRules
+  );
 
   // console.log(
   //   "totalEmployees",

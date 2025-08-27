@@ -36,15 +36,8 @@ function EmployeeModal() {
     {
       key: "visibleInfo",
       title: "Choose which information employee can see",
-      content: [
-        "Select All",
-        "Absent",
-        "Present",
-        "Leaves",
-        "Overtime",
-        "Weekly Activities",
-      ],
-      multi: true, // only this one supports multiple
+      content: ["Absent", "Present", "Leaves", "Overtime", "Weekly Activities"],
+      multi: true,
     },
     {
       key: "overtimeStatus",

@@ -7,6 +7,10 @@ import { useEmployeeData } from "@/hook/useEmployeeData";
 function DeviceManagementPage() {
   const { employeeCounts } = useEmployeeData();
   const { deviceMACs } = useUserData();
+  console.log("DeviceManagementPage Re-render:", {
+    employeeCounts,
+    deviceMACs,
+  });
   const merged = deviceMACs.map((dev) => {
     const found = employeeCounts.find((c) => c.deviceMAC === dev.deviceMAC);
     return {

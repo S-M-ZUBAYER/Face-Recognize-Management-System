@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import axios from "axios";
 import { parseSalaryRules } from "@/lib/parseSalaryRules";
-import { stringifiedArrays } from "@/lib/stringifiedArrays";
 import extractSalaryAndRate from "@/lib/extractSalaryAndRate";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
@@ -17,8 +16,8 @@ export const useEmployeeData = () => {
       queryKey: ["employees", mac.deviceMAC],
       queryFn: async () => {
         const res = await axios.get(
-          // `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}`
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}/simple`
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/employee/all/${mac.deviceMAC}`
+          // `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}/simple`
         );
         return res.data.map((emp) => ({
           name: emp.name,
@@ -45,16 +44,56 @@ export const useEmployeeData = () => {
     .filter(Boolean)
     .flat();
 
-  // Global salary rules
-  const { data: globalSalaryRules = [] } = useQuery({
-    queryKey: ["salaryRules"],
-    queryFn: async () => {
-      const res = await axios.get(
-        "https://grozziie.zjweiting.com:3091/grozziie-attendance/salaryRules/all"
-      );
-      return stringifiedArrays(res.data);
-    },
+  // Global salary rules per deviceMAC
+  const globalSalaryQueries = useQueries({
+    queries: deviceMACs.map((mac) => ({
+      queryKey: ["salaryRules", mac.deviceMAC],
+      queryFn: async () => {
+        const res = await axios.get(
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/salaryRules/check/${mac.deviceMAC}`
+        );
+
+        // Parse the stringified salaryRules
+        let parsedSalaryRules = {};
+        if (res.data.salaryRules) {
+          try {
+            parsedSalaryRules = JSON.parse(res.data.salaryRules);
+            // Parse the nested stringified arrays
+            if (parsedSalaryRules.rules) {
+              parsedSalaryRules.rules = JSON.parse(parsedSalaryRules.rules);
+            }
+            if (parsedSalaryRules.holidays) {
+              parsedSalaryRules.holidays = JSON.parse(
+                parsedSalaryRules.holidays
+              );
+            }
+            if (parsedSalaryRules.generalDays) {
+              parsedSalaryRules.generalDays = JSON.parse(
+                parsedSalaryRules.generalDays
+              );
+            }
+            if (parsedSalaryRules.replaceDays) {
+              parsedSalaryRules.replaceDays = JSON.parse(
+                parsedSalaryRules.replaceDays
+              );
+            }
+          } catch (error) {
+            console.error("Error parsing salary rules:", error);
+            parsedSalaryRules = {};
+          }
+        }
+
+        return {
+          deviceMAC: mac.deviceMAC,
+          salaryRules: parsedSalaryRules,
+        };
+      },
+    })),
   });
+
+  const globalSalaryRules = globalSalaryQueries
+    .map((q) => q.data)
+    .filter(Boolean);
 
   // Attendance per deviceMAC + selectedDate
   const attendanceQueries = useQueries({
@@ -62,7 +101,7 @@ export const useEmployeeData = () => {
       queryKey: ["attendance", mac.deviceMAC, selectedDate],
       queryFn: async () => {
         const res = await axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance/attendance/attendance-by-date-device`,
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/attendance/attendance-by-date-device`,
           { params: { macId: mac.deviceMAC, date: selectedDate } }
         );
         return res.data;
@@ -101,7 +140,7 @@ export const useEmployeeData = () => {
           const globalRule = globalSalaryRules.find(
             (rule) => rule.deviceMAC === employee.deviceMAC
           );
-          expectedTime = globalRule?.param1;
+          expectedTime = globalRule?.salaryRules?.rules?.[0]?.param1;
         }
 
         return actualCheckIn && expectedTime && actualCheckIn > expectedTime;
@@ -125,12 +164,14 @@ export const useEmployeeData = () => {
     setSelectedDate,
     isLoading:
       employeeQueries.some((q) => q.isLoading) ||
-      attendanceQueries.some((q) => q.isLoading),
+      attendanceQueries.some((q) => q.isLoading) ||
+      globalSalaryQueries.some((q) => q.isLoading),
     fetchEmployees: () =>
       employeeQueries.forEach((q) => q.refetch && q.refetch()),
     refreshData: () => {
       employeeQueries.forEach((q) => q.refetch && q.refetch());
       attendanceQueries.forEach((q) => q.refetch && q.refetch());
+      globalSalaryQueries.forEach((q) => q.refetch && q.refetch());
     },
   };
 };
