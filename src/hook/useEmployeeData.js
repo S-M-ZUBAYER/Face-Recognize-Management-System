@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import axios from "axios";
 import { parseSalaryRules } from "@/lib/parseSalaryRules";
-import extractSalaryAndRate from "@/lib/extractSalaryAndRate";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 export const useEmployeeData = () => {
@@ -19,6 +18,7 @@ export const useEmployeeData = () => {
           `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/employee/all/${mac.deviceMAC}`
           // `https://grozziie.zjweiting.com:3091/grozziie-attendance/employee/all/${mac.deviceMAC}/simple`
         );
+
         return res.data.map((emp) => ({
           name: emp.name,
           employeeId: emp.employeeId,
@@ -26,8 +26,8 @@ export const useEmployeeData = () => {
           email: emp.email,
           designation: emp.designation,
           deviceMAC: mac.deviceMAC,
-          salaryRules: parseSalaryRules(emp),
-          salaryInfo: extractSalaryAndRate(emp.payPeriod),
+          salaryRules: parseSalaryRules(emp.salaryRules || []),
+          salaryInfo: JSON.parse(emp.payPeriod),
         }));
       },
     })),
@@ -54,34 +54,7 @@ export const useEmployeeData = () => {
         );
 
         // Parse the stringified salaryRules
-        let parsedSalaryRules = {};
-        if (res.data.salaryRules) {
-          try {
-            parsedSalaryRules = JSON.parse(res.data.salaryRules);
-            // Parse the nested stringified arrays
-            if (parsedSalaryRules.rules) {
-              parsedSalaryRules.rules = JSON.parse(parsedSalaryRules.rules);
-            }
-            if (parsedSalaryRules.holidays) {
-              parsedSalaryRules.holidays = JSON.parse(
-                parsedSalaryRules.holidays
-              );
-            }
-            if (parsedSalaryRules.generalDays) {
-              parsedSalaryRules.generalDays = JSON.parse(
-                parsedSalaryRules.generalDays
-              );
-            }
-            if (parsedSalaryRules.replaceDays) {
-              parsedSalaryRules.replaceDays = JSON.parse(
-                parsedSalaryRules.replaceDays
-              );
-            }
-          } catch (error) {
-            console.error("Error parsing salary rules:", error);
-            parsedSalaryRules = {};
-          }
-        }
+        const parsedSalaryRules = parseSalaryRules(res.data.salaryRules);
 
         return {
           deviceMAC: mac.deviceMAC,
@@ -135,7 +108,7 @@ export const useEmployeeData = () => {
         const checkInArray = JSON.parse(att.checkIn);
         const actualCheckIn = checkInArray?.[0];
 
-        let expectedTime = employee.salaryRules?.[0]?.param1;
+        let expectedTime = employee.salaryRules?.rules?.[0]?.param1;
         if (!expectedTime) {
           const globalRule = globalSalaryRules.find(
             (rule) => rule.deviceMAC === employee.deviceMAC

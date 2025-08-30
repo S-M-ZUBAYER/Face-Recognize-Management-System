@@ -9,6 +9,7 @@ function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
 
   const { isLoading, enrichedEmployees } = useSalaryCalculationData();
+  console.log(enrichedEmployees);
 
   const filters = [
     "All Employees",
