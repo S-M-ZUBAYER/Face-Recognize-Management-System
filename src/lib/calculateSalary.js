@@ -1,203 +1,228 @@
-// utils/calculateSalary.js
-
 // --- Helpers ---
 function toMinutes(time) {
-  if (!time) return 0;
-  const [h, m] = time.split(":").map(Number);
+  if (!time && time !== 0) return 0;
+  // accept "HH:MM" or numbers
+  if (typeof time === "number") return Math.round(time);
+  const [h = 0, m = 0] = String(time)
+    .split(":")
+    .map((v) => Number(v || 0));
   return (h || 0) * 60 + (m || 0);
 }
 function toHours(mins) {
   return mins / 60;
 }
 function normalizeDate(dateStr) {
-  // Accepts "YYYY-MM-DD" or ISO; returns "YYYY-MM-DD"
   if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) {
-    // if already "YYYY-MM-DD", return as-is
-    return String(dateStr).slice(0, 10);
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  } catch {
+    return "Failed to parse date";
   }
-  return d.toISOString().slice(0, 10);
+  // fallback: return first 10 chars (YYYY-MM-DD)
+  return String(dateStr).slice(0, 10);
 }
-function getDailySalary(payPeriod) {
-  const monthlySalary = Number(payPeriod?.salary || 0);
-  const workingDays = Number(payPeriod?.hourlyRate || 1); // hourlyRate = working days per your spec
-  return workingDays > 0 ? monthlySalary / workingDays : 0;
+function tryParseMaybeString(val) {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") return [];
+    try {
+      const p = JSON.parse(trimmed);
+      return p;
+    } catch {
+      // not JSON -> maybe comma separated?
+      return trimmed
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+  return val || [];
 }
-function roundOvertime(minutes, minUnit) {
-  const m = Number(minUnit || 0);
-  if (!m) return minutes;
-  if (minutes < m) return 0;
-  const remainder = minutes % m;
-  return remainder ? minutes + (m - remainder) : minutes;
+function getParamKeys(rule) {
+  return Object.keys(rule)
+    .filter((k) => /^param\d+$/.test(k))
+    .sort((a, b) => {
+      const ai = Number(a.replace("param", ""));
+      const bi = Number(b.replace("param", ""));
+      return ai - bi;
+    });
 }
-function getRule(rules, n) {
-  // n = rule number; ruleId is string of (n-1)
-  const id = String(n - 1);
-  return rules?.find(
-    (r) => String(r.ruleId) === id && Number(r.ruleStatus) === 1
-  );
-}
-function getParamsAsArray(rule) {
+function getParamsArray(rule) {
   if (!rule) return [];
-  return [
-    rule.param1,
-    rule.param2,
-    rule.param3,
-    rule.param4,
-    rule.param5,
-    rule.param6,
-  ].filter((v) => v !== undefined && v !== null && String(v).trim() !== "");
+  const keys = getParamKeys(rule);
+  return keys.map((k) => (k in rule ? rule[k] : null));
 }
-function dayNameFromDate(date) {
-  return new Date(date).toLocaleDateString("en-US", { weekday: "long" });
+function firstNumericParam(rule) {
+  const params = getParamsArray(rule);
+  for (const v of params) {
+    if (v !== null && v !== undefined && String(v).trim() !== "") {
+      const n = Number(v);
+      if (!Number.isNaN(n)) return n;
+      // if not numeric, return raw (for 'day'/'fixed' modes)
+      return v;
+    }
+  }
+  return null;
 }
-function boolFromString(v) {
-  if (typeof v === "boolean") return v;
-  const s = String(v || "")
-    .toLowerCase()
-    .trim();
-  return s === "true" || s === "1" || s === "yes";
+function firstNonEmptyParam(rule) {
+  const params = getParamsArray(rule);
+  for (const v of params) {
+    if (v !== null && v !== undefined && String(v).trim() !== "") return v;
+  }
+  return null;
+}
+function getRuleByNumber(rules, ruleNumber) {
+  // mapping: ruleId === String(ruleNumber - 1)
+  if (!Array.isArray(rules)) return null;
+  const id = String(ruleNumber - 1);
+  return (
+    rules.find((r) => String(r.ruleId) === id && Number(r.ruleStatus) === 1) ||
+    null
+  );
 }
 
-// --- Main ---
-export function calculateSalary(attendanceRecords, payPeriod, salaryRules) {
-  // Safe defaults
-  if (!payPeriod || !salaryRules) {
-    return {
-      attendanceStats: {
-        lateCount: 0,
-        earlyDepartureCount: 0,
-        missedPunch: 0,
-        missedFullPunch: 0,
-        totalLatenessHours: 0,
-      },
-      deductions: 0,
-      otherLeaveDeduction: 0,
-      overtimeDetails: { normal: 0, weekend: 0, holiday: 0 },
-      overtimePay: 0,
-      overtimeSalary: Number(payPeriod?.overtimeSalary || 0),
-      sickLeaveDeduction: 0,
-      standardPay:
-        Number(payPeriod?.salary || 0) + Number(payPeriod?.otherSalary || 0),
-      totalPay: 0,
-      present: 0,
-      absent: 0,
-      workingDays: Number(payPeriod?.hourlyRate || 0),
-      replacementDays: [],
-    };
+function roundOvertime(minutes, minUnit) {
+  const unit = Number(minUnit || 0);
+  if (!unit) return minutes;
+  if (minutes <= 0) return 0;
+  if (minutes < unit) return 0;
+  const rem = minutes % unit;
+  return rem === 0 ? minutes : minutes + (unit - rem);
+}
+
+// --- Main function ---
+export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
+  if (
+    Object.keys(payPeriod).length === 0 &&
+    Object.keys(salaryRules).length === 0
+  ) {
+    console.log(
+      `employee id ${id} has no payPeriod and salaryRules`,
+      attendanceRecords
+    );
   }
 
-  const rules = salaryRules.rules || [];
+  const rulesArr = Array.isArray(salaryRules.rules)
+    ? salaryRules.rules
+    : tryParseMaybeString(salaryRules.rules);
 
-  // Rule 2 (holidays), Rule 3 (weekends), Rule 4 (replace weekend with workday)
-  // salaryRules.holidays / generalDays / replaceDays are given as arrays (no JSON.parse).
-  const holidaysSet = new Set((salaryRules.holidays || []).map(normalizeDate));
+  // holidays/generalDays/replaceDays may be arrays or stringified arrays
+  const holidaysArr = Array.isArray(salaryRules.holidays)
+    ? salaryRules.holidays
+    : tryParseMaybeString(salaryRules.holidays);
+  const generalDaysArr = Array.isArray(salaryRules.generalDays)
+    ? salaryRules.generalDays
+    : tryParseMaybeString(salaryRules.generalDays);
+  const replaceDaysArr = Array.isArray(salaryRules.replaceDays)
+    ? salaryRules.replaceDays
+    : tryParseMaybeString(salaryRules.replaceDays);
+
+  // normalize sets
+  const holidaysSet = new Set(
+    (holidaysArr || []).map(normalizeDate).filter(Boolean)
+  );
   const replaceDaysSet = new Set(
-    (salaryRules.replaceDays || []).map(normalizeDate)
+    (replaceDaysArr || []).map(normalizeDate).filter(Boolean)
   );
+  const weekendDatesSet = new Set(
+    (generalDaysArr || []).map(normalizeDate).filter(Boolean)
+  ); // some setups store weekend date list here
 
-  // Weekend day names from Rule 3 objects (ruleId "2")
-  const rule3All = rules.filter(
-    (r) => String(r.ruleId) === "2" && Number(r.ruleStatus) === 1
-  );
+  // build weekend day names from Rule 3 (ruleNumber 3 -> ruleId "2")
   const weekendDayNames = new Set();
-  rule3All.forEach((r) => {
-    getParamsAsArray(r).forEach((name) => weekendDayNames.add(String(name)));
+  const allRule3s = (rulesArr || []).filter(
+    (r) => String(r.ruleId) === String(3 - 1) && Number(r.ruleStatus) === 1
+  );
+  allRule3s.forEach((r) => {
+    const params = getParamsArray(r);
+    params.forEach((p) => {
+      if (p && String(p).trim()) {
+        weekendDayNames.add(String(p).trim());
+      }
+    });
   });
-  // Also support date-based weekend list if provided in salaryRules.generalDays (sometimes dates are stored)
-  const weekendDateSet = new Set(
-    (salaryRules.generalDays || []).map(normalizeDate)
+
+  // helpers to get rules by number (1..24)
+  const getRule = (n) => getRuleByNumber(rulesArr, n);
+
+  // Read many rules and their first/params
+  const shiftRules = (rulesArr || []).filter(
+    (r) => String(r.ruleId) === String(1 - 1) && Number(r.ruleStatus) === 1
   );
+  // Rule 5
+  const rule5 = getRule(5); // grace minutes param1
+  const latenessGraceMin = Number(firstNumericParam(rule5) || 0);
 
-  // Rule 1 (Shifts): param1–4 normal shift; param5–6 overtime window
-  // There may be multiple shift groups; use them if present; otherwise flexible mode when only cross-midnight.
-  const shiftRules = rules.filter(
-    (r) => String(r.ruleId) === "0" && Number(r.ruleStatus) === 1
-  );
-
-  // Rule 5: lateness grace (minutes)
-  const rule5 = getRule(rules, 5);
-  const latenessGraceMin = Number(rule5?.param1 || 0);
-
-  // Rule 6: flexible working hours ratio late:extra (e.g., 1:2 -> param1=1, param2=2)
-  const rule6 = getRule(rules, 6);
+  // Rule 6 flexible mapping (param1 late unit, param2 extra)
+  const rule6 = getRule(6);
   const flexLateUnit = Number(rule6?.param1 || 0);
   const flexExtraUnit = Number(rule6?.param2 || 0);
 
-  // Rule 7: replace lateness with overtime (we always apply if active)
-  const rule7 = getRule(rules, 7);
-  const useReplacement = !!rule7; // order is always Holiday -> Weekend -> Normal per your spec
+  // Rule 7 replace lateness with overtime (presence means enabled)
+  const rule7 = getRule(7);
+  const rule7Enabled = !!rule7;
 
-  // Rule 8: minimum overtime unit (minutes)
-  const rule8 = getRule(rules, 8);
-  const minOTUnit = Number(rule8?.param1 || 0);
+  // Rule 8 minOT
+  const rule8 = getRule(8);
+  const minOTUnit = Number(firstNumericParam(rule8) || 0);
 
-  // Rule 9/10: weekend & holiday OT multipliers
-  const rule9 = getRule(rules, 9);
-  const weekendMultiplier = Number(rule9?.param1 || 1);
-  const rule10 = getRule(rules, 10);
-  const holidayMultiplier = Number(rule10?.param1 || 1);
+  // Rule 9,10 multipliers
+  const rule9 = getRule(9);
+  const weekendMultiplier = Number(firstNumericParam(rule9) || 1);
+  const rule10 = getRule(10);
+  const holidayMultiplier = Number(firstNumericParam(rule10) || 1);
 
-  // Rule 11: sick/other leave deduction (mode + value)
-  const rule11 = getRule(rules, 11); // param1: "day" or "fixed", param2: value
+  // Rule 11 sick/other leave
+  const rule11 = getRule(11);
 
-  // Rule 13: auto replacement (no-OT employees)
-  const rule13 = getRule(rules, 13);
+  // Rule 13 auto replacement when OT disabled
+  const rule13 = getRule(13);
 
-  // Rule 14: per-absence penalty (days to deduct per absence)
-  const rule14 = getRule(rules, 14);
-  const daysPenaltyPerAbsence = Number(rule14?.param1 || 0);
+  // Rule 14 absent penalty (this is ruleNumber 14 -> ruleId "13")
+  const rule14 = getRule(14);
+  // The parameter might be in param1 or param2 depending on how admin saved; pick first numeric param found
+  const daysPenaltyPerAbsence = Number(firstNumericParam(rule14) || 0);
 
-  // Rule 16: late per-occurrence
-  const rule16 = getRule(rules, 16);
-  const latePenaltyPerOccurrence = Number(rule16?.param1 || 0);
-
-  // Rule 17: early departure per-occurrence
-  const rule17 = getRule(rules, 17);
-  const earlyPenaltyPerOccurrence = Number(rule17?.param1 || 0);
-
-  // Rule 18: Late < half-day => 0.5 day; Late >= half-day => 1 day (per-day basis)
-  const rule18 = getRule(rules, 18);
-
-  // Rule 19: penalty per hour of total lateness
-  const rule19 = getRule(rules, 19);
-  const perHourLatePenalty = Number(rule19?.param1 || 0);
-
-  // Rule 20: fixed penalty if total lateness minutes exceed threshold
-  const rule20 = getRule(rules, 20);
-  const rule20ThresholdMin = Number(rule20?.param1 || 0);
-  const rule20FixedPenalty = Number(rule20?.param2 || 0);
-
-  // Rule 21: incremental late fines (inc, applied 1x + 2x + ... n)
-  const rule21 = getRule(rules, 21);
-  const incrementalLate = Number(rule21?.param1 || 0);
-
-  // Rule 22: day/night shift lateness penalties
-  const rule22 = getRule(rules, 22);
-  const dayShiftLatePenalty = Number(rule22?.param1 || 0);
-  const nightShiftLatePenalty = Number(rule22?.param2 || 0);
-
-  // Rule 23: Missed punch penalty after acceptable count
-  const rule23 = getRule(rules, 23);
+  // Rules 16-23 fines
+  const rule16 = getRule(16);
+  const latePenaltyPerOcc = Number(firstNumericParam(rule16) || 0);
+  const rule17 = getRule(17);
+  const earlyPenaltyPerOcc = Number(firstNumericParam(rule17) || 0);
+  const rule18 = getRule(18);
+  const rule19 = getRule(19);
+  const perHourLatePenalty = Number(firstNumericParam(rule19) || 0);
+  const rule20 = getRule(20);
+  const rule20Threshold = Number((rule20 && firstNumericParam(rule20)) || 0);
+  const rule20Fixed = Number(
+    (rule20 && firstNonEmptyParam(rule20) && rule20.param2) || 0
+  );
+  const rule21 = getRule(21);
+  const incrementalLateValue = Number(firstNumericParam(rule21) || 0);
+  const rule22 = getRule(22);
+  const dayShiftPenalty = Number(rule22?.param1 || 0);
+  const nightShiftPenalty = Number(rule22?.param2 || 0);
+  const rule23 = getRule(23);
   const missedPunchCost = Number(rule23?.param1 || 0);
-  const missedAcceptableTimes = Number(rule23?.param2 || 0);
+  const missedPunchAccept = Number(rule23?.param2 || 0);
 
-  // Rule 24: OT allowed? Normal OT multiplier
-  const rule24 = getRule(rules, 24);
-  const overtimeAllowed = boolFromString(rule24?.param1);
+  // Rule 24 OT allowed + multiplier
+  const rule24 = getRule(24);
+
+  const overtimeAllowed = rule24 ? JSON.parse(rule24.param1) : false;
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
-  // Pay inputs
-  const baseSalary = Number(payPeriod.salary || 0);
+  // pay inputs
+  const monthlySalary = Number(payPeriod.salary || 0);
   const otherSalary = Number(payPeriod.otherSalary || 0);
-  const workingDays = Number(payPeriod.hourlyRate || 0); // "working days" per your definition
-  const hourlyRateForOT = Number(payPeriod.hourlyRate || 0); // you told earlier "hourlyRate" stores working days, but OT rate is from rules; we use this as base rate per prior spec usage
-  const overtimeSalary = Number(payPeriod.overtimeSalary || 0); // returning for reference
-  const standardPay = baseSalary + otherSalary;
-  const dailySalary = getDailySalary(payPeriod);
+  const workingDaysConfigured = Number(payPeriod.hourlyRate || 0); // per your spec: this is working days
+  const overtimeSalaryRate = Number(payPeriod.overtimeSalary || 0); // base hourly for OT pay
+  const standardPay = monthlySalary + otherSalary;
+  const dailySalary =
+    workingDaysConfigured > 0 ? monthlySalary / workingDaysConfigured : 0;
 
-  // Totals / counters
+  // initialize counters
   let lateCount = 0;
   let earlyDepartureCount = 0;
   let missedPunch = 0;
@@ -206,285 +231,294 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules) {
   let overtimeNormal = 0;
   let overtimeWeekend = 0;
   let overtimeHoliday = 0;
-  let deductions = 0;
-  let sickLeaveDeduction = 0;
-  let otherLeaveDeduction = 0;
   let present = 0;
   let absent = 0;
+  let deductions = 0;
+  let otherLeaveDeduction = 0;
+  let sickLeaveDeduction = 0;
+  const replacementDays = [];
 
-  // For Rule 18 (per-day half/full day late deductions)
+  // track half/full-day lateness counts for Rule 18
   let halfDayLateCount = 0;
   let fullDayLateCount = 0;
 
-  // For Rule 13 (replacement days list generated)
-  const replacementDays = [];
+  // loop each record (expected to be for the pay period)
+  attendanceRecords.forEach((rec) => {
+    const dateRaw = rec?.date;
+    const date = normalizeDate(dateRaw);
+    if (!date) return; // skip bad records
 
-  // Utility: determine if weekend for a given date
-  const isWeekendDay = (dateStr) => {
-    const dNorm = normalizeDate(dateStr);
-    const dayName = dayNameFromDate(dNorm);
+    // isHoliday / isWeekend check
+    const isHoliday = holidaysSet.has(date);
+    // weekend = either day-name match from Rule 3 OR date in generalDays list
+    const dayName = new Date(date).toLocaleDateString("en-US", {
+      weekday: "long",
+    });
     const weekendByName = weekendDayNames.has(dayName);
-    const weekendByDate = weekendDateSet.has(dNorm);
-    const replaced = replaceDaysSet.has(dNorm); // if true, it's a workday despite weekend
-    return (weekendByName || weekendByDate) && !replaced;
-  };
+    const weekendByDate = weekendDatesSet.has(date);
+    let isWeekend =
+      (weekendByName || weekendByDate) && !replaceDaysSet.has(date);
 
-  // Process each daily record
-  (attendanceRecords || []).forEach((record) => {
-    const dateStrRaw = record?.date;
-    const dateStr = normalizeDate(dateStrRaw);
-    const isHoliday = holidaysSet.has(dateStr);
-    const isWeekend = isWeekendDay(dateStr);
-
-    // Working day if NOT holiday and NOT weekend OR (weekend but replaced as workday)
-    const isReplacedWorkday = replaceDaysSet.has(dateStr);
+    const isReplacedWorkday = replaceDaysSet.has(date);
     const isWorkingDay = (!isHoliday && !isWeekend) || isReplacedWorkday;
 
-    let punches = [];
-    try {
-      punches = Array.isArray(record?.checkIn)
-        ? record.checkIn
-        : JSON.parse(record?.checkIn || "[]");
-    } catch {
-      punches = [];
+    // parse checkIns: allow array or JSON-stringed array
+    let checkIns = [];
+    if (Array.isArray(rec?.checkIn)) checkIns = rec.checkIn;
+    else if (typeof rec?.checkIn === "string") {
+      try {
+        checkIns = JSON.parse(rec.checkIn);
+      } catch {
+        checkIns = tryParseMaybeString(rec.checkIn);
+      }
+    } else {
+      checkIns = [];
     }
 
-    if (!punches || punches.length === 0) {
-      // No punches at all
-      if (isWorkingDay) absent += 1;
-      // Not counting missedFullPunch here (this is a true absence)
+    // if no punches
+    if (!checkIns || checkIns.length === 0) {
+      if (isWorkingDay) {
+        absent += 1;
+        missedFullPunch += 1;
+      }
       return;
     }
 
-    // There is at least one punch
+    // there is at least one punch
     if (isWorkingDay) present += 1;
 
-    // Pair up (in,out)
-    const pairCount = Math.floor(punches.length / 2);
-    if (pairCount === 0) {
-      missedPunch += 1; // single in without out
-      missedFullPunch += 1;
-    } else if (punches.length % 2 === 1) {
-      // Odd count -> last out missing
-      missedPunch += 1;
-    }
+    // pair wise: count unmatched outs => missed punches
+    // const pairs = Math.floor(checkIns.length / 2);
+    const unmatched = checkIns.length % 2;
+    missedPunch += unmatched; // last unmatched check-in considered a missed punch
+    // count days where only single in without out as missedFullPunch? we already counted absent when zero punches
+    // missedFullPunch remains as days-with-zero-punches handled earlier
 
-    // Use the first IN and last OUT for lateness / early checks and OT windows
-    const firstIn = punches[0];
-    const lastOut = punches[punches.length - 1];
-
+    // choose first IN and last OUT for lateness/early/OT window
+    const firstIn = String(checkIns[0] || "");
+    const lastOut = String(checkIns[checkIns.length - 1] || "");
     const inMins = toMinutes(firstIn);
     const outMins = toMinutes(lastOut);
 
-    // Determine applicable shift window for this date from Rule 1
-    // (support multiple shift rules; pick the first with usable params)
-    let shiftStart = null,
-      halfDayBoundary = null,
-      lunchStart = null,
-      shiftEnd = null,
-      otStart = null,
-      otEnd = null;
-
+    // Determine applicable shift window: use first shiftRule that has params
+    let shiftStart = null;
+    let halfDayBoundary = null;
+    let shiftEnd = null;
+    let otStart = null;
+    let otEnd = null;
     for (const sr of shiftRules) {
-      // param1–4 = normal shift; param5–6 = OT period
-      const p1 = sr?.param1,
-        p2 = sr?.param2,
-        p3 = sr?.param3,
-        p4 = sr?.param4,
-        p5 = sr?.param5,
-        p6 = sr?.param6;
-      if (p1 || p2 || p3 || p4) {
-        shiftStart = toMinutes(p1); // e.g., "08:10"
-        halfDayBoundary = toMinutes(p2); // e.g., "12:00" (morning end)
-        lunchStart = toMinutes(p3); // e.g., "13:08"
-        shiftEnd = toMinutes(p4); // e.g., "17:00"
-        otStart = p5 ? toMinutes(p5) : null; // e.g., "18:09"
-        otEnd = p6 ? toMinutes(p6) : null; // e.g., "20:00"
+      // read every param; param1..param6
+      const params = getParamsArray(sr);
+      // param1..4 normal shifting; param5-6 overtime
+      if (params.length > 0) {
+        // param1
+        shiftStart = sr.param1 ? toMinutes(sr.param1) : null;
+        halfDayBoundary = sr.param2 ? toMinutes(sr.param2) : null;
+        // param3 (lunch) not used for salary calc right now
+        shiftEnd = sr.param4 ? toMinutes(sr.param4) : null;
+        otStart = sr.param5 ? toMinutes(sr.param5) : null;
+        otEnd = sr.param6 ? toMinutes(sr.param6) : null;
         break;
       }
     }
 
-    // Lateness & Early departure use shift times if available
+    // Lateness
     if (shiftStart !== null && shiftEnd !== null) {
-      // Rule 5: Grace
-      const lateThreshold = shiftStart + latenessGraceMin;
-
-      let dayLateMinutes = 0;
-      if (inMins > lateThreshold) {
-        dayLateMinutes = inMins - lateThreshold;
+      const lateThresh = shiftStart + latenessGraceMin;
+      if (inMins > lateThresh) {
+        const lateMins = inMins - lateThresh;
         lateCount += 1;
-        totalLatenessMinutes += dayLateMinutes;
+        totalLatenessMinutes += lateMins;
 
-        // Rule 18: per-day half/full-day penalties using half-day boundary (if provided) else 12:00
+        // Rule 18 half/full day detection
         if (rule18) {
-          const boundary = halfDayBoundary ?? toMinutes("12:00");
+          const boundary =
+            halfDayBoundary !== null ? halfDayBoundary : toMinutes("12:00");
           if (inMins < boundary) halfDayLateCount += 1;
           else fullDayLateCount += 1;
         }
       }
 
-      // Rule 6: Flexible working hours (extend required end based on lateness)
+      // Rule 6 flexible working hours: map late -> extra leave: param1 param2
       let requiredEnd = shiftEnd;
-      if (rule6 && flexLateUnit > 0) {
-        const units = Math.ceil(dayLateMinutes / flexLateUnit);
-        requiredEnd = shiftEnd + units * flexExtraUnit;
+      if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
+        // total late minutes for this day = dayLateMins (if none then 0)
+        const dayLateMins = Math.max(
+          0,
+          inMins - (shiftStart + latenessGraceMin)
+        );
+        if (dayLateMins > 0) {
+          const units = Math.ceil(dayLateMins / flexLateUnit);
+          requiredEnd = shiftEnd + units * flexExtraUnit;
+        }
       }
 
+      // early departure detection
       if (outMins < requiredEnd) {
         earlyDepartureCount += 1;
       }
+    } else {
+      // shift not configured — can't reliably compute lateness/early; skip those metrics
     }
 
-    // Overtime minutes
-    // If weekend or holiday -> all worked time is the respective overtime bucket
-    const totalWorkedToday =
-      pairCount > 0
-        ? toMinutes(punches[punches.length - 1]) - toMinutes(punches[0])
-        : 0;
+    // Overtime calculation for the day
+    const workedMinutes = Math.max(0, outMins - inMins);
 
     if (isHoliday) {
-      overtimeHoliday += Math.max(0, totalWorkedToday);
+      overtimeHoliday += workedMinutes;
     } else if (isWeekend) {
-      overtimeWeekend += Math.max(0, totalWorkedToday);
+      overtimeWeekend += workedMinutes;
     } else {
-      // Normal day: only count beyond specified OT window if present
+      // normal day: count only OT inside shift OT window if present
       if (otStart !== null && otEnd !== null && outMins > otStart) {
-        const segment = Math.max(0, Math.min(outMins, otEnd) - otStart);
-        overtimeNormal += segment;
+        const extra = Math.max(0, Math.min(outMins, otEnd) - otStart);
+        overtimeNormal += extra;
       }
     }
 
-    // Rule 13: If no OT option and rule is active, mark weekend/holiday attendance as replacement days
+    // If OT disabled and rule13 active -> weekend/holiday attendance becomes replacementDays
     if (rule13 && !overtimeAllowed && (isHoliday || isWeekend)) {
-      replacementDays.push(dateStr);
+      replacementDays.push(date);
     }
-  });
+  }); // end attendanceRecords loop
 
-  // Rule 7: replace lateness with OT minutes in order: Holiday -> Weekend -> Normal
-  if (useReplacement && totalLatenessMinutes > 0) {
-    let remaining = totalLatenessMinutes;
-    const buckets = [
-      {
-        key: "holiday",
-        ref: () => overtimeHoliday,
-        set: (v) => (overtimeHoliday = v),
-      },
-      {
-        key: "weekend",
-        ref: () => overtimeWeekend,
-        set: (v) => (overtimeWeekend = v),
-      },
-      {
-        key: "normal",
-        ref: () => overtimeNormal,
-        set: (v) => (overtimeNormal = v),
-      },
-    ];
-    for (const b of buckets) {
-      if (remaining <= 0) break;
-      const have = b.ref();
-      const use = Math.min(remaining, have);
-      b.set(have - use);
-      remaining -= use;
-    }
+  // If workingDaysConfigured is provided, compute absent as workingDaysConfigured - present (clamped)
+  const workingDays = Number(workingDaysConfigured || 0);
+  if (workingDays > 0) {
+    const computedAbsent = Math.max(0, workingDays - present);
+    // keep absent as the larger of previously counted absent (days with zero punches) and computedAbsent
+    absent = Math.max(absent, computedAbsent);
+  } else {
+    // if workingDays not provided, absent stays whatever counted from no-punch days
+    // computed absent is the missedFullPunch count
+    absent = Math.max(absent, missedFullPunch);
   }
 
-  // Rule 8: apply minimum OT unit rounding
+  // missedFullPunch make sense as count of working-day-with-zero-punches
+  // we already incremented missedFullPunch when no punches on working day
+
+  // Rule 7: replace lateness minutes using overtime buckets in order: holiday -> weekend -> normal
+  if (rule7Enabled && totalLatenessMinutes > 0) {
+    let remaining = totalLatenessMinutes;
+    // holiday
+    const useFromHoliday = Math.min(remaining, overtimeHoliday);
+    overtimeHoliday -= useFromHoliday;
+    remaining -= useFromHoliday;
+    // weekend
+    if (remaining > 0) {
+      const useFromWeekend = Math.min(remaining, overtimeWeekend);
+      overtimeWeekend -= useFromWeekend;
+      remaining -= useFromWeekend;
+    }
+    // normal
+    if (remaining > 0) {
+      const useFromNormal = Math.min(remaining, overtimeNormal);
+      overtimeNormal -= useFromNormal;
+      remaining -= useFromNormal;
+    }
+    // remaining lateness will still be considered for deductions (no OT replacement left)
+  }
+
+  // Rule 8: apply minimum OT rounding (minutes)
   overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
   overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
   overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
 
-  // --- Deductions (Rules 16–23, 11, 14, 18, 19, 20, 21, 22, 23) ---
+  // --- Deductions ---
 
-  // Rule 16
-  if (latePenaltyPerOccurrence) {
-    deductions += lateCount * latePenaltyPerOccurrence;
-  }
+  // Rule 16: late per occurrence
+  if (latePenaltyPerOcc) deductions += lateCount * latePenaltyPerOcc;
 
-  // Rule 17
-  if (earlyPenaltyPerOccurrence) {
-    deductions += earlyDepartureCount * earlyPenaltyPerOccurrence;
-  }
+  // Rule 17: early departure per occurrence
+  if (earlyPenaltyPerOcc)
+    deductions += earlyDepartureCount * earlyPenaltyPerOcc;
 
-  // Rule 18: per-day half/full-day late salary deduction
+  // Rule 18: half/full-day lateness
   if (rule18) {
     deductions +=
       halfDayLateCount * (0.5 * dailySalary) + fullDayLateCount * dailySalary;
   }
 
-  // Rule 19: penalty per hour of lateness (total across cycle)
-  if (perHourLatePenalty) {
+  // Rule 19: hourly lateness penalty (total lateness hours * perHourLatePenalty)
+  if (perHourLatePenalty)
     deductions += toHours(totalLatenessMinutes) * perHourLatePenalty;
+
+  // Rule 20: fixed penalty if total lateness > threshold (param1 threshold minutes, param2 fixed penalty)
+  if (rule20 && rule20Threshold && totalLatenessMinutes > rule20Threshold)
+    deductions += rule20Fixed;
+
+  // Rule 21: incremental lateness
+  if (incrementalLateValue) {
+    // incremental sum = inc * sum_{i=1..lateCount} i = inc * lateCount*(lateCount+1)/2
+    deductions += (incrementalLateValue * (lateCount * (lateCount + 1))) / 2;
   }
 
-  // Rule 20: fixed penalty if total lateness exceeds threshold (minutes)
-  if (
-    rule20 &&
-    rule20ThresholdMin &&
-    totalLatenessMinutes > rule20ThresholdMin
-  ) {
-    deductions += rule20FixedPenalty;
-  }
-
-  // Rule 21: incremental penalty across late occurrences
-  if (incrementalLate) {
-    // Sum 1..n = n(n+1)/2
-    deductions += (incrementalLate * (lateCount * (lateCount + 1))) / 2;
-  }
-
-  // Rule 22: day/night shift late penalty per occurrence (decide shift by start time)
-  if (rule22) {
-    // If we had any late occurrences, apply per-occurrence based on day/night shift.
-    // Decide shift from primary Rule 1 window start
+  // Rule 22: day/night shift penalties
+  if (rule22 && (dayShiftPenalty || nightShiftPenalty)) {
+    // determine if primary shift is night by checking shiftRules[0].param1
     let isNightShift = false;
-    const refShift = shiftRules[0];
-    if (refShift?.param1) {
-      const startMin = toMinutes(refShift.param1);
-      // Consider 18:00+ a night shift (heuristic)
-      isNightShift = startMin >= toMinutes("18:00");
+    if (shiftRules && shiftRules.length > 0 && shiftRules[0].param1) {
+      const startMin = toMinutes(shiftRules[0].param1);
+      // heuristic: start >= 18:00 is night shift
+      if (startMin >= toMinutes("18:00")) isNightShift = true;
     }
-    const perOcc = isNightShift ? nightShiftLatePenalty : dayShiftLatePenalty;
-    if (perOcc) deductions += lateCount * perOcc;
+    const perOccPenalty = isNightShift ? nightShiftPenalty : dayShiftPenalty;
+    if (perOccPenalty) deductions += lateCount * perOccPenalty;
   }
 
-  // Rule 23: missed punch penalties beyond acceptable count
-  if (rule23 && missedPunch > missedAcceptableTimes) {
-    deductions += (missedPunch - missedAcceptableTimes) * missedPunchCost;
+  // Rule 23: missed punch penalty after acceptable times
+  if (rule23 && missedPunchCost && missedPunch > missedPunchAccept) {
+    deductions += (missedPunch - missedPunchAccept) * missedPunchCost;
   }
 
-  // Rule 11: sick/other leave deduction (admin selects one: day or fixed)
+  // Rule 11: sick/other leave deduction: admin could set mode 'day' or fixed amount - read param1 and param2 / fallback
   if (rule11) {
-    const mode = String(rule11.param1 || "").toLowerCase(); // "day" or "fixed"
-    const val = Number(rule11.param2 || 0);
-    if (mode === "day") {
-      otherLeaveDeduction = dailySalary * val; // e.g., 0.5 day => dailySalary * 0.5
-    } else {
-      otherLeaveDeduction = val; // fixed amount
+    // check param keys: could be param1="day" param2="0.5" or param1="fixed" param2="200"
+    const p1 = rule11.param1;
+    const p2 = rule11.param2;
+    if (p1 && String(p1).toLowerCase().includes("day")) {
+      // p2 is fraction of days
+      const frac = Number(p2 || 0);
+      otherLeaveDeduction = dailySalary * frac;
+    } else if (p1 && String(p1).toLowerCase().includes("fixed")) {
+      otherLeaveDeduction = Number(p2 || 0);
+    } else if (!p1 && p2) {
+      // sometimes admin may have stored only second param as fixed or day count
+      const numeric = Number(p2);
+      if (!Number.isNaN(numeric)) otherLeaveDeduction = numeric;
     }
   }
 
-  // Rule 14: per-absence salary deduction (daysPenaltyPerAbsence × absentDays × dailySalary)
+  // Rule 14: per-absence deduction (daysPenaltyPerAbsence × absentDays × dailySalary)
   if (daysPenaltyPerAbsence && absent > 0) {
     deductions += daysPenaltyPerAbsence * absent * dailySalary;
   }
 
-  // --- Overtime pay (Rules 9,10,24) ---
+  // --- Overtime pay (Rules 9,10,24)
   let overtimePay = 0;
   if (overtimeAllowed) {
-    // Normal OT uses Rule 24 multiplier
+    // base OT rate use overtimeSalaryRate (per-hour)
     overtimePay +=
-      toHours(overtimeNormal) * hourlyRateForOT * (normalOTMultiplier || 1);
-    // Weekend/Holiday OT use Rules 9/10 multipliers
+      toHours(overtimeNormal) *
+      (overtimeSalaryRate || 0) *
+      (normalOTMultiplier || 1);
     overtimePay +=
-      toHours(overtimeWeekend) * hourlyRateForOT * (weekendMultiplier || 1);
+      toHours(overtimeWeekend) *
+      (overtimeSalaryRate || 0) *
+      (weekendMultiplier || 1);
     overtimePay +=
-      toHours(overtimeHoliday) * hourlyRateForOT * (holidayMultiplier || 1);
+      toHours(overtimeHoliday) *
+      (overtimeSalaryRate || 0) *
+      (holidayMultiplier || 1);
   } else {
-    // No OT pay when OT not allowed
+    // OT not allowed -> no OT pay (but replacementDays might be recorded earlier)
     overtimePay = 0;
   }
 
-  // Compute total
+  // sickLeaveDeduction left as 0 unless you have specific sick leave records (Rule 11 could handle)
+  // OtherLeaveDeduction already computed
+
+  // --- Total pay calculation
   const totalPay =
     standardPay -
     deductions -
@@ -508,13 +542,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules) {
       holiday: toHours(overtimeHoliday),
     },
     overtimePay,
-    overtimeSalary, // just returned for reference as you requested
+    overtimeSalary: overtimeSalaryRate,
     sickLeaveDeduction,
     standardPay,
     totalPay,
     present,
     absent,
-    workingDays,
-    replacementDays, // produced by Rule 13 when OT is disabled
+    workingDays: workingDaysConfigured,
+    replacementDays,
   };
 }

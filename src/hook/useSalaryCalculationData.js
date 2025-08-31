@@ -22,7 +22,10 @@ export const useSalaryCalculationData = () => {
       },
     })),
   });
-  const payPeriodData = payPeriodQueries.map((q) => q.data).filter(Boolean);
+  const payPeriodData = payPeriodQueries
+    .map((q) => q.data)
+    .filter(Boolean)
+    .flat();
 
   // Attendance per deviceMAC
   const attendanceQueries = useQueries({
@@ -53,7 +56,7 @@ export const useSalaryCalculationData = () => {
           PayPeriod: found.payPeriod,
           SalaryRules: Rule?.salaryRules,
         }
-      : { PayPeriod: null, SalaryRules: {} };
+      : { PayPeriod: {}, SalaryRules: {} };
   }
 
   // --- Helper: get employee monthly attendance ---
@@ -98,7 +101,8 @@ export const useSalaryCalculationData = () => {
     const salaryDetails = calculateSalary(
       monthlyAttendance,
       payPeriod,
-      salaryRules
+      salaryRules,
+      emp.employeeId
     );
 
     return {

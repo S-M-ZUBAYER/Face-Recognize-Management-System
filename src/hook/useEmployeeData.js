@@ -66,7 +66,8 @@ export const useEmployeeData = () => {
 
   const globalSalaryRules = globalSalaryQueries
     .map((q) => q.data)
-    .filter(Boolean);
+    .filter(Boolean)
+    .flat();
 
   // Attendance per deviceMAC + selectedDate
   const attendanceQueries = useQueries({
