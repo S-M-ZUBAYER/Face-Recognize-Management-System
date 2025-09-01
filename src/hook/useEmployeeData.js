@@ -26,7 +26,7 @@ export const useEmployeeData = () => {
           email: emp.email,
           designation: emp.designation,
           deviceMAC: mac.deviceMAC,
-          salaryRules: parseSalaryRules(emp.salaryRules || []),
+          salaryRules: parseSalaryRules(emp.salaryRules),
           salaryInfo: JSON.parse(emp.payPeriod),
         }));
       },

@@ -59,13 +59,20 @@ export const useSalaryCalculationData = () => {
       : { PayPeriod: {}, SalaryRules: {} };
   }
 
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  console.log(currentMonth, currentYear);
+
   // --- Helper: get employee monthly attendance ---
   function getEmployeeMonthlyAttendance(empId) {
     // console.log(
     //   `Fetching attendance for EmpID: ${empId}, DeviceMAC: ${deviceMAC}`
     // );
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    const currentMonth = 8;
+    const currentYear = 2025;
+
+    console.log(currentMonth, currentYear);
 
     // Filter by current month, year, and employee ID
     return Attendance.filter((record) => {
@@ -82,8 +89,17 @@ export const useSalaryCalculationData = () => {
   const enrichedEmployees = employees.map((emp) => {
     let payPeriod, salaryRules;
 
-    // Fallback if employee does not have salaryInfo or salaryRules
-    if (emp.salaryInfo === 999 || emp.salaryRules?.rules?.length === 0) {
+    const hasInvalidSalaryInfo =
+      emp.salaryInfo === 999 ||
+      !emp.salaryInfo ||
+      (typeof emp.salaryInfo === "object" &&
+        Object.keys(emp.salaryInfo).length === 0);
+    const hasInvalidSalaryRules =
+      !emp.salaryRules?.rules?.length ||
+      (typeof emp.salaryRules === "object" &&
+        Object.keys(emp.salaryRules).length === 0);
+
+    if (hasInvalidSalaryInfo || hasInvalidSalaryRules) {
       const { SalaryRules, PayPeriod } = getPayInfoByDevice(emp.deviceMAC);
       payPeriod = PayPeriod;
       salaryRules = SalaryRules;
@@ -96,6 +112,10 @@ export const useSalaryCalculationData = () => {
     const monthlyAttendance = getEmployeeMonthlyAttendance(emp.employeeId);
 
     // console.log(`${emp.name} Monthly Attendance:`, monthlyAttendance);
+
+    if (emp.employeeId === "44141190") {
+      console.log(monthlyAttendance);
+    }
 
     // Calculate salary using monthly attendance
     const salaryDetails = calculateSalary(
