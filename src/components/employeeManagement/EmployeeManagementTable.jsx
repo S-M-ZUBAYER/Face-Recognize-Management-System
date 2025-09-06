@@ -3,11 +3,12 @@ import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
 import { Checkbox } from "../ui/checkbox";
 import EmployeeModal from "./EmployeeModal";
+import { useOverTimeData } from "@/hook/useOverTimeData";
 
 const ITEMS_PER_PAGE = 10;
 const EmployeeManagementTable = ({ employees }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-
+  const { overTime } = useOverTimeData();
   const handleSelectAll = (checked) => {
     if (checked) {
       setSelectedEmployees(employees.map((emp) => emp.employeeId || emp.id));
@@ -51,6 +52,16 @@ const EmployeeManagementTable = ({ employees }) => {
     selectedEmployees.includes(emp.employeeId || emp.id)
   );
 
+  function hasOvertimeRecords(employeeId, overtimeArray = overTime) {
+    const today = new Date().toISOString().split("T")[0];
+
+    return overtimeArray.some((record) => {
+      const recordDate = record.date.split("T")[0];
+
+      return record.employeeId === employeeId && recordDate === today;
+    });
+  }
+
   return (
     <>
       <div className="flex items-center gap-2.5 ">
@@ -81,9 +92,6 @@ const EmployeeManagementTable = ({ employees }) => {
                 Department
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
-                Work Hour
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-700">
                 Overtime
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-700">
@@ -92,47 +100,47 @@ const EmployeeManagementTable = ({ employees }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E6ECF0]">
-            {paginatedEmployee.map((employee) => (
-              <tr key={employee.id} className="hover:bg-gray-50">
-                <td className="p-3">
-                  <Checkbox
-                    checked={selectedEmployees.includes(
-                      employee.employeeId || employee.id
-                    )}
-                    onCheckedChange={() =>
-                      handleSelectEmployee(employee.employeeId || employee.id)
-                    }
-                  />
-                </td>
-                <td className="p-3 text-sm text-gray-900">{employee.name}</td>
-                <td className="p-3 text-sm text-gray-600">
-                  {employee.employeeId}
-                </td>
-                <td className="p-3 text-sm text-gray-600">
-                  {employee.designation}
-                </td>
-                <td className="p-3 text-sm text-gray-600">
-                  {employee.department}
-                </td>
-                <td className="p-3 text-sm text-gray-600">
-                  {employee.workHour}
-                </td>
-                <td className="p-3">
-                  <span
-                    className={`text-sm ${
-                      employee.overtime === "Yes"
-                        ? "text-green-600"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    {employee.overtime}
-                  </span>
-                </td>
-                <td className="p-3">
-                  <EmployeeModal />
-                </td>
-              </tr>
-            ))}
+            {paginatedEmployee.map((employee) => {
+              const hasOvertime = hasOvertimeRecords(
+                employee.employeeId || employee.id
+              );
+              return (
+                <tr key={employee.id} className="hover:bg-gray-50">
+                  <td className="p-3">
+                    <Checkbox
+                      checked={selectedEmployees.includes(
+                        employee.employeeId || employee.id
+                      )}
+                      onCheckedChange={() =>
+                        handleSelectEmployee(employee.employeeId || employee.id)
+                      }
+                    />
+                  </td>
+                  <td className="p-3 text-sm text-gray-900">{employee.name}</td>
+                  <td className="p-3 text-sm text-gray-600">
+                    {employee.employeeId}
+                  </td>
+                  <td className="p-3 text-sm text-gray-600">
+                    {employee.designation}
+                  </td>
+                  <td className="p-3 text-sm text-gray-600">
+                    {employee.department}
+                  </td>
+                  <td className="p-3">
+                    <span
+                      className={`${
+                        hasOvertime ? "text-green-600" : "text-gray-600"
+                      }`}
+                    >
+                      {hasOvertime ? "Yes" : "No"}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <EmployeeModal employee={employee} />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

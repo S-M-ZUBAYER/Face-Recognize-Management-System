@@ -1,51 +1,3 @@
-/**
- * SALARY CALCULATION LIBRARY
- *
- * This file contains the comprehensive salary calculation function that implements
- * ALL 24 salary calculation rules for the attendance management system.
- *
- * ✅ ALL RULES FULLY IMPLEMENTED:
- *
- * SHIFT & TIME MANAGEMENT:
- * ✅ Rule 1:  Multiple shifts with cross-midnight support
- * ✅ Rule 5:  Lateness grace period
- * ✅ Rule 6:  Flexible working hours (late arrival = late departure)
- *
- * HOLIDAYS & WEEKENDS:
- * ✅ Rule 2:  National holidays (no attendance required)
- * ✅ Rule 3:  Weekend selection (no attendance required)
- * ✅ Rule 4:  Replacement workdays (when holidays shift)
- *
- * OVERTIME MANAGEMENT:
- * ✅ Rule 7:  Replace lateness with overtime
- * ✅ Rule 8:  Minimum overtime unit rounding
- * ✅ Rule 9:  Weekend overtime multiplier
- * ✅ Rule 10: Holiday overtime multiplier
- * ✅ Rule 24: Overtime selection and multiplier
- *
- * LEAVE & ABSENCE MANAGEMENT:
- * ✅ Rule 11: Sick leave and other leave deductions
- * ✅ Rule 13: Auto replacement days for non-overtime employees
- * ✅ Rule 14: Multiple days penalty per absence
- *
- * PENALTY SYSTEM:
- * ✅ Rule 16: Late arrival penalty per occurrence
- * ✅ Rule 17: Early departure penalty per occurrence
- * ✅ Rule 18: Late arrival penalty (half/full day salary)
- * ✅ Rule 19: Hourly late penalty
- * ✅ Rule 20: Fixed penalty for exceeding lateness threshold
- * ✅ Rule 21: Incremental late penalty
- * ✅ Rule 22: Shift-based penalties (day vs night)
- * ✅ Rule 23: Missed punch penalties with acceptable times
- *
- * DOCUMENT VERIFICATION:
- * ✅ Rule 12: Missed punch document verification
- *
- * The function is extensively commented with clear section markers
- * for easy maintenance and understanding by new developers.
- */
-
-// --- Helpers ---
 function toMinutes(time) {
   if (!time && time !== 0) return 0;
   if (typeof time === "number") return Math.round(time);
@@ -231,6 +183,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   // Validate input parameters
   // if (attendanceRecords.length === 0) {
   //   return "No attendance records";
+  // }
+
+  // if (id === "2109058929") {
+  //   console.log(attendanceRecords);
   // }
 
   // ============================================================================
@@ -465,7 +421,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   // ============================================================================
   const overtimeSalaryRate = Number(payPeriod.overtimeSalary || 0);
   const standardPay = monthlySalary + otherSalary;
-  const dailySalary =
+  const dailyRate =
     workingDaysConfigured > 0 ? monthlySalary / workingDaysConfigured : 0;
 
   // ============================================================================
@@ -567,8 +523,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       return;
     }
 
-    // Count present days
-    if (isWorkingDay) present += 1;
+    // Count any attendance as present (even on weekends/holidays)
+    present += 1;
 
     // ============================================================================
     // RULE 23: MISSED PUNCH COUNTING - Count unmatched punch pairs
@@ -605,7 +561,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // RULE 5-6: LATENESS AND FLEXIBLE WORKING HOURS CALCULATION
     // ============================================================================
     if (shiftStart !== null && shiftEnd !== null) {
-      const lateThresh = shiftStart + latenessGraceMin;
+      // Rule 5: Lateness grace period - Only apply if employee has this rule configured
+      const gracePeriod = rule5 && latenessGraceMin > 0 ? latenessGraceMin : 0;
+      const lateThresh = shiftStart + gracePeriod;
       if (inMins > lateThresh) {
         const lateMins = inMins - lateThresh;
         lateCount += 1;
@@ -627,10 +585,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       // ============================================================================
       let requiredEnd = shiftEnd;
       if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
-        const dayLateMins = Math.max(
-          0,
-          inMins - (shiftStart + latenessGraceMin)
-        );
+        const dayLateMins = Math.max(0, inMins - (shiftStart + gracePeriod));
         if (dayLateMins > 0) {
           const units = Math.ceil(dayLateMins / flexLateUnit);
           requiredEnd = shiftEnd + units * flexExtraUnit;
@@ -674,14 +629,35 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   absent = Math.max(0, workingDaysUpToCurrent - present);
 
   // ============================================================================
-  // RULE 11: SICK LEAVE DEDUCTION CALCULATION
+  // SALARY CALCULATION LOGIC - Based on whether Rule 14 exists or not
   // ============================================================================
-  if (sickLeaveDays > 0 && sickLeaveDaysUsed > 0) {
+
+  // If Rule 14 exists: Calculate salary based on present days only
+  // If Rule 14 doesn't exist: Employee gets full standard pay regardless of attendance
+  let presentDaysSalary = 0;
+  let earnedSalary = 0;
+
+  if (rule14 && daysPenaltyPerAbsence > 0) {
+    // Rule 14 exists: Calculate salary based on present days only
+    presentDaysSalary =
+      present > 0 ? (monthlySalary / workingDaysConfigured) * present : 0;
+    earnedSalary = presentDaysSalary + otherSalary;
+  } else {
+    // Rule 14 doesn't exist: Employee gets full standard pay
+    presentDaysSalary = monthlySalary;
+    earnedSalary = standardPay; // Full monthly salary + other salary
+  }
+
+  // ============================================================================
+  // RULE 11: SICK LEAVE DEDUCTION CALCULATION - Based on salary calculation method
+  // ============================================================================
+  if (rule11 && sickLeaveDays > 0 && sickLeaveDaysUsed > 0) {
     if (sickLeaveType === "fixed") {
       sickLeaveDeduction = sickLeaveAmount * sickLeaveDaysUsed;
     } else {
-      // proportional
+      // proportional - Based on current salary calculation method
       const proportion = sickLeaveAmount || 1; // Default to full day
+      const dailySalary = dailyRate;
       sickLeaveDeduction = dailySalary * proportion * sickLeaveDaysUsed;
     }
   }
@@ -707,39 +683,43 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   }
 
   // ============================================================================
-  // RULE 8: MINIMUM OVERTIME UNIT ROUNDING
+  // RULE 8: MINIMUM OVERTIME UNIT ROUNDING - Only apply if employee has this rule configured
   // ============================================================================
-  overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
-  overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
-  overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
+  if (rule8 && minOTUnit > 0) {
+    overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
+    overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
+    overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
+  }
 
   // ============================================================================
   // DEDUCTION CALCULATIONS - Apply all penalty rules
   // ============================================================================
 
-  // Rule 16: Late arrival penalty per occurrence
-  if (latePenaltyPerOcc) deductions += lateCount * latePenaltyPerOcc;
+  // Rule 16: Late arrival penalty per occurrence - Only apply if employee has this rule configured
+  if (rule16 && latePenaltyPerOcc > 0)
+    deductions += lateCount * latePenaltyPerOcc;
 
-  // Rule 17: Early departure penalty per occurrence
-  if (earlyPenaltyPerOcc)
+  // Rule 17: Early departure penalty per occurrence - Only apply if employee has this rule configured
+  if (rule17 && earlyPenaltyPerOcc > 0)
     deductions += earlyDepartureCount * earlyPenaltyPerOcc;
 
-  // Rule 18: Late arrival penalty (half/full day salary)
+  // Rule 18: Late arrival penalty (half/full day salary) - Based on current salary calculation method
   if (rule18) {
+    const dailySalary = dailyRate;
     deductions +=
       halfDayLateCount * (0.5 * dailySalary) + fullDayLateCount * dailySalary;
   }
 
-  // Rule 19: Hourly late penalty
-  if (perHourLatePenalty)
+  // Rule 19: Hourly late penalty - Only apply if employee has this rule configured
+  if (rule19 && perHourLatePenalty > 0)
     deductions += toHours(totalLatenessMinutes) * perHourLatePenalty;
 
-  // Rule 20: Fixed penalty for exceeding lateness threshold
-  if (rule20 && rule20Threshold && totalLatenessMinutes > rule20Threshold)
+  // Rule 20: Fixed penalty for exceeding lateness threshold - Only apply if employee has this rule configured
+  if (rule20 && rule20Threshold > 0 && totalLatenessMinutes > rule20Threshold)
     deductions += rule20Fixed;
 
-  // Rule 21: Incremental late penalty
-  if (incrementalLateValue) {
+  // Rule 21: Incremental late penalty - Only apply if employee has this rule configured
+  if (rule21 && incrementalLateValue > 0) {
     deductions += (incrementalLateValue * (lateCount * (lateCount + 1))) / 2;
   }
 
@@ -759,12 +739,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     deductions += (missedPunch - missedPunchAccept) * missedPunchCost;
   }
 
-  // Rule 11: Other leave deductions (marriage leave, etc.)
+  // Rule 11: Other leave deductions (marriage leave, etc.) - Based on current salary calculation method
   if (rule11) {
     const p1 = rule11.param1;
     const p2 = rule11.param2;
     if (p1 && String(p1).toLowerCase().includes("day")) {
       const frac = Number(p2 || 0);
+      const dailySalary = dailyRate;
       otherLeaveDeduction = dailySalary * frac;
     } else if (p1 && String(p1).toLowerCase().includes("fixed")) {
       otherLeaveDeduction = Number(p2 || 0);
@@ -774,9 +755,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
   }
 
-  // Rule 14: Multiple days penalty per absence
-  if (daysPenaltyPerAbsence && absent > 0) {
-    deductions += daysPenaltyPerAbsence * absent * dailySalary;
+  // Rule 14: Multiple days penalty per absence - Only apply if employee has this rule configured
+  if (rule14 && daysPenaltyPerAbsence > 0 && absent > 0) {
+    // Avoid double-deduction: base pay already excludes 1 day per absence via presentDaysSalary.
+    // Apply only the extra penalty days beyond the first day per absence.
+    const extraPenaltyDaysPerAbsence = Math.max(0, daysPenaltyPerAbsence - 1);
+    if (extraPenaltyDaysPerAbsence > 0) {
+      const additionalPenaltyDays = extraPenaltyDaysPerAbsence * absent;
+      deductions += additionalPenaltyDays * dailyRate;
+    }
   }
 
   // ============================================================================
@@ -789,25 +776,37 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       toHours(overtimeNormal) *
       (overtimeSalaryRate || 0) *
       (normalOTMultiplier || 1);
-    // Weekend overtime with multiplier
-    overtimePay +=
-      toHours(overtimeWeekend) *
-      (overtimeSalaryRate || 0) *
-      (weekendMultiplier || 1);
-    // Holiday overtime with multiplier
-    overtimePay +=
-      toHours(overtimeHoliday) *
-      (overtimeSalaryRate || 0) *
-      (holidayMultiplier || 1);
+    // Weekend overtime with multiplier - Only apply if employee has Rule 9 configured
+    if (rule9 && weekendMultiplier > 1) {
+      overtimePay +=
+        toHours(overtimeWeekend) *
+        (overtimeSalaryRate || 0) *
+        weekendMultiplier;
+    } else {
+      overtimePay += toHours(overtimeWeekend) * (overtimeSalaryRate || 0) * 1; // Default multiplier
+    }
+    // Holiday overtime with multiplier - Only apply if employee has Rule 10 configured
+    if (rule10 && holidayMultiplier > 1) {
+      overtimePay +=
+        toHours(overtimeHoliday) *
+        (overtimeSalaryRate || 0) *
+        holidayMultiplier;
+    } else {
+      overtimePay += toHours(overtimeHoliday) * (overtimeSalaryRate || 0) * 1; // Default multiplier
+    }
   } else {
     overtimePay = 0;
   }
 
   // ============================================================================
-  // FINAL SALARY CALCULATION
+  // FINAL SALARY CALCULATION - Based on Rule 14 Configuration
   // ============================================================================
+
+  // earnedSalary is already calculated above based on Rule 14 existence
+
+  // Calculate total pay based on earned salary (present days only)
   const totalPay =
-    standardPay -
+    earnedSalary -
     deductions -
     otherLeaveDeduction -
     sickLeaveDeduction +
@@ -840,6 +839,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     overtimeSalary: overtimeSalaryRate,
     // Final salary calculations
     standardPay,
+    earnedSalary, // Salary based on present days only
+    presentDaysSalary, // Monthly salary portion based on present days
     totalPay,
     present,
     absent,

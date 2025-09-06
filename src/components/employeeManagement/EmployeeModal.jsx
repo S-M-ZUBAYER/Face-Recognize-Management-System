@@ -8,17 +8,21 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Checkbox } from "../ui/checkbox";
+import { useUpdateEmployee } from "../../hook/useUpdateEmployee";
+import OvertimeModal from "./OvertimeModal"; // ⬅️ import OvertimeModal
 
-function EmployeeModal() {
+function EmployeeModal({ employee }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showOvertime, setShowOvertime] = useState(false); // ⬅️ control overtime modal
 
-  // state to track selected options
   const [selectedValues, setSelectedValues] = useState({
     workType: "",
     attendanceMethod: "",
     visibleInfo: [],
     overtimeStatus: "",
   });
+
+  const updateEmployee = useUpdateEmployee();
 
   const accordionData = [
     {
@@ -30,7 +34,7 @@ function EmployeeModal() {
     {
       key: "attendanceMethod",
       title: "Choose attendance method for employee",
-      content: ["Check Out Button", "Face Attendance", "Both"],
+      content: ["Check Out Button", "Face attendance", "Both"],
       multi: false,
     },
     {
@@ -47,31 +51,49 @@ function EmployeeModal() {
     },
   ];
 
-  // toggle values
   const handleToggle = (groupKey, value, multi) => {
     setSelectedValues((prev) => {
       if (multi) {
-        // Multi-select (array)
         const current = prev[groupKey] || [];
         const updated = current.includes(value)
           ? current.filter((v) => v !== value)
           : [...current, value];
         return { ...prev, [groupKey]: updated };
       } else {
-        // Single select (radio-like)
         return { ...prev, [groupKey]: value };
       }
     });
+
+    // ⬅️ special handling: if selecting overtimeStatus = Yes
+    if (groupKey === "overtimeStatus" && value === "Yes") {
+      setIsOpen(false); // close employee modal
+      setShowOvertime(true); // open overtime modal
+    }
   };
 
-  // save handler (API call here)
   const handleSave = () => {
-    console.log("Sending to API:", selectedValues);
+    const payload = {
+      allowedAttendanceModes: selectedValues.workType,
+      allowedAttendanceActions: selectedValues.attendanceMethod,
+      visibleDataTypes: selectedValues.visibleInfo.join(","),
+    };
 
-    // Example:
-    // await axios.post("/api/employee/settings", selectedValues);
-
-    setIsOpen(false);
+    updateEmployee.mutate(
+      {
+        companyId: employee.deviceMAC,
+        employeeId: employee.employeeId,
+        data: payload,
+      },
+      {
+        onSuccess: () => {
+          console.log("Employee updated successfully");
+          setIsOpen(false);
+        },
+        onError: (err) => {
+          console.error("Failed to update employee:", err);
+        },
+      }
+    );
   };
 
   return (
@@ -81,9 +103,9 @@ function EmployeeModal() {
         <img src={image.settingIcon} alt="settings" />
       </button>
 
-      {/* Modal */}
+      {/* Employee Modal */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !showOvertime && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -125,9 +147,7 @@ function EmployeeModal() {
                   {accordionData.map((group, idx) => (
                     <AccordionItem key={idx} value={`item-${idx}`}>
                       <AccordionTrigger>{group.title}</AccordionTrigger>
-                      <AccordionContent
-                        className={"flex gap-2.5 items-center flex-wrap"}
-                      >
+                      <AccordionContent className="flex gap-2.5 items-center flex-wrap">
                         {group.content.map((option, i) => {
                           const isChecked = group.multi
                             ? selectedValues[group.key]?.includes(option)
@@ -164,15 +184,26 @@ function EmployeeModal() {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="w-[8vw] bg-[#004368] text-white py-2 px-4 rounded-lg  transition-colors"
+                  disabled={updateEmployee.isLoading}
+                  className="w-[8vw] bg-[#004368] text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  Save
+                  {updateEmployee.isLoading ? "Saving..." : "Save"}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Overtime Modal */}
+      <OvertimeModal
+        isOpen={showOvertime}
+        onCancel={() => {
+          setShowOvertime(false);
+          setIsOpen(true); // reopen EmployeeModal if cancel overtime
+        }}
+        onConfirm={() => setShowOvertime(false)} // handle overtime confirm
+      />
     </>
   );
 }
