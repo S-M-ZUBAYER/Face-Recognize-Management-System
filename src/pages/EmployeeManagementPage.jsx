@@ -3,6 +3,7 @@ import EmployeeManagementTable from "@/components/employeeManagement/EmployeeMan
 import React from "react";
 import { useEmployeeData } from "@/hook/useEmployeeData";
 
+
 function EmployeeManagementPage() {
   const { employees } = useEmployeeData();
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
