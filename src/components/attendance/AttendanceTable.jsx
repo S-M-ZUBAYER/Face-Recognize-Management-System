@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import AttendanceTableHeader from "./AttendanceTableHeader";
 import AttendanceEmployeeRow from "./AttendanceEmployeeRow";
 import CustomPagination from "../CustomPagination";
-import ExportButton from "../ExportButton";
+import AttendanceExport from "./AttendanceExport";
 import { Checkbox } from "../ui/checkbox";
 
 const ITEMS_PER_PAGE = 10;
@@ -98,7 +98,7 @@ const AttendanceTable = ({ employees }) => {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton selectedEmployeeData={selectedEmployeeData} />
+        <AttendanceExport selectedEmployeeData={selectedEmployeeData} />
       </div>
     </>
   );

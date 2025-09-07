@@ -8,6 +8,7 @@ const EmployeeAttendance = () => {
 
   const [activeFilter, setActiveFilter] = useState("present");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
+  console.log("Attended Employees:", attendedEmployees);
 
   const getCurrentEmployees = () => {
     switch (activeFilter) {

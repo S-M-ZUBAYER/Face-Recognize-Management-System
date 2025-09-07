@@ -96,6 +96,7 @@ function getWorkingDaysInMonth(year, month, weekendDayNames) {
   }
   return workingDays;
 }
+
 // --- Helper for working days calculation up to current date ---
 function getWorkingDaysUpToDate(
   year,
@@ -103,7 +104,7 @@ function getWorkingDaysUpToDate(
   currentDay,
   weekendDayNames,
   holidaysSet,
-  weekendDatesSet,
+  generalDaysSet,
   replaceDaysSet
 ) {
   let workingDays = 0;
@@ -116,11 +117,15 @@ function getWorkingDaysUpToDate(
 
     const isHoliday = holidaysSet.has(dateStr);
     const weekendByName = weekends.includes(dayName);
-    const weekendByDate = weekendDatesSet.has(dateStr);
+
+    //  FIXED RULE 4 & 13
+    const isGeneralDay = generalDaysSet.has(dateStr);
     const isWeekend =
-      (weekendByName || weekendByDate) && !replaceDaysSet.has(dateStr);
+      weekendByName && !isGeneralDay && !replaceDaysSet.has(dateStr);
     const isReplacedWorkday = replaceDaysSet.has(dateStr);
-    const isWorkingDay = (!isHoliday && !isWeekend) || isReplacedWorkday;
+
+    const isWorkingDay =
+      isGeneralDay || (!isHoliday && !isWeekend) || isReplacedWorkday;
 
     if (isWorkingDay) {
       workingDays++;
@@ -185,9 +190,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //   return "No attendance records";
   // }
 
-  // if (id === "2109058929") {
-  //   console.log(attendanceRecords);
-  // }
+  if (id === "2109058927") {
+    console.log(attendanceRecords);
+  }
 
   // ============================================================================
   // RULE PARSING SECTION - Extract all rules from salaryRules.rules array
@@ -216,10 +221,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const holidaysSet = new Set(
     (holidaysArr || []).map(normalizeDate).filter(Boolean)
   );
+
+  //  FIXED RULE 13 (Replacement Days)
   const replaceDaysSet = new Set(
     (replaceDaysArr || []).map(normalizeDate).filter(Boolean)
   );
-  const weekendDatesSet = new Set(
+
+  //  FIXED RULE 4 (General Days = Required Workdays)
+  const generalDaysSet = new Set(
     (generalDaysArr || []).map(normalizeDate).filter(Boolean)
   );
 
@@ -298,11 +307,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const sickLeaveDays = Number(rule11?.param3 || 0); // Number of sick leave days
   const sickLeaveType = rule11?.param4 || "proportional"; // "fixed" or "proportional"
   const sickLeaveAmount = Number(rule11?.param5 || 0); // Fixed amount or proportion
-
-  // ============================================================================
-  // RULE 13: AUTO REPLACEMENT DAYS - For employees without overtime
-  // ============================================================================
-  const rule13 = getRule(13);
 
   // ============================================================================
   // RULE 14: MULTIPLE DAYS PENALTY PER ABSENCE - Deduct multiple days for each absence
@@ -411,7 +415,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       currentDay,
       weekendDayNames,
       holidaysSet,
-      weekendDatesSet,
+      generalDaysSet,
       replaceDaysSet
     );
   }
@@ -471,12 +475,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let overtimeNormal = 0;
   let overtimeWeekend = 0;
   let overtimeHoliday = 0;
-  let present = 0;
+  let normalPresent = 0;
+  let holidayPresent = 0;
+  let weekendPresent = 0;
   let absent = 0;
   let deductions = 0;
   let otherLeaveDeduction = 0;
   let sickLeaveDeduction = 0;
-  const replacementDays = [];
   let halfDayLateCount = 0;
   let fullDayLateCount = 0;
   let sickLeaveDaysUsed = 0;
@@ -495,11 +500,16 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       weekday: "long",
     });
     const weekendByName = weekendDayNames.has(dayName);
-    const weekendByDate = weekendDatesSet.has(date);
-    let isWeekend =
-      (weekendByName || weekendByDate) && !replaceDaysSet.has(date);
+
+    //  FIXED RULE 4 & 13
+    const isGeneralDay = generalDaysSet.has(date); // must attend
+    const isWeekend =
+      weekendByName && !isGeneralDay && !replaceDaysSet.has(date);
     const isReplacedWorkday = replaceDaysSet.has(date);
-    const isWorkingDay = (!isHoliday && !isWeekend) || isReplacedWorkday;
+
+    // Attendance requirement
+    const isWorkingDay =
+      isGeneralDay || (!isHoliday && !isWeekend) || isReplacedWorkday;
 
     // Parse check-in/check-out times
     let checkIns = [];
@@ -523,8 +533,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       return;
     }
 
-    // Count any attendance as present (even on weekends/holidays)
-    present += 1;
+    // Count attendance based on day type
+    if (isHoliday) {
+      holidayPresent += 1; // worked on holiday
+    } else if (isWeekend) {
+      weekendPresent += 1; // worked on weekend
+    } else if (isWorkingDay) {
+      normalPresent += 1; // normal working day present
+    }
 
     // ============================================================================
     // RULE 23: MISSED PUNCH COUNTING - Count unmatched punch pairs
@@ -603,44 +619,41 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // ============================================================================
     // RULE 8-10: OVERTIME CALCULATION (NORMAL, WEEKEND, HOLIDAY)
     // ============================================================================
-    const workedMinutes = Math.max(0, outMins - inMins);
-    if (isHoliday) {
-      overtimeHoliday += workedMinutes;
-    } else if (isWeekend) {
-      overtimeWeekend += workedMinutes;
-    } else {
-      if (otStart !== null && otEnd !== null && outMins > otStart) {
-        const extra = Math.max(0, Math.min(outMins, otEnd) - otStart);
-        overtimeNormal += extra;
-      }
+    // Only calculate holiday overtime if rule10 exists
+    if (isHoliday && rule10 && otStart !== null && otEnd !== null) {
+      overtimeHoliday += Math.max(0, outMins - otStart);
     }
-
-    // ============================================================================
-    // RULE 13: AUTO REPLACEMENT DAYS - For employees without overtime
-    // ============================================================================
-    if (rule13 && !overtimeAllowed && (isHoliday || isWeekend)) {
-      replacementDays.push(date);
+    // Only calculate weekend overtime if rule9 exists
+    else if (isWeekend && rule9 && otStart !== null && otEnd !== null) {
+      overtimeWeekend += Math.max(0, outMins - otStart);
+    }
+    // Normal overtime for working day
+    else if (!isHoliday && !isWeekend && otStart !== null && otEnd !== null) {
+      const extra = Math.max(0, Math.min(outMins, otEnd) - otStart);
+      overtimeNormal += extra;
     }
   });
 
   // ============================================================================
   // ABSENT CALCULATION - Only count absences for working days up to current date
   // ============================================================================
-  absent = Math.max(0, workingDaysUpToCurrent - present);
+  absent = Math.max(0, workingDaysUpToCurrent - normalPresent);
 
   // ============================================================================
   // SALARY CALCULATION LOGIC - Based on whether Rule 14 exists or not
   // ============================================================================
 
-  // If Rule 14 exists: Calculate salary based on present days only
+  // If Rule 14 exists: Calculate salary based on normalPresent days only
   // If Rule 14 doesn't exist: Employee gets full standard pay regardless of attendance
   let presentDaysSalary = 0;
   let earnedSalary = 0;
 
   if (rule14 && daysPenaltyPerAbsence > 0) {
-    // Rule 14 exists: Calculate salary based on present days only
+    // Rule 14 exists: Calculate salary based on normalPresent days only
     presentDaysSalary =
-      present > 0 ? (monthlySalary / workingDaysConfigured) * present : 0;
+      normalPresent > 0
+        ? (monthlySalary / workingDaysConfigured) * normalPresent
+        : 0;
     earnedSalary = presentDaysSalary + otherSalary;
   } else {
     // Rule 14 doesn't exist: Employee gets full standard pay
@@ -804,7 +817,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   // earnedSalary is already calculated above based on Rule 14 existence
 
-  // Calculate total pay based on earned salary (present days only)
+  // Calculate total pay based on earned salary (normalPresent days only)
   const totalPay =
     earnedSalary -
     deductions -
@@ -839,15 +852,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     overtimeSalary: overtimeSalaryRate,
     // Final salary calculations
     standardPay,
-    earnedSalary, // Salary based on present days only
-    presentDaysSalary, // Monthly salary portion based on present days
+    earnedSalary, // Salary based on normalPresent days only
+    presentDaysSalary, // Monthly salary portion based on normalPresent days
     totalPay,
-    present,
+    Present: { normalPresent, holidayPresent, weekendPresent },
     absent,
     workingDays: workingDaysConfigured,
     workingDaysUpToCurrent,
     // Additional information
-    replacementDays,
+    replaceDaysArr,
     crossMidnightTime,
   };
 }

@@ -1,6 +1,40 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useOverTimeData } from "@/hook/useOverTimeData";
+import { useUserData } from "@/hook/useUserData";
+import toast from "react-hot-toast";
 
-function OvertimeModal({ isOpen, onCancel, onConfirm }) {
+function OvertimeModal({ isOpen, onCancel, employeeId, deviceMAC }) {
+  const { createOverTime, createLoading } = useOverTimeData();
+  const { user } = useUserData();
+
+  const [title, setTitle] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("18:00");
+
+  const handleConfirm = () => {
+    try {
+      const requestBody = {
+        deviceMAC,
+        employeeId,
+        startTime: startTime,
+        endTime: endTime,
+        date: new Date().toISOString().split("T")[0],
+        duration: 0,
+        reason: title,
+        approvedBy: user?.userName || "",
+        status: "Pending",
+        paid: true,
+      };
+
+      createOverTime(requestBody);
+      toast.success("Overtime created successfully");
+      onCancel();
+    } catch {
+      toast.error("Overtime creation failed");
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -24,22 +58,7 @@ function OvertimeModal({ isOpen, onCancel, onConfirm }) {
             <div className="space-y-2 text-sm text-gray-800">
               <p>
                 <span className="font-semibold">Selected Employee ID:</span>{" "}
-                [2109058927]
-              </p>
-              <p>
-                <span className="font-semibold">Work Type:</span> None
-              </p>
-              <p>
-                <span className="font-semibold">Attendance Method:</span> None
-              </p>
-              <p>
-                <span className="font-semibold">Visible Info:</span> None
-              </p>
-              <p>
-                <span className="font-semibold">Overtime:</span> Yes
-              </p>
-              <p>
-                <span className="font-semibold">NeedMove:</span> None
+                {employeeId}
               </p>
 
               {/* Overtime Title */}
@@ -50,6 +69,8 @@ function OvertimeModal({ isOpen, onCancel, onConfirm }) {
                 <input
                   type="text"
                   placeholder="Overtime title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004368]"
                 />
               </div>
@@ -64,7 +85,8 @@ function OvertimeModal({ isOpen, onCancel, onConfirm }) {
                     <input
                       type="time"
                       className="w-full focus:outline-none"
-                      defaultValue="09:00"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
                     />
                   </div>
                 </div>
@@ -76,18 +98,12 @@ function OvertimeModal({ isOpen, onCancel, onConfirm }) {
                     <input
                       type="time"
                       className="w-full focus:outline-none"
-                      defaultValue="18:00"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
-
-              <p>
-                <span className="font-semibold">PayPeriod</span> false
-              </p>
-              <p>
-                <span className="font-semibold">Salary Rules</span> false
-              </p>
             </div>
 
             {/* Actions */}
@@ -99,10 +115,11 @@ function OvertimeModal({ isOpen, onCancel, onConfirm }) {
                 Cancel
               </button>
               <button
-                onClick={onConfirm}
-                className="px-6 py-2 bg-[#004368] text-white rounded-md"
+                onClick={handleConfirm}
+                disabled={createLoading}
+                className="px-6 py-2 bg-[#004368] text-white rounded-md disabled:opacity-50"
               >
-                Confirm
+                {createLoading ? "Submitting..." : "Confirm"}
               </button>
             </div>
           </motion.div>
