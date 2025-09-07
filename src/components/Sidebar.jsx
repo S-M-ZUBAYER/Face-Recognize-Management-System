@@ -42,11 +42,11 @@ const links = [
     icon: AdminManagementIcon,
     path: "/admin-management",
   },
-  {
-    label: "Task management",
-    icon: TaskManagementIcon,
-    path: "/task-management",
-  },
+  // {
+  //   label: "Task management",
+  //   icon: TaskManagementIcon,
+  //   path: "/task-management",
+  // },
   // {
   //   label: "Leave management",
   //   icon: LeaveManagementIcon,

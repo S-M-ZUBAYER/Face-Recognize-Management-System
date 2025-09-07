@@ -15,12 +15,6 @@ const AttendanceTableHeader = () => (
         Department
       </th>
       <th className="text-left p-4 text-sm font-medium text-gray-700">
-        Work Hour
-      </th>
-      <th className="text-left p-4 text-sm font-medium text-gray-700">
-        Overtime
-      </th>
-      <th className="text-left p-4 text-sm font-medium text-gray-700">
         Action
       </th>
     </tr>

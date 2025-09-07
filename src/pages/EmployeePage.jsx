@@ -41,7 +41,9 @@ function EmployeePage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-[600]">Employee List</h1>
+      <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
+        Employee List
+      </p>
       <EmployeeFilterTabs
         filters={filters}
         activeFilter={activeFilter}
