@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "../ui/checkbox";
 import { useUpdateEmployee } from "../../hook/useUpdateEmployee";
 import OvertimeModal from "./OvertimeModal"; // ⬅️ import OvertimeModal
+import toast from "react-hot-toast";
 
 function EmployeeModal({ employee }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,11 +87,11 @@ function EmployeeModal({ employee }) {
       },
       {
         onSuccess: () => {
-          console.log("Employee updated successfully");
+          toast.success("Employee updated successfully");
           setIsOpen(false);
         },
-        onError: (err) => {
-          console.error("Failed to update employee:", err);
+        onError: () => {
+          toast.error("Failed to update employee");
         },
       }
     );
@@ -203,6 +204,7 @@ function EmployeeModal({ employee }) {
           setIsOpen(true); // reopen EmployeeModal if cancel overtime
         }}
         onConfirm={() => setShowOvertime(false)} // handle overtime confirm
+        {...employee}
       />
     </>
   );

@@ -90,9 +90,19 @@ export const useEmployeeData = () => {
 
   // Derive attended & absent
   const attendedIds = attendanceData.map((att) => att.empId);
-  const attendedEmployees = employees.filter((emp) =>
-    attendedIds.includes(emp.employeeId)
-  );
+
+  const attendedEmployees = employees
+    .filter((emp) => attendedIds.includes(emp.employeeId))
+    .map((emp) => {
+      const attendance = attendanceData.find(
+        (att) => att.empId === emp.employeeId
+      );
+      return {
+        ...emp,
+        date: selectedDate,
+        checkIn: attendance?.checkIn || null,
+      };
+    });
   const absentEmployees = employees.filter(
     (emp) => !attendedIds.includes(emp.employeeId)
   );
