@@ -2,11 +2,19 @@ import React from "react";
 import image from "@/constants/image";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+import { useDateStore } from "@/zustand/useDateStore";
 
-function AttendanceExport({ selectedEmployeeData }) {
-  const { selectedDate } = useAttendanceStore();
+function AttendanceExportMonthly({ selectedEmployeeData }) {
+  const { selectedMonth, selectedYear } = useDateStore();
   const handleExport = async () => {
+    if (
+      !Array.isArray(selectedEmployeeData) ||
+      selectedEmployeeData.length === 0
+    ) {
+      console.warn("No employee data provided!");
+      return;
+    }
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Timesheet");
 
@@ -24,14 +32,11 @@ function AttendanceExport({ selectedEmployeeData }) {
       "Punch 5",
       "Punch 6",
     ];
-
     const totalColumns = headers.length;
 
     // =========================================================
-    // 🔹 HEADER SECTION
+    // 🔹 TITLE ROW
     // =========================================================
-
-    // Row 1: Title
     const titleRow = worksheet.addRow(["Attendance Punch Data"]);
     worksheet.mergeCells(1, 1, 1, totalColumns);
     titleRow.getCell(1).font = {
@@ -51,10 +56,12 @@ function AttendanceExport({ selectedEmployeeData }) {
     worksheet.addRow([]);
     worksheet.addRow([]);
 
-    // Row 2: Selected Date
-    const today = new Date().toLocaleDateString("en-GB");
+    // =========================================================
+    // 🔹 META INFO ROWS
+    // =========================================================
+
     const selectedRow = worksheet.addRow([
-      `Selected Date: ${selectedDate || today}`,
+      `Selected Date: ${selectedMonth + 1}/${selectedYear} `,
     ]);
     worksheet.mergeCells(
       selectedRow.number,
@@ -65,7 +72,6 @@ function AttendanceExport({ selectedEmployeeData }) {
     selectedRow.getCell(1).font = { bold: true, size: 14 };
     selectedRow.getCell(1).alignment = { horizontal: "left" };
 
-    // Row 3: Exported Date & Time
     const now = new Date();
     const DateTime = `${now.toLocaleDateString(
       "en-GB"
@@ -83,7 +89,7 @@ function AttendanceExport({ selectedEmployeeData }) {
     exportedRow.getCell(1).font = { bold: true, size: 14 };
     exportedRow.getCell(1).alignment = { horizontal: "left" };
 
-    worksheet.addRow([]); // Empty row for spacing
+    worksheet.addRow([]); // Empty row
 
     // =========================================================
     // 🔹 TABLE HEADER
@@ -100,35 +106,46 @@ function AttendanceExport({ selectedEmployeeData }) {
     });
 
     // =========================================================
-    // 🔹 TABLE DATA
+    // 🔹 BUILD DATA
     // =========================================================
-    selectedEmployeeData.forEach((emp) => {
-      let times = [];
-      try {
-        if (typeof emp.checkIn === "string") times = JSON.parse(emp.checkIn);
-        else if (Array.isArray(emp.checkIn)) times = emp.checkIn;
-      } catch {
-        times = [];
-      }
+    const allFormattedData = [];
 
-      const row = [
-        emp.date || today, // First column always shows the date
-        emp.name.split("<")[0] || "",
-        emp.employeeId || "",
-        emp.department || "",
-        emp.designation || "",
-        times[0] || "-",
-        times[1] || "-",
-        times[2] || "-",
-        times[3] || "-",
-        times[4] || "-",
-        times[5] || "-",
-      ];
+    selectedEmployeeData.forEach((emp) => {
+      const punchDataArr = emp.salaryDetails?.punchData || [];
+
+      punchDataArr.forEach((day) => {
+        const times = Array.isArray(day.checkIn) ? day.checkIn : [];
+
+        const rowData = [
+          day.date || "",
+          emp.name.split("<")[0] || "",
+          emp.employeeId || "",
+          emp.department || "",
+          emp.designation || "",
+          times[0] || "-",
+          times[1] || "-",
+          times[2] || "-",
+          times[3] || "-",
+          times[4] || "-",
+          times[5] || "-",
+        ];
+
+        allFormattedData.push(rowData);
+      });
+    });
+
+    if (allFormattedData.length === 0) {
+      console.warn("No punch data to export!");
+      return;
+    }
+
+    // 🔹 Add data rows
+    allFormattedData.forEach((row) => {
       worksheet.addRow(row);
     });
 
     // =========================================================
-    // 🔹 AUTO COLUMN WIDTH (with limits)
+    // 🔹 AUTO COLUMN WIDTHS
     // =========================================================
     worksheet.columns.forEach((col) => {
       let maxLength = 0;
@@ -140,15 +157,13 @@ function AttendanceExport({ selectedEmployeeData }) {
     });
 
     // =========================================================
-    // 🔹 FREEZE PANES (table header + first column)
+    // 🔹 FREEZE PANES (header row + first column)
     // =========================================================
     worksheet.views = [
       {
         state: "frozen",
-        xSplit: 1, // Freeze first column (Date)
-        ySplit: headerRow.number, // Freeze header row
-        topLeftCell: `B${headerRow.number + 1}`, // Scrollable area starts after header & first column
-        activeCell: `A${headerRow.number + 1}`,
+        xSplit: 1, // freeze first column
+        ySplit: headerRow.number, // freeze table header
       },
     ];
 
@@ -156,17 +171,17 @@ function AttendanceExport({ selectedEmployeeData }) {
     // 🔹 EXPORT FILE
     // =========================================================
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), "day_wise_report.xlsx");
+    saveAs(new Blob([buffer]), "monthly_report.xlsx");
   };
 
   return (
     <button
       onClick={handleExport}
-      className="flex items-center gap-2 border border-[#004368] text-[#004368] px-8 py-1 rounded-lg hover:bg-blue-50 font-bold"
+      className="flex items-center gap-2 border border-[#004368] text-[#004368] px-4 py-1 rounded-lg hover:bg-blue-50 font-bold"
     >
-      <img src={image.xls} alt="xls" /> Export Excel
+      <img src={image.xls} alt="xls" /> Export Monthly Attendance
     </button>
   );
 }
 
-export default AttendanceExport;
+export default AttendanceExportMonthly;

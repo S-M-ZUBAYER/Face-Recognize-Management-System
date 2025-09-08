@@ -825,6 +825,32 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     sickLeaveDeduction +
     overtimePay;
 
+  const punchData = attendanceRecords.map((item, index) => {
+    try {
+      return {
+        date: item.date,
+        checkIn: Array.isArray(item.checkIn)
+          ? item.checkIn
+          : JSON.parse(item.checkIn || "[]"),
+      };
+    } catch (error) {
+      console.error(`Error parsing checkIn for record at index ${index}:`, {
+        index,
+        date: item.date,
+        employeeId: item.empId, // if available
+        employeeName: item.employeeName, // if available
+        rawCheckIn: item.checkIn,
+        error: error.message,
+      });
+
+      // Return a safe default or skip this record
+      return {
+        date: item.date,
+        checkIn: [], // or handle as needed
+      };
+    }
+  });
+
   // ============================================================================
   // RETURN COMPREHENSIVE SALARY REPORT
   // ============================================================================
@@ -862,5 +888,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // Additional information
     replaceDaysArr,
     crossMidnightTime,
+    punchData,
   };
 }
