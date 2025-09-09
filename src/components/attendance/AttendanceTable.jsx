@@ -2,12 +2,15 @@ import React, { useState, useMemo } from "react";
 import AttendanceTableHeader from "./AttendanceTableHeader";
 import AttendanceEmployeeRow from "./AttendanceEmployeeRow";
 import CustomPagination from "../CustomPagination";
-import ExportButton from "../ExportButton";
+import AttendanceExport from "./AttendanceExport";
+import AttendanceRangeExport from "./AttendanceRangeExport";
 import { Checkbox } from "../ui/checkbox";
 
 const ITEMS_PER_PAGE = 10;
-const AttendanceTable = ({ employees }) => {
+const AttendanceTable = ({ employees, isDateRangeMode }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
+
+  console.log("employees in table", employees, isDateRangeMode);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -84,7 +87,7 @@ const AttendanceTable = ({ employees }) => {
               ) : (
                 <tr>
                   <td colSpan="8" className="p-8 text-center text-gray-500">
-                    No employees found for this filter
+                    No employees found
                   </td>
                 </tr>
               )}
@@ -98,7 +101,11 @@ const AttendanceTable = ({ employees }) => {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton selectedEmployeeData={selectedEmployeeData} />
+        {isDateRangeMode ? (
+          <AttendanceRangeExport selectedEmployeeData={selectedEmployeeData} />
+        ) : (
+          <AttendanceExport selectedEmployeeData={selectedEmployeeData} />
+        )}
       </div>
     </>
   );

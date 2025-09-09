@@ -21,12 +21,12 @@ import { base64ToImage } from "@/lib/base64Toimage";
 const links = [
   { label: "Dashboard", icon: DashboardIcon, path: "/" },
   { label: "Employee", icon: EmployeeIcon, path: "/employee" },
+  { label: "Attendance", icon: AttendanceIcon, path: "/attendance" },
   {
     label: "Salary calculation",
     icon: SalaryCalculationIcon,
     path: "/salary-calculation",
   },
-  { label: "Attendance", icon: AttendanceIcon, path: "/attendance" },
   {
     label: "Employee management",
     icon: EmployeeManagementIcon,
@@ -42,11 +42,11 @@ const links = [
     icon: AdminManagementIcon,
     path: "/admin-management",
   },
-  {
-    label: "Task management",
-    icon: TaskManagementIcon,
-    path: "/task-management",
-  },
+  // {
+  //   label: "Task management",
+  //   icon: TaskManagementIcon,
+  //   path: "/task-management",
+  // },
   // {
   //   label: "Leave management",
   //   icon: LeaveManagementIcon,

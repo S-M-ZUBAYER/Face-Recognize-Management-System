@@ -2,9 +2,23 @@ import React from "react";
 import DeviceCard from "@/components/deviceManagement/DeviceCard";
 import { useUserData } from "@/hook/useUserData";
 import FancyLoader from "@/components/FancyLoader";
+import { useEmployeeData } from "@/hook/useEmployeeData";
 
 function DeviceManagementPage() {
+  const { employeeCounts } = useEmployeeData();
   const { deviceMACs } = useUserData();
+  console.log("DeviceManagementPage Re-render:", {
+    employeeCounts,
+    deviceMACs,
+  });
+  const merged = deviceMACs.map((dev) => {
+    const found = employeeCounts.find((c) => c.deviceMAC === dev.deviceMAC);
+    return {
+      ...dev,
+      count: found ? found.count : 0,
+    };
+  });
+
   return (
     <>
       <div>
@@ -12,13 +26,13 @@ function DeviceManagementPage() {
           device management
         </p>
         <div className="grid grid-cols-4 gap-4 mt-4">
-          {deviceMACs ? (
-            deviceMACs.map((device, index) => (
+          {merged ? (
+            merged.map((device, index) => (
               <DeviceCard
                 key={index}
                 deviceName={device.deviceName}
                 MacAddress={device.deviceMAC}
-                EmployeeCount={device.EmployeeCount || 0}
+                EmployeeCount={device.count || 0}
               />
             ))
           ) : (

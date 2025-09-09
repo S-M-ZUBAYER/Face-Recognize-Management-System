@@ -14,10 +14,12 @@ import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export default function Signin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { setUser, setDeviceMACs } = useUserStore();
 
   const navigate = useNavigate();
   const form = useForm({
@@ -42,20 +44,24 @@ export default function Signin() {
 
       if (res.ok && !data.error) {
         const response = await fetch(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance/admin/admin-info?email=${values.userEmail}`
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admin-info?email=${values.userEmail}`
         );
         const userInfo = await response.json();
 
         if (userInfo?.id) {
-          const deviceMACs = userInfo.devices.map((device) => ({
-            deviceMAC: device.deviceMAC,
-            deviceName: device.deviceName,
-          }));
+          if (userInfo?.id) {
+            const deviceMACs = userInfo.devices.map((device) => ({
+              deviceMAC: device.deviceMAC,
+              deviceName: device.deviceName,
+            }));
 
-          localStorage.setItem("user", JSON.stringify(data.data));
-          localStorage.setItem("deviceMACs", JSON.stringify(deviceMACs));
-          toast.success("Login successful");
-          navigate("/", { replace: true });
+            // ✅ update Zustand store (persisted)
+            setUser(data.data);
+            setDeviceMACs(deviceMACs);
+
+            toast.success("Login successful");
+            navigate("/", { replace: true });
+          }
         } else {
           toast.error("You are not authorized to access this page");
         }
