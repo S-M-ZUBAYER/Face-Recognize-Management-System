@@ -3,15 +3,14 @@ import AttendanceTableHeader from "./AttendanceTableHeader";
 import AttendanceEmployeeRow from "./AttendanceEmployeeRow";
 import CustomPagination from "../CustomPagination";
 import AttendanceExport from "./AttendanceExport";
+import AttendanceRangeExport from "./AttendanceRangeExport";
 import { Checkbox } from "../ui/checkbox";
-import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
 
 const ITEMS_PER_PAGE = 10;
-const AttendanceTable = ({ employees }) => {
+const AttendanceTable = ({ employees, isDateRangeMode }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-  const employeeAttendanceData = useEmployeeAttendanceData();
 
-  console.log("xxx", employeeAttendanceData);
+  console.log("employees in table", employees, isDateRangeMode);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -102,7 +101,11 @@ const AttendanceTable = ({ employees }) => {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <AttendanceExport selectedEmployeeData={selectedEmployeeData} />
+        {isDateRangeMode ? (
+          <AttendanceRangeExport selectedEmployeeData={selectedEmployeeData} />
+        ) : (
+          <AttendanceExport selectedEmployeeData={selectedEmployeeData} />
+        )}
       </div>
     </>
   );

@@ -85,14 +85,7 @@ function roundOvertime(minutes, minUnit) {
   return rem === 0 ? minutes : minutes + (unit - rem);
 }
 // --- Helper for working days calculation ---
-function getWorkingDaysInMonth(
-  year,
-  month,
-  weekendDayNames,
-  holidaysSet = new Set(),
-  generalDaysSet = new Set(),
-  replaceDaysSet = new Set()
-) {
+function getWorkingDaysInMonth(year, month, weekendDayNames) {
   let workingDays = 0;
   const weekends = Array.from(weekendDayNames);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -100,23 +93,11 @@ function getWorkingDaysInMonth(
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    const dateStr = date.toISOString().slice(0, 10);
 
-    const isHoliday = holidaysSet.has(dateStr);
-    const isGeneralDay = generalDaysSet.has(dateStr); // forced workday (even if weekend)
-    const isReplaceDay = replaceDaysSet.has(dateStr); // replacement workday
     const weekendByName = weekends.includes(dayName);
 
-    // If a date is a generalDay it must be counted as a working day.
-    // A date is a weekend only if its weekday is in weekend list and it is not a generalDay and not a replacement-day override.
-    const isWeekend = weekendByName && !isGeneralDay && !isReplaceDay;
-
-    // Working day if:
-    //  - it's specified as generalDay OR
-    //  - not holiday and not weekend OR
-    //  - explicitly a replacement workday
-    const isWorkingDay =
-      isGeneralDay || (!isHoliday && !isWeekend) || isReplaceDay;
+    const isWeekend = weekendByName;
+    const isWorkingDay = !isWeekend;
 
     if (isWorkingDay) workingDays++;
   }
@@ -423,10 +404,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const workingDaysConfigured = getWorkingDaysInMonth(
     year,
     month,
-    weekendDayNames,
-    holidaysSet,
-    generalDaysSet,
-    replaceDaysSet
+    weekendDayNames
   );
 
   // Get current date to calculate working days up to today
@@ -855,31 +833,31 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     sickLeaveDeduction +
     overtimePay;
 
-  const punchData = attendanceRecords.map((item, index) => {
-    try {
-      return {
-        date: item.date,
-        checkIn: Array.isArray(item.checkIn)
-          ? item.checkIn
-          : JSON.parse(item.checkIn || "[]"),
-      };
-    } catch (error) {
-      console.error(`Error parsing checkIn for record at index ${index}:`, {
-        index,
-        date: item.date,
-        employeeId: item.empId, // if available
-        employeeName: item.employeeName, // if available
-        rawCheckIn: item.checkIn,
-        error: error.message,
-      });
+  // const punchData = attendanceRecords.map((item, index) => {
+  //   try {
+  //     return {
+  //       date: item.date,
+  //       checkIn: Array.isArray(item.checkIn)
+  //         ? item.checkIn
+  //         : JSON.parse(item.checkIn || "[]"),
+  //     };
+  //   } catch (error) {
+  //     console.error(`Error parsing checkIn for record at index ${index}:`, {
+  //       index,
+  //       date: item.date,
+  //       employeeId: item.empId, // if available
+  //       employeeName: item.employeeName, // if available
+  //       rawCheckIn: item.checkIn,
+  //       error: error.message,
+  //     });
 
-      // Return a safe default or skip this record
-      return {
-        date: item.date,
-        checkIn: [], // or handle as needed
-      };
-    }
-  });
+  //     // Return a safe default or skip this record
+  //     return {
+  //       date: item.date,
+  //       checkIn: [], // or handle as needed
+  //     };
+  //   }
+  // });
 
   // ============================================================================
   // RETURN COMPREHENSIVE SALARY REPORT
@@ -918,6 +896,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // Additional information
     replaceDaysArr,
     crossMidnightTime,
-    punchData,
+    // punchData,
   };
 }

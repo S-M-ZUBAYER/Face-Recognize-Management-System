@@ -1,7 +1,7 @@
 import EmployeeAttendance from "@/components/attendance/EmployeeAttendance";
 import { DatePicker } from "@/components/DatePicker";
 import React from "react";
-import DateRangePicker from "@/components/salaryCalculation/DateRangePicker";
+import DateRangePicker from "@/components/attendance/DateRangePicker";
 
 function AttendancePage() {
   return (
@@ -11,7 +11,6 @@ function AttendancePage() {
           Employee’s Attendance
         </p>
         <div className="flex items-center gap-4">
-          <DatePicker />
           <DateRangePicker />
         </div>
       </div>
