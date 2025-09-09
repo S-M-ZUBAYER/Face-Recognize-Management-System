@@ -13,7 +13,7 @@ export const useAdminData = () => {
     const response = await Promise.all(
       deviceMACs.map((mac) =>
         axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance/admin/admins-device-map-by-device`,
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admins-device-map-by-device`,
           { params: { mac: mac.deviceMAC ?? mac } }
         )
       )
