@@ -1,27 +1,43 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AttendanceFilters from "./AttendanceFilters ";
 import AttendanceTable from "./AttendanceTable";
 import { useEmployeeData } from "@/hook/useEmployeeData";
+import { useOverTimeData } from "@/hook/useOverTimeData";
 
 const EmployeeAttendance = () => {
   const { attendedEmployees, absentEmployees } = useEmployeeData();
+  const { overTime } = useOverTimeData();
+  // console.log(attendedEmployees, absentEmployees);
 
   const [activeFilter, setActiveFilter] = useState("present");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-  console.log("Attended Employees:", attendedEmployees);
 
-  const getCurrentEmployees = () => {
+  const getCurrentEmployees = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+
     switch (activeFilter) {
       case "present":
         return attendedEmployees;
       case "absent":
         return absentEmployees;
+      case "all":
+        return [...attendedEmployees, ...absentEmployees];
+      case "overtime": {
+        const allEmployees = [...attendedEmployees, ...absentEmployees];
+        return allEmployees.filter((employee) =>
+          overTime.some(
+            (record) =>
+              record.employeeId === employee.employeeId &&
+              record.date.split("T")[0] === today
+          )
+        );
+      }
       default:
         return [];
     }
-  };
+  }, [activeFilter, attendedEmployees, absentEmployees, overTime]);
 
-  const currentEmployees = getCurrentEmployees();
+  const currentEmployees = getCurrentEmployees;
 
   // Selection handlers
   const handleSelectAll = (e) => {
