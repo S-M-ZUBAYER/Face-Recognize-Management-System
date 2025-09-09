@@ -7,6 +7,7 @@ const AttendanceFilters = ({
   const filters = [
     { key: "present", label: "Present", count: attendedCount },
     { key: "absent", label: "Absent", count: absentCount },
+    { key: "all", label: "All", count: attendedCount + absentCount },
     { key: "overtime", label: "Overtime", count: null },
   ];
 

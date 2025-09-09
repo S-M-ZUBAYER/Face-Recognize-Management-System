@@ -2,10 +2,12 @@ import { useQueries } from "@tanstack/react-query";
 import axios from "axios";
 import { useEmployeeData } from "./useEmployeeData";
 import { calculateSalary } from "@/lib/calculateSalary";
+import { useDateStore } from "@/zustand/useDateStore";
 
 export const useSalaryCalculationData = () => {
   const { employees, globalSalaryRules } = useEmployeeData();
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
+  const { selectedMonth, selectedYear } = useDateStore();
 
   // --- Fetch PayPeriod per deviceMAC ---
   const payPeriodQueries = useQueries({
@@ -59,27 +61,16 @@ export const useSalaryCalculationData = () => {
       : { PayPeriod: {}, SalaryRules: {} };
   }
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-
-  console.log(currentMonth, currentYear);
+  console.log(selectedMonth, selectedYear);
 
   // --- Helper: get employee monthly attendance ---
   function getEmployeeMonthlyAttendance(empId) {
-    // console.log(
-    //   `Fetching attendance for EmpID: ${empId}, DeviceMAC: ${deviceMAC}`
-    // );
-    const currentMonth = 8;
-    const currentYear = 2025;
-
-    console.log(currentMonth, currentYear);
-
     // Filter by current month, year, and employee ID
     return Attendance.filter((record) => {
       const recordDate = new Date(record.date);
       return (
-        recordDate.getMonth() === currentMonth &&
-        recordDate.getFullYear() === currentYear &&
+        recordDate.getMonth() === selectedMonth &&
+        recordDate.getFullYear() === selectedYear &&
         record.empId === empId
       );
     });
