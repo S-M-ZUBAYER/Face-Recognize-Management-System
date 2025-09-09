@@ -134,7 +134,7 @@ function SalaryTable({ employees }) {
                       onCheckedChange={() => handleSelectEmployee(empId)}
                     />
                   </td>
-                  <td className="p-3">{emp.name}</td>
+                  <td className="p-3">{emp.name.split("<")[0] || ""}</td>
                   <td className="p-3">{empId}</td>
                   <td className="p-3">{emp.designation}</td>
                   <td className="p-3">{emp.department}</td>

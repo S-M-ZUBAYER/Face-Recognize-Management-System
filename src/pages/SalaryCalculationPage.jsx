@@ -5,6 +5,7 @@ import FancyLoader from "@/components/FancyLoader";
 import SalaryTable from "@/components/salaryCalculation/SalaryTable";
 import { useSalaryCalculationData } from "@/hook/useSalaryCalculationData";
 import MonthPicker from "@/components/salaryCalculation/MonthPicker";
+import DateRangePicker from "@/components/salaryCalculation/DateRangePicker";
 
 function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
@@ -34,7 +35,9 @@ function SalaryCalculationPage() {
         <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
           Salary calculation
         </p>
-        <MonthPicker />
+        <div className="flex items-center gap-4">
+          <MonthPicker />
+        </div>
       </div>
       <EmployeeFilterTabs
         filters={filters}

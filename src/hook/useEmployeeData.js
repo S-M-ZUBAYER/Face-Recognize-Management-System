@@ -22,8 +22,9 @@ export const useEmployeeData = () => {
         return res.data.map((emp) => ({
           name: emp.name,
           employeeId: emp.employeeId,
+          companyEmployeeId: emp.email?.split("|")[1],
           department: emp.department,
-          email: emp.email,
+          email: emp.email?.split("|")[0],
           designation: emp.designation,
           deviceMAC: mac.deviceMAC,
           salaryRules: parseSalaryRules(emp.salaryRules),
@@ -138,6 +139,7 @@ export const useEmployeeData = () => {
     employees,
     employeeCounts,
     attendedEmployees,
+    attendanceData,
     absentEmployees,
     globalSalaryRules,
     totalEmployees: employees.length,

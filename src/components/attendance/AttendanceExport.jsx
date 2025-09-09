@@ -6,30 +6,44 @@ import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 function AttendanceExport({ selectedEmployeeData }) {
   const { selectedDate } = useAttendanceStore();
+  const date = new Date(selectedDate);
+  const formatted = date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+
   const handleExport = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Timesheet");
 
-    // 🔹 Define the columns for the table
-    const headers = [
-      "Date",
-      "Name",
-      "ID",
-      "Department",
-      "Designation",
-      "Punch 1",
-      "Punch 2",
-      "Punch 3",
-      "Punch 4",
-      "Punch 5",
-      "Punch 6",
-    ];
-
-    const totalColumns = headers.length;
+    // =========================================================
+    // 🔹 FIND MAX PUNCH COUNT
+    // =========================================================
+    let maxPunchCount = 0;
+    selectedEmployeeData.forEach((emp) => {
+      let times = [];
+      try {
+        if (typeof emp.checkIn === "string") times = JSON.parse(emp.checkIn);
+        else if (Array.isArray(emp.checkIn)) times = emp.checkIn;
+      } catch {
+        times = [];
+      }
+      if (times.length > maxPunchCount) {
+        maxPunchCount = times.length;
+      }
+    });
+    if (maxPunchCount === 0) maxPunchCount = 1;
 
     // =========================================================
     // 🔹 HEADER SECTION
     // =========================================================
+    const baseHeaders = ["Date", "Name", "ID", "Department", "Designation"];
+    const punchHeaders = Array.from(
+      { length: maxPunchCount },
+      (_, i) => `Punch ${i + 1}`
+    );
+    const headers = [...baseHeaders, ...punchHeaders];
+    const totalColumns = headers.length;
 
     // Row 1: Title
     const titleRow = worksheet.addRow(["Attendance Punch Data"]);
@@ -52,10 +66,7 @@ function AttendanceExport({ selectedEmployeeData }) {
     worksheet.addRow([]);
 
     // Row 2: Selected Date
-    const today = new Date().toLocaleDateString("en-GB");
-    const selectedRow = worksheet.addRow([
-      `Selected Date: ${selectedDate || today}`,
-    ]);
+    const selectedRow = worksheet.addRow([`Selected Date: ${selectedDate}`]);
     worksheet.mergeCells(
       selectedRow.number,
       1,
@@ -67,12 +78,12 @@ function AttendanceExport({ selectedEmployeeData }) {
 
     // Row 3: Exported Date & Time
     const now = new Date();
-    const DateTime = `${now.toLocaleDateString(
-      "en-GB"
-    )}, ${now.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`;
+    const DateTime = `${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(
+      now.getHours()
+    ).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
     const exportedRow = worksheet.addRow([`Export Date & Time: ${DateTime}`]);
     worksheet.mergeCells(
       exportedRow.number,
@@ -111,20 +122,34 @@ function AttendanceExport({ selectedEmployeeData }) {
         times = [];
       }
 
-      const row = [
-        emp.date || today, // First column always shows the date
+      // Fill punches dynamically up to maxPunchCount
+      const punchCols = [];
+      for (let i = 0; i < maxPunchCount; i++) {
+        punchCols.push(times[i] || "-");
+      }
+
+      const dateObj = selectedDate ? new Date(selectedDate) : null;
+      const formattedDate = dateObj
+        ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(
+            2,
+            "0"
+          )}-${String(dateObj.getDate()).padStart(
+            2,
+            "0"
+          )} (${dateObj.toLocaleDateString("en-US", { weekday: "long" })})`
+        : "";
+
+      // Row data
+      const rowData = [
+        formattedDate || "", // Date with weekday
         emp.name.split("<")[0] || "",
-        emp.employeeId || "",
+        emp.companyEmployeeId || "",
         emp.department || "",
         emp.designation || "",
-        times[0] || "-",
-        times[1] || "-",
-        times[2] || "-",
-        times[3] || "-",
-        times[4] || "-",
-        times[5] || "-",
+        ...punchCols,
       ];
-      worksheet.addRow(row);
+
+      worksheet.addRow(rowData);
     });
 
     // =========================================================
@@ -140,15 +165,13 @@ function AttendanceExport({ selectedEmployeeData }) {
     });
 
     // =========================================================
-    // 🔹 FREEZE PANES (table header + first column)
+    // 🔹 FREEZE PANES (header row + first 2 columns)
     // =========================================================
     worksheet.views = [
       {
         state: "frozen",
-        xSplit: 1, // Freeze first column (Date)
+        xSplit: 2, // Freeze Date + Name
         ySplit: headerRow.number, // Freeze header row
-        topLeftCell: `B${headerRow.number + 1}`, // Scrollable area starts after header & first column
-        activeCell: `A${headerRow.number + 1}`,
       },
     ];
 
@@ -156,7 +179,7 @@ function AttendanceExport({ selectedEmployeeData }) {
     // 🔹 EXPORT FILE
     // =========================================================
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), "day_wise_report.xlsx");
+    saveAs(new Blob([buffer]), `${formatted}_Attendance_Report.xlsx`);
   };
 
   return (

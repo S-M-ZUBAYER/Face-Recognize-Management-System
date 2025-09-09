@@ -4,10 +4,14 @@ import AttendanceEmployeeRow from "./AttendanceEmployeeRow";
 import CustomPagination from "../CustomPagination";
 import AttendanceExport from "./AttendanceExport";
 import { Checkbox } from "../ui/checkbox";
+import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
 
 const ITEMS_PER_PAGE = 10;
 const AttendanceTable = ({ employees }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const employeeAttendanceData = useEmployeeAttendanceData();
+
+  console.log("xxx", employeeAttendanceData);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -84,7 +88,7 @@ const AttendanceTable = ({ employees }) => {
               ) : (
                 <tr>
                   <td colSpan="8" className="p-8 text-center text-gray-500">
-                    No employees found for this filter
+                    No employees found
                   </td>
                 </tr>
               )}

@@ -85,14 +85,40 @@ function roundOvertime(minutes, minUnit) {
   return rem === 0 ? minutes : minutes + (unit - rem);
 }
 // --- Helper for working days calculation ---
-function getWorkingDaysInMonth(year, month, weekendDayNames) {
+function getWorkingDaysInMonth(
+  year,
+  month,
+  weekendDayNames,
+  holidaysSet = new Set(),
+  generalDaysSet = new Set(),
+  replaceDaysSet = new Set()
+) {
   let workingDays = 0;
   const weekends = Array.from(weekendDayNames);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    if (!weekends.includes(dayName)) workingDays++;
+    const dateStr = date.toISOString().slice(0, 10);
+
+    const isHoliday = holidaysSet.has(dateStr);
+    const isGeneralDay = generalDaysSet.has(dateStr); // forced workday (even if weekend)
+    const isReplaceDay = replaceDaysSet.has(dateStr); // replacement workday
+    const weekendByName = weekends.includes(dayName);
+
+    // If a date is a generalDay it must be counted as a working day.
+    // A date is a weekend only if its weekday is in weekend list and it is not a generalDay and not a replacement-day override.
+    const isWeekend = weekendByName && !isGeneralDay && !isReplaceDay;
+
+    // Working day if:
+    //  - it's specified as generalDay OR
+    //  - not holiday and not weekend OR
+    //  - explicitly a replacement workday
+    const isWorkingDay =
+      isGeneralDay || (!isHoliday && !isWeekend) || isReplaceDay;
+
+    if (isWorkingDay) workingDays++;
   }
   return workingDays;
 }
@@ -190,7 +216,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //   return "No attendance records";
   // }
 
-  if (id === "2109058927") {
+  if (id === "70709903") {
     console.log(attendanceRecords);
   }
 
@@ -397,7 +423,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const workingDaysConfigured = getWorkingDaysInMonth(
     year,
     month,
-    weekendDayNames
+    weekendDayNames,
+    holidaysSet,
+    generalDaysSet,
+    replaceDaysSet
   );
 
   // Get current date to calculate working days up to today
@@ -619,6 +648,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // ============================================================================
     // RULE 8-10: OVERTIME CALCULATION (NORMAL, WEEKEND, HOLIDAY)
     // ============================================================================
+    // RULE 8-10: OVERTIME CALCULATION (NORMAL, WEEKEND, HOLIDAY)
     // Only calculate holiday overtime if rule10 exists
     if (isHoliday && rule10 && otStart !== null && otEnd !== null) {
       overtimeHoliday += Math.max(0, outMins - otStart);
