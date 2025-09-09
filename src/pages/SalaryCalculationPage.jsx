@@ -5,7 +5,7 @@ import FancyLoader from "@/components/FancyLoader";
 import SalaryTable from "@/components/salaryCalculation/SalaryTable";
 import { useSalaryCalculationData } from "@/hook/useSalaryCalculationData";
 import MonthPicker from "@/components/salaryCalculation/MonthPicker";
-import DateRangePicker from "@/components/salaryCalculation/DateRangePicker";
+import DateRangePicker from "@/components/attendance/DateRangePicker";
 
 function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");

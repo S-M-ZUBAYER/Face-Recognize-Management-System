@@ -14,7 +14,6 @@ import {
   LeaveManagementIcon,
   RulesIcon,
   LogoutIcon,
-  RangeAttendanceIcon,
 } from "@/constants/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { base64ToImage } from "@/lib/base64Toimage";
@@ -22,12 +21,7 @@ import { base64ToImage } from "@/lib/base64Toimage";
 const links = [
   { label: "Dashboard", icon: DashboardIcon, path: "/" },
   { label: "Employee", icon: EmployeeIcon, path: "/employee" },
-  { label: "Today Attendance", icon: RangeAttendanceIcon, path: "/attendance" },
-  {
-    label: "DateRange Attendance",
-    icon: AttendanceIcon,
-    path: "/range-attendance",
-  },
+  { label: "Attendance", icon: AttendanceIcon, path: "/attendance" },
   {
     label: "Salary calculation",
     icon: SalaryCalculationIcon,

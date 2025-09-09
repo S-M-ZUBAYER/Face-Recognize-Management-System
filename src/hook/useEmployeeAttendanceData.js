@@ -24,8 +24,6 @@ export const useEmployeeAttendanceData = () => {
       return record.date >= startDate && record.date <= endDate;
     });
 
-    console.log("filteredAttendance", filteredAttendance);
-
     // Group attendance by employee ID
     const attendanceByEmployee = filteredAttendance.reduce((acc, record) => {
       const { empId, date, checkIn } = record;
