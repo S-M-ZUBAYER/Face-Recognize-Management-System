@@ -65,7 +65,7 @@ function EmployeeTable({ employees }) {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton paginatedEmployee={paginatedEmployee} />
+        <ExportButton selectedEmployeeData={employees} />
       </div>
     </>
   );

@@ -60,7 +60,7 @@ function AdminTable({ admins }) {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton paginatedEmployee={paginatedEmployee} />
+        {/* <ExportButton paginatedEmployee={paginatedEmployee} /> */}
       </div>
     </>
   );
