@@ -13,7 +13,7 @@ function SalaryTable({ employees }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-  const [calculatedSalaries, setCalculatedSalaries] = useState({}); // store calculated salaries
+  const [calculatedSalaries, setCalculatedSalaries] = useState({});
 
   const handleSelectAll = (checked) => {
     if (checked) {

@@ -67,7 +67,7 @@ import PrivateRoute from "./PrivateRoute"; // ✅ import
 
 const AppLayout = () => {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[100vh] w-[100vw]  ">
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Navbar />

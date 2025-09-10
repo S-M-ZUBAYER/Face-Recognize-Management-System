@@ -1,103 +1,96 @@
-import { useState, useMemo } from "react";
-import AttendanceFilters from "./AttendanceFilters ";
-import AttendanceTable from "./AttendanceTable";
-import { useEmployeeData } from "@/hook/useEmployeeData";
+import { useState, useMemo, memo, lazy, Suspense } from "react";
 import { useOverTimeData } from "@/hook/useOverTimeData";
 import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 
+// Lazy load components
+const AttendanceFilters = lazy(() => import("./AttendanceFilters"));
+const AttendanceTable = lazy(() => import("./AttendanceTable"));
+
+// Loading components
+const FiltersSkeleton = memo(() => (
+  <div className="flex gap-2 p-4 bg-gray-50 rounded-lg animate-pulse">
+    <div className="h-10 w-20 bg-gray-200 rounded"></div>
+    <div className="h-10 w-20 bg-gray-200 rounded"></div>
+    <div className="h-10 w-20 bg-gray-200 rounded"></div>
+    <div className="h-10 w-24 bg-gray-200 rounded"></div>
+  </div>
+));
+
+const TableSkeleton = memo(() => (
+  <div className="space-y-2">
+    <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
+    ))}
+  </div>
+));
+
 const EmployeeAttendance = () => {
-  const { attendedEmployees, absentEmployees } = useEmployeeData();
+  // Hooks
   const { overTime } = useOverTimeData();
-  const employeeAttendanceData = useEmployeeAttendanceData();
+  const { present, absent, total, presentCount, absentCount, totalCount } =
+    useEmployeeAttendanceData();
   const { startDate, endDate } = useDateRangeStore();
 
+  // Local state
   const [activeFilter, setActiveFilter] = useState("present");
 
-  // Check if date range is selected
-  const isDateRangeMode = startDate && endDate;
+  // Handlers
+  const handleFilterChange = (filter) => setActiveFilter(filter);
 
-  const getCurrentEmployees = useMemo(() => {
-    if (isDateRangeMode) {
-      return employeeAttendanceData;
-    }
+  // Memoized values
+  const isDateRangeMode = useMemo(
+    () => Boolean(startDate && endDate),
+    [startDate, endDate]
+  );
 
-    // Normal mode - filter by attendance status
-    const today = new Date().toISOString().split("T")[0];
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
+  // Compute employees for current filter
+  const currentEmployees = useMemo(() => {
     switch (activeFilter) {
       case "present":
-        return attendedEmployees;
+        return present;
       case "absent":
-        return absentEmployees;
+        return absent;
       case "all":
-        return [...attendedEmployees, ...absentEmployees];
+        return total;
       case "overtime": {
-        const allEmployees = [...attendedEmployees, ...absentEmployees];
-        return allEmployees.filter((employee) =>
-          overTime.some(
-            (record) =>
-              record.employeeId === employee.employeeId &&
-              record.date.split("T")[0] === today
-          )
+        const overtimeEmployeeIds = new Set(
+          overTime
+            .filter((record) => record.date.split("T")[0] === today)
+            .map((record) => record.employeeId)
+        );
+        return total.filter((employee) =>
+          overtimeEmployeeIds.has(employee.employeeId)
         );
       }
       default:
         return [];
     }
-  }, [
-    activeFilter,
-    attendedEmployees,
-    absentEmployees,
-    overTime,
-    employeeAttendanceData,
-    isDateRangeMode,
-  ]);
-
-  const currentEmployees = getCurrentEmployees;
-
-  // Filter change handler (disabled in date range mode)
-  const handleFilterChange = (filter) => {
-    if (isDateRangeMode) return; // Prevent filter changes in date range mode
-
-    setActiveFilter(filter);
-  };
+  }, [activeFilter, present, absent, total, overTime, today]);
 
   return (
     <div className="p-6 space-y-4">
-      {/* Hide AttendanceFilters when date range is selected */}
-      {!isDateRangeMode && (
+      {/* Filters */}
+      <Suspense fallback={<FiltersSkeleton />}>
         <AttendanceFilters
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
-          attendedCount={attendedEmployees.length}
-          absentCount={absentEmployees.length}
+          attendedCount={presentCount}
+          absentCount={absentCount}
+          totalCount={totalCount}
         />
-      )}
+      </Suspense>
 
-      {/* Show date range info when in date range mode */}
-      {isDateRangeMode && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-blue-800">
-                Date Range View
-              </h3>
-              <p className="text-sm text-blue-600">
-                Showing attendance data from {startDate} to {endDate}
-              </p>
-            </div>
-            <div className="text-sm text-blue-600">
-              {currentEmployees.length} employees found
-            </div>
-          </div>
-        </div>
-      )}
-
-      <AttendanceTable
-        employees={currentEmployees}
-        isDateRangeMode={isDateRangeMode}
-      />
+      {/* Attendance table */}
+      <Suspense fallback={<TableSkeleton />}>
+        <AttendanceTable
+          employees={currentEmployees}
+          isDateRangeMode={isDateRangeMode}
+        />
+      </Suspense>
     </div>
   );
 };

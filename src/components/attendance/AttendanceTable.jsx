@@ -7,10 +7,9 @@ import AttendanceRangeExport from "./AttendanceRangeExport";
 import { Checkbox } from "../ui/checkbox";
 
 const ITEMS_PER_PAGE = 10;
-const AttendanceTable = ({ employees, isDateRangeMode }) => {
+const AttendanceTable = ({ employees }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-
-  console.log("employees in table", employees, isDateRangeMode);
+  console.log(employees);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -57,19 +56,22 @@ const AttendanceTable = ({ employees, isDateRangeMode }) => {
 
   return (
     <>
-      <div className="flex items-center gap-2.5 ">
-        <Checkbox
-          checked={isAllSelected}
-          indeterminate={isIndeterminate}
-          onCheckedChange={handleSelectAll}
-        />
-        <p className="text-[#8AA9BA] font-semibold">Select All</p>
-      </div>
-      <div className="bg-white  overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <AttendanceTableHeader />
-            <tbody className="divide-y divide-[#E6ECF0] ">
+      <div className="h-[80vh] w-[75vw] overflow-hidden">
+        {/* Top Controls */}
+        <div className="flex items-center gap-2.5 mb-2">
+          <Checkbox
+            checked={isAllSelected}
+            indeterminate={isIndeterminate}
+            onCheckedChange={handleSelectAll}
+          />
+          <p className="text-[#8AA9BA] font-semibold">Select All</p>
+        </div>
+
+        {/* Table Wrapper (scroll enabled) */}
+        <div className="overflow-x-auto overflow-y-auto relative h-[65vh]">
+          <table className="min-w-full border-collapse">
+            <AttendanceTableHeader employees={employees} />
+            <tbody className="divide-y divide-[#E6ECF0]">
               {paginatedEmployee.length > 0 ? (
                 paginatedEmployee.map((employee) => (
                   <AttendanceEmployeeRow
@@ -94,18 +96,16 @@ const AttendanceTable = ({ employees, isDateRangeMode }) => {
             </tbody>
           </table>
         </div>
-      </div>
-      <div className="flex justify-end mt-4 space-x-2 text-sm text-gray-500">
-        <CustomPagination
-          currentPage={currentPage}
-          handlePageChange={handlePageChange}
-          totalPages={totalPages}
-        />
-        {isDateRangeMode ? (
-          <AttendanceRangeExport selectedEmployeeData={selectedEmployeeData} />
-        ) : (
+
+        {/* Bottom Controls */}
+        <div className="flex justify-end mt-4 space-x-2 text-sm text-gray-500">
+          <CustomPagination
+            currentPage={currentPage}
+            handlePageChange={handlePageChange}
+            totalPages={totalPages}
+          />
           <AttendanceExport selectedEmployeeData={selectedEmployeeData} />
-        )}
+        </div>
       </div>
     </>
   );
