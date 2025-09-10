@@ -4,7 +4,7 @@ import ExportButton from "../ExportButton";
 import image from "@/constants/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "../ui/button";
-import AttendanceExportMonthly from "./AttendanceExportMonthly";
+// import AttendanceExportMonthly from "./AttendanceExportMonthly";
 import EployeeeSalaryDetailsModal from "./EployeeeSalaryDetailsModal";
 
 const ITEMS_PER_PAGE = 10;
@@ -192,7 +192,7 @@ function SalaryTable({ employees }) {
           totalPages={totalPages}
         />
         <ExportButton selectedEmployeeData={selectedEmployeeData} />
-        <AttendanceExportMonthly selectedEmployeeData={selectedEmployeeData} />
+        {/* <AttendanceExportMonthly selectedEmployeeData={selectedEmployeeData} /> */}
         <Button
           onClick={handleCalculateSalary}
           className="flex items-center gap-2 bg-[#004368] hover:bg-[#004368] text-[#EAEAEA] px-8 py-1 rounded-lg font-bold"
