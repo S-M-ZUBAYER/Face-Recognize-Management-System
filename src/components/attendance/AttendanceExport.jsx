@@ -5,6 +5,7 @@ import { saveAs } from "file-saver";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 function AttendanceExport({ selectedEmployeeData }) {
+  console.log(selectedEmployeeData);
   const { selectedDate } = useAttendanceStore();
   const date = new Date(selectedDate);
   const formatted = date.toLocaleDateString("en-GB", {
