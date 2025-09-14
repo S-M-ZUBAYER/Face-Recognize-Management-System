@@ -1,82 +1,288 @@
-import React, { memo, useMemo, useState, useCallback, useEffect } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-} from "@tanstack/react-table";
-import { Checkbox } from "../ui/checkbox";
+// import React, { memo, useState, useMemo, useCallback } from "react";
+// import { AutoSizer, MultiGrid } from "react-virtualized";
+// import "react-virtualized/styles.css";
+// import AttendanceFilters from "./AttendanceFilters";
+// import DateRangePicker from "./DateRangePicker";
+// import { RefreshIcon } from "@/constants/icons";
+// import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+// import { useAttendanceData } from "@/hook/useAttendanceData";
+// import AttendanceExport from "./AttendanceExport";
+
+// const AttendanceTable = ({ employees = [] }) => {
+//   const { IsLoading } = useAttendanceStore();
+//   const { refresh, isFetching } = useAttendanceData();
+
+//   const [searchInput, setSearchInput] = useState("");
+//   const [selectedEmployees, setSelectedEmployees] = useState([]);
+//   const [searchType, setSearchType] = useState("All");
+
+//   // Filter employees based on search input and search type
+//   const filteredEmployees = useMemo(() => {
+//     let data = employees;
+//     if (searchType === "Present") {
+//       data = employees.filter((emp) => emp.isPresent);
+//     } else if (searchType === "Absent") {
+//       data = employees.filter((emp) => !emp.isPresent);
+//     } else if (searchType === "Overtime") {
+//       data = employees.filter((emp) => emp.overtime);
+//     }
+
+//     if (searchInput.trim() === "") return data;
+
+//     const q = searchInput.toLowerCase();
+//     return data.filter((emp) => {
+//       const date = (emp?.punch?.date ?? "").toLowerCase();
+//       const name = (emp?.name ?? "").split("<")[0].toLowerCase();
+//       const empId = (emp?.companyEmployeeId ?? emp?.id ?? "")
+//         .toString()
+//         .toLowerCase();
+//       return date.includes(q) || name.includes(q) || empId.includes(q);
+//     });
+//   }, [employees, searchInput, searchType]);
+
+//   // Determine max punch count
+//   const maxPunchCount = useMemo(() => {
+//     return (
+//       employees.reduce((max, emp) => {
+//         const checkIn = emp?.punch?.checkIn;
+//         if (Array.isArray(checkIn)) return Math.max(max, checkIn.length);
+//         if (checkIn) return Math.max(max, 1);
+//         return max;
+//       }, 0) || 1
+//     );
+//   }, [employees]);
+
+//   // Column definitions
+//   const columns = useMemo(() => {
+//     const base = [
+//       { label: "Date", width: 140, key: "date" },
+//       { label: "Name", width: 260, key: "name" },
+//       { label: "Employee ID", width: 160, key: "employeeId" },
+//       { label: "Designation", width: 160, key: "designation" },
+//       { label: "Department", width: 160, key: "department" },
+//     ];
+
+//     const punchCols = Array.from({ length: maxPunchCount }, (_, idx) => ({
+//       label: `Punch ${idx + 1}`,
+//       width: 100,
+//       key: `punch-${idx}`,
+//     }));
+
+//     return [...base, ...punchCols];
+//   }, [maxPunchCount]);
+
+//   const cellRenderer = useCallback(
+//     ({ columnIndex, key, rowIndex, style }) => {
+//       if (rowIndex === 0) {
+//         return (
+//           <div
+//             key={key}
+//             style={{
+//               ...style,
+//               background: "#F1F5F9",
+//               fontWeight: 600,
+//               display: "flex",
+//               justifyContent: "center",
+//               alignItems: "center",
+//               borderBottom: "1px solid #ccc",
+//               borderRight: "1px solid #ccc",
+//             }}
+//           >
+//             {columns[columnIndex].label}
+//           </div>
+//         );
+//       }
+
+//       const employee = filteredEmployees[rowIndex - 1];
+//       let content = "";
+
+//       switch (columns[columnIndex].key) {
+//         case "date":
+//           content = employee.punch?.date || "";
+//           break;
+//         case "name":
+//           content = employee.name;
+//           break;
+//         case "employeeId":
+//           content = employee.companyEmployeeId || employee.id;
+//           break;
+//         case "designation":
+//           content = employee.designation;
+//           break;
+//         case "department":
+//           content = employee.department;
+//           break;
+//         default:
+//           const punchIndex = columnIndex - 5;
+//           const checkIn = employee.punch?.checkIn;
+//           content = Array.isArray(checkIn) ? checkIn[punchIndex] ?? "" : "";
+//       }
+
+//       return (
+//         <div
+//           key={key}
+//           style={{
+//             ...style,
+//             display: "flex",
+//             justifyContent: "center",
+//             alignItems: "center",
+//             borderBottom: "1px solid #eee",
+//             borderRight: "1px solid #eee",
+//           }}
+//         >
+//           {content}
+//         </div>
+//       );
+//     },
+//     [filteredEmployees, columns]
+//   );
+
+//   return (
+//     <div className="p-4 space-y-4">
+//       <h2 className="font-semibold text-lg mb-2">Employee's Attendance</h2>
+
+//       {/* Top controls */}
+//       <div className="flex justify-between items-center p-4 bg-gray-100 rounded-xl gap-4">
+//         <div className="flex gap-2 items-center">
+//           {["All", "Present", "Absent", "Overtime"].map((type) => (
+//             <button
+//               key={type}
+//               onClick={() => setSearchType(type)}
+//               className={`px-4 py-1 rounded-full text-sm ${
+//                 searchType === type
+//                   ? "bg-[#004368] text-white"
+//                   : "bg-white text-gray-600 border"
+//               }`}
+//             >
+//               {type} (
+//               {type === "All"
+//                 ? employees.length
+//                 : type === "Present"
+//                 ? employees.filter((e) => e.isPresent).length
+//                 : type === "Absent"
+//                 ? employees.filter((e) => !e.isPresent).length
+//                 : employees.filter((e) => e.overtime).length}
+//               )
+//             </button>
+//           ))}
+//         </div>
+
+//         <div className="flex gap-2 items-center flex-1 justify-end">
+//           <DateRangePicker />
+//           <input
+//             type="text"
+//             placeholder="Search by Date, Employee ID or Name..."
+//             value={searchInput}
+//             onChange={(e) => setSearchInput(e.target.value)}
+//             className="border rounded-md px-3 py-2 text-sm w-72"
+//           />
+//           <button
+//             onClick={() => setSearchInput("")}
+//             className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm"
+//           >
+//             Clear
+//           </button>
+//           <button
+//             onClick={refresh}
+//             className="px-4 py-2 bg-[#004368] text-white rounded-md text-sm flex items-center gap-2"
+//           >
+//             <RefreshIcon />
+//             Refresh
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Virtualized table */}
+//       <div style={{ height: "65vh", width: "100%" }}>
+//         <AutoSizer>
+//           {({ height, width }) => (
+//             <MultiGrid
+//               fixedRowCount={1}
+//               fixedColumnCount={3}
+//               rowCount={filteredEmployees.length + 1}
+//               columnCount={columns.length}
+//               columnWidth={({ index }) => columns[index].width}
+//               rowHeight={40}
+//               width={width}
+//               height={height}
+//               cellRenderer={cellRenderer}
+//               style={{
+//                 border: "1px solid #ccc",
+//               }}
+//               styleTopLeftGrid={{
+//                 borderRight: "1px solid #ccc",
+//                 borderBottom: "1px solid #ccc",
+//               }}
+//               styleTopRightGrid={{
+//                 borderBottom: "1px solid #ccc",
+//               }}
+//               styleBottomLeftGrid={{
+//                 borderRight: "1px solid #ccc",
+//               }}
+//             />
+//           )}
+//         </AutoSizer>
+//       </div>
+
+//       {/* Export button */}
+//       <div className="flex justify-end mt-4">
+//         <AttendanceExport
+//           selectedEmployeeData={filteredEmployees}
+//           maxPunchCount={maxPunchCount}
+//         />
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default memo(AttendanceTable);
+
+import React, { memo, useState, useMemo, useCallback } from "react";
+import { AutoSizer, MultiGrid } from "react-virtualized";
+import "react-virtualized/styles.css";
 import AttendanceFilters from "./AttendanceFilters";
 import DateRangePicker from "./DateRangePicker";
-import AttendanceExport from "./AttendanceExport";
-import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { RefreshIcon } from "@/constants/icons";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useAttendanceData } from "@/hook/useAttendanceData";
-
-// --- Layout constants ---
-const COL_WIDTHS = { select: 56, date: 140, name: 260, employeeId: 160 };
-const LEFT_POSITIONS = [
-  0,
-  COL_WIDTHS.select,
-  COL_WIDTHS.select + COL_WIDTHS.date,
-  COL_WIDTHS.select + COL_WIDTHS.date + COL_WIDTHS.name,
-];
-
-// Memoized components to prevent unnecessary re-renders
-const MemoizedAttendanceExport = memo(AttendanceExport);
-
-// Custom debounce hook
-const useDebounce = (value, delay) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
+import AttendanceExport from "./AttendanceExport";
 
 const AttendanceTable = ({ employees = [] }) => {
   const { IsLoading } = useAttendanceStore();
   const { refresh, isFetching } = useAttendanceData();
 
-  // --- State ---
-  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [searchInput, setSearchInput] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [searchType, setSearchType] = useState("All");
 
-  // Debounce search input for real-time search (300ms delay)
-  const debouncedSearchInput = useDebounce(searchInput, 300);
+  // Filter employees based on search input and search type
+  const filteredEmployees = useMemo(() => {
+    let data = employees;
 
-  // --- Memoized callbacks to prevent child re-renders ---
-  const handleRefresh = useCallback(() => {
-    refresh();
-  }, [refresh]);
-
-  const toggleSelect = useCallback((id) => {
-    setSelectedEmployees((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }, []);
-
-  const handleSearchInputChange = useCallback((value) => {
-    setSearchInput(value);
-    if (value.length > 0) {
-      setIsSearching(true);
+    if (searchType === "Present") {
+      data = employees.filter((emp) => emp.punch?.checkIn?.length > 0);
+    } else if (searchType === "Absent") {
+      data = employees.filter(
+        (emp) => !emp.punch?.checkIn || emp.punch.checkIn.length === 0
+      );
+    } else if (searchType === "Overtime") {
+      data = employees.filter((emp) => emp.overtime);
     }
-  }, []);
 
-  const clearSearch = useCallback(() => {
-    setSearchInput("");
-    setIsSearching(false);
-  }, []);
+    if (searchInput.trim() === "") return data;
 
-  // --- Compute max punch count ---
+    const q = searchInput.toLowerCase();
+    return data.filter((emp) => {
+      const date = (emp?.punch?.date ?? "").toLowerCase();
+      const name = (emp?.name ?? "").split("<")[0].toLowerCase();
+      const empId = (emp?.companyEmployeeId ?? emp?.id ?? "")
+        .toString()
+        .toLowerCase();
+      return date.includes(q) || name.includes(q) || empId.includes(q);
+    });
+  }, [employees, searchInput, searchType]);
+
+  // Determine max punch count
   const maxPunchCount = useMemo(() => {
     return (
       employees.reduce((max, emp) => {
@@ -88,272 +294,268 @@ const AttendanceTable = ({ employees = [] }) => {
     );
   }, [employees]);
 
-  // --- Filter employees with debounced search ---
-  const filteredData = useMemo(() => {
-    if (!debouncedSearchInput.trim()) {
-      setIsSearching(false);
-      return employees;
-    }
-
-    const q = debouncedSearchInput.toLowerCase().trim();
-    const result = employees.filter((emp) => {
-      const date = (emp?.punch?.date ?? "").toLowerCase();
-      const name = (emp?.name ?? "").split("<")[0].toLowerCase();
-      const empId = (emp?.companyEmployeeId ?? emp?.id ?? "")
-        .toString()
-        .toLowerCase();
-      return date.includes(q) || name.includes(q) || empId.includes(q);
-    });
-
-    setIsSearching(false);
-    return result;
-  }, [employees, debouncedSearchInput]);
-
-  // --- Selection logic ---
-  const selectedEmployeeIdsSet = useMemo(
-    () => new Set(selectedEmployees),
-    [selectedEmployees]
-  );
-
-  const isAllSelected = useMemo(() => {
-    return (
-      filteredData.length > 0 &&
-      filteredData.every((emp) =>
-        selectedEmployees.includes(emp.companyEmployeeId || emp.id)
-      )
-    );
-  }, [filteredData, selectedEmployees]);
-
-  const isIndeterminate = useMemo(() => {
-    return (
-      selectedEmployees.length > 0 &&
-      !isAllSelected &&
-      filteredData.some((emp) =>
-        selectedEmployees.includes(emp.companyEmployeeId || emp.id)
-      )
-    );
-  }, [selectedEmployees, isAllSelected, filteredData]);
-
-  const handleSelectAll = useCallback(
-    (checked) => {
-      if (checked) {
-        const filteredIds = filteredData.map(
-          (emp) => emp.companyEmployeeId || emp.id
-        );
-        setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
-      } else {
-        const filteredIds = new Set(
-          filteredData.map((emp) => emp.companyEmployeeId || emp.id)
-        );
-        setSelectedEmployees((prev) =>
-          prev.filter((id) => !filteredIds.has(id))
-        );
-      }
-    },
-    [filteredData]
-  );
-
-  // --- Columns (sticky + dynamic punches) ---
+  // Column definitions including checkbox column
   const columns = useMemo(() => {
+    const selectColumn = { label: "", width: 50, key: "select" };
+
     const base = [
-      {
-        id: "select",
-        header: () => <div style={{ width: COL_WIDTHS.select }} />,
-        cell: ({ row }) => {
-          const id = row.original.companyEmployeeId || row.original.id;
-          return (
-            <div style={{ width: COL_WIDTHS.select }}>
-              <Checkbox
-                checked={selectedEmployeeIdsSet.has(id)}
-                onCheckedChange={() => toggleSelect(id)}
-              />
-            </div>
-          );
-        },
-      },
-      { accessorKey: "punch.date", header: "Date" },
-      {
-        accessorKey: "name",
-        header: "Name",
-        cell: (info) => (info.getValue() ?? "").split("<")[0],
-      },
-      { accessorKey: "companyEmployeeId", header: "Employee ID" },
-      { accessorKey: "designation", header: "Designation" },
-      { accessorKey: "department", header: "Department" },
+      { label: "Date", width: 140, key: "date" },
+      { label: "Name", width: 260, key: "name" },
+      { label: "Employee ID", width: 160, key: "employeeId" },
+      { label: "Designation", width: 160, key: "designation" },
+      { label: "Department", width: 160, key: "department" },
     ];
 
     const punchCols = Array.from({ length: maxPunchCount }, (_, idx) => ({
-      id: `punch-${idx}`,
-      header: maxPunchCount === 1 ? "Punch" : `Punch ${idx + 1}`,
-      cell: ({ row }) => {
-        const checkIn = row.original?.punch?.checkIn;
-        return Array.isArray(checkIn) ? checkIn[idx] ?? "" : checkIn ?? "";
-      },
+      label: `Punch ${idx + 1}`,
+      width: 100,
+      key: `punch-${idx}`,
     }));
 
-    return [...base, ...punchCols];
-  }, [maxPunchCount, selectedEmployeeIdsSet, toggleSelect]);
+    return [selectColumn, ...base, ...punchCols];
+  }, [maxPunchCount]);
 
-  const table = useReactTable({
-    data: filteredData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
-  // --- Memoized selected employee data ---
-  const selectedEmployeeData = useMemo(() => {
-    return employees.filter((emp) =>
-      selectedEmployees.includes(emp.companyEmployeeId || emp.id)
+  // Toggle individual employee selection
+  const toggleSelectEmployee = (id) => {
+    setSelectedEmployees((prev) =>
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
     );
-  }, [employees, selectedEmployees]);
+  };
 
-  // --- Render helper for sticky cell/header ---
-  const getStickyStyle = useCallback((colIndex) => {
-    if (colIndex >= 4) return {};
-    const width =
-      colIndex === 0
-        ? COL_WIDTHS.select
-        : colIndex === 1
-        ? COL_WIDTHS.date
-        : colIndex === 2
-        ? COL_WIDTHS.name
-        : COL_WIDTHS.employeeId;
+  // Toggle select all filtered employees
+  const toggleSelectAll = () => {
+    if (selectedEmployees.length === filteredEmployees.length) {
+      setSelectedEmployees([]);
+    } else {
+      setSelectedEmployees(
+        filteredEmployees.map((e) => e.id || e.companyEmployeeId)
+      );
+    }
+  };
 
-    return {
-      left: `${LEFT_POSITIONS[colIndex]}px`,
-      width: `${width}px`,
-      minWidth: `${width}px`,
-      maxWidth: `${width}px`,
-    };
-  }, []);
+  // Cell renderer
+  const cellRenderer = useCallback(
+    ({ columnIndex, key, rowIndex, style }) => {
+      if (rowIndex === 0) {
+        // Header row
+        if (columnIndex === 0) {
+          return (
+            <div
+              key={key}
+              style={{
+                ...style,
+                background: "#F1F5F9",
+                fontWeight: 600,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                borderBottom: "1px solid #ccc",
+                borderRight: "1px solid #ccc",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={
+                  selectedEmployees.length === filteredEmployees.length &&
+                  filteredEmployees.length > 0
+                }
+                onChange={toggleSelectAll}
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={key}
+            style={{
+              ...style,
+              background: "#F1F5F9",
+              fontWeight: 600,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              borderBottom: "1px solid #ccc",
+              borderRight: "1px solid #ccc",
+            }}
+          >
+            {columns[columnIndex].label}
+          </div>
+        );
+      }
+
+      const employee = filteredEmployees[rowIndex - 1];
+
+      // Checkbox column
+      if (columnIndex === 0) {
+        const empId = employee.id || employee.companyEmployeeId;
+        return (
+          <div
+            key={key}
+            style={{
+              ...style,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              borderBottom: "1px solid #eee",
+              borderRight: "1px solid #eee",
+              background: selectedEmployees.includes(empId)
+                ? "#E0F2FE"
+                : "white",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={selectedEmployees.includes(empId)}
+              onChange={() => toggleSelectEmployee(empId)}
+            />
+          </div>
+        );
+      }
+
+      // Other columns
+      let content = "";
+      switch (columns[columnIndex].key) {
+        case "date":
+          content = employee.punch?.date || "";
+          break;
+        case "name":
+          content = employee.name;
+          break;
+        case "employeeId":
+          content = employee.companyEmployeeId || employee.id;
+          break;
+        case "designation":
+          content = employee.designation;
+          break;
+        case "department":
+          content = employee.department;
+          break;
+        default:
+          const punchIndex = columnIndex - 6; // 1 extra checkbox column
+          const checkIn = employee.punch?.checkIn;
+          content = Array.isArray(checkIn) ? checkIn[punchIndex] ?? "" : "";
+      }
+
+      return (
+        <div
+          key={key}
+          style={{
+            ...style,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            borderBottom: "1px solid #eee",
+            borderRight: "1px solid #eee",
+            background: selectedEmployees.includes(
+              employee.id || employee.companyEmployeeId
+            )
+              ? "#E0F2FE"
+              : "white",
+          }}
+        >
+          {content}
+        </div>
+      );
+    },
+    [filteredEmployees, columns, selectedEmployees]
+  );
 
   return (
-    <div className="h-[80vh] w-[77vw]">
-      {/* --- Top Controls --- */}
-      <div className="flex justify-between items-end mb-2.5 bg-[#E6ECF0] px-4 py-6 rounded-2xl">
-        <AttendanceFilters />
-        <DateRangePicker />
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search by Date, Employee ID or Name..."
-              value={searchInput}
-              onChange={(e) => handleSearchInputChange(e.target.value)}
-              className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004368] border-[#004368]"
-            />
-            {/* Search indicator */}
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin h-4 w-4 border-2 border-[#004368] border-t-transparent rounded-full"></div>
-              </div>
-            )}
-          </div>
-          {searchInput && (
+    <div className="p-4 space-y-4">
+      <h2 className="font-semibold text-lg mb-2">Employee's Attendance</h2>
+
+      {/* Top controls */}
+      <div className="flex justify-between items-center p-4 bg-gray-100 rounded-xl gap-4">
+        <div className="flex gap-2 items-center">
+          {["All", "Present", "Absent", "Overtime"].map((type) => (
             <button
-              onClick={clearSearch}
-              className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm"
+              key={type}
+              onClick={() => setSearchType(type)}
+              className={`px-4 py-1 rounded-full text-sm ${
+                searchType === type
+                  ? "bg-[#004368] text-white"
+                  : "bg-white text-gray-600 border"
+              }`}
             >
-              Clear
+              {type} (
+              {type === "All"
+                ? employees.length
+                : type === "Present"
+                ? employees.filter((e) => e.punch?.checkIn?.length > 0).length
+                : type === "Absent"
+                ? employees.filter(
+                    (e) => !e.punch?.checkIn || e.punch.checkIn.length === 0
+                  ).length
+                : employees.filter((e) => e.overtime).length}
+              )
             </button>
-          )}
+          ))}
         </div>
-      </div>
 
-      {/* --- Select All --- */}
-      <div className="flex justify-between mb-2">
-        <div className="flex items-center gap-2  justify-center">
-          <Checkbox
-            checked={isAllSelected}
-            indeterminate={isIndeterminate}
-            onCheckedChange={handleSelectAll}
+        <div className="flex gap-2 items-center flex-1 justify-end">
+          <DateRangePicker />
+          <input
+            type="text"
+            placeholder="Search by Date, Employee ID or Name..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="border rounded-md px-3 py-2 text-sm w-72"
           />
-          <p className="text-[#8AA9BA] font-semibold">Select All</p>
-        </div>
-        <div
-          className="border border-[#004368] text-[#004368] rounded-2xl flex justify-center items-center gap-2.5 px-4 py-1 cursor-pointer"
-          onClick={handleRefresh}
-        >
-          <div className={isFetching ? "animate-spin" : ""}>
+          <button
+            onClick={() => setSearchInput("")}
+            className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm"
+          >
+            Clear
+          </button>
+          <button
+            onClick={refresh}
+            className="px-4 py-2 bg-[#004368] text-white rounded-md text-sm flex items-center gap-2"
+          >
             <RefreshIcon />
-          </div>
-          Refresh
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* --- Table --- */}
-      <div className="overflow-x-auto overflow-y-auto relative h-[60vh] border rounded-md">
-        {IsLoading || isFetching ? (
-          <div className="flex justify-center items-center h-full text-gray-500">
-            Loading...
-          </div>
-        ) : (
-          <table className="min-w-full border-collapse">
-            <thead className="bg-[#E6ECF0] sticky top-0 z-50">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header, colIndex) => {
-                    const sticky = colIndex < 4;
-                    return (
-                      <th
-                        key={header.id}
-                        style={getStickyStyle(colIndex)}
-                        className={`p-3 text-left text-sm font-semibold text-gray-700 whitespace-nowrap ${
-                          sticky ? "sticky z-60 bg-[#E6ECF0]" : ""
-                        }`}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                      </th>
-                    );
-                  })}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-[#E6ECF0] bg-white">
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
-                    {row.getVisibleCells().map((cell, colIndex) => {
-                      const sticky = colIndex < 4;
-                      return (
-                        <td
-                          key={cell.id}
-                          style={getStickyStyle(colIndex)}
-                          className={`p-3 text-sm text-gray-600 whitespace-nowrap ${
-                            sticky ? "sticky z-40 bg-white" : ""
-                          }`}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="p-8 text-center text-gray-500"
-                  >
-                    No employees found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
+      {/* Virtualized table */}
+      <div style={{ height: "65vh", width: "100%" }}>
+        <AutoSizer>
+          {({ height, width }) => (
+            <MultiGrid
+              fixedRowCount={1}
+              fixedColumnCount={4} // 3 original + 1 checkbox
+              rowCount={filteredEmployees.length + 1}
+              columnCount={columns.length}
+              columnWidth={({ index }) => columns[index].width}
+              rowHeight={40}
+              width={width}
+              height={height}
+              cellRenderer={cellRenderer}
+              style={{
+                border: "1px solid #ccc",
+              }}
+              styleTopLeftGrid={{
+                borderRight: "1px solid #ccc",
+                borderBottom: "1px solid #ccc",
+              }}
+              styleTopRightGrid={{
+                borderBottom: "1px solid #ccc",
+              }}
+              styleBottomLeftGrid={{
+                borderRight: "1px solid #ccc",
+              }}
+            />
+          )}
+        </AutoSizer>
       </div>
 
-      {/* --- Bottom Controls --- */}
-      <div className="flex justify-end mt-4 text-sm text-gray-500">
-        <MemoizedAttendanceExport
-          selectedEmployeeData={selectedEmployeeData}
+      {/* Export button */}
+      <div className="flex justify-end mt-4">
+        <AttendanceExport
+          selectedEmployeeData={filteredEmployees.filter((emp) =>
+            selectedEmployees.includes(emp.id || emp.companyEmployeeId)
+          )}
           maxPunchCount={maxPunchCount}
         />
       </div>
