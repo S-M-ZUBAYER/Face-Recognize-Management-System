@@ -1,12 +1,42 @@
-import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
 import AttendanceTable from "./AttendanceTable";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
 
 const EmployeeAttendance = () => {
-  const { filterEmployees } = useEmployeeAttendanceData();
+  const { isProcessing } = useEmployeeAttendanceData();
+  const {
+    allEmployees,
+    presentEmployees,
+    absentEmployees,
+    overTimeEmployees,
+    activeFilter,
+  } = useAttendanceStore();
+
+  const getFilteredEmployees = () => {
+    switch (activeFilter) {
+      case "present":
+        return presentEmployees;
+      case "absent":
+        return absentEmployees;
+      case "overtime":
+        return overTimeEmployees;
+      default:
+        return allEmployees;
+    }
+  };
+  const filteredEmployees = getFilteredEmployees();
+  console.log(filteredEmployees);
 
   return (
     <div className="p-6 space-y-4">
-      <AttendanceTable employees={filterEmployees} />
+      {isProcessing ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Processing attendance data...</p>
+        </div>
+      ) : (
+        <AttendanceTable employees={filteredEmployees} />
+      )}
     </div>
   );
 };

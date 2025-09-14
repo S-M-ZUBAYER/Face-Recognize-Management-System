@@ -1,12 +1,14 @@
 import { useQueries } from "@tanstack/react-query";
 import axios from "axios";
-import { useEmployeeData } from "./useEmployeeData";
+import { useEmployees } from "./useEmployees";
 import { calculateSalary } from "@/lib/calculateSalary";
 import { useDateStore } from "@/zustand/useDateStore";
+import { useGlobalSalary } from "./useGlobalSalary";
 import { useAttendanceData } from "./useAttendanceData";
 
 export const useSalaryCalculationData = () => {
-  const { employees, globalSalaryRules } = useEmployeeData();
+  const { employees } = useEmployees();
+  const { globalSalaryRules } = useGlobalSalary();
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
   const { selectedMonth, selectedYear } = useDateStore();
   const { Attendance } = useAttendanceData();

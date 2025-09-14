@@ -1,8 +1,10 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
 export const useAttendanceData = () => {
+  const queryClient = useQueryClient();
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
+
   // Attendance per deviceMAC
   const attendanceQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
@@ -13,6 +15,10 @@ export const useAttendanceData = () => {
         );
         return res.data;
       },
+      staleTime: Infinity, // never auto refetch
+      cacheTime: Infinity, // keep data forever in memory
+      refetchOnWindowFocus: false, // prevent auto refetch on tab focus
+      refetchOnReconnect: false, // prevent auto refetch on reconnect
     })),
   });
 
@@ -23,10 +29,21 @@ export const useAttendanceData = () => {
 
   const isLoading = attendanceQueries.some((q) => q.isLoading);
   const isError = attendanceQueries.some((q) => q.isError);
+  const isFetching = attendanceQueries.some((q) => q.isFetching);
+
+  // ✅ Manual refresh only
+  const refresh = async () => {
+    const refreshPromises = deviceMACs.map((mac) =>
+      queryClient.invalidateQueries(["attendance", mac.deviceMAC])
+    );
+    await Promise.all(refreshPromises);
+  };
 
   return {
     Attendance,
     isLoading,
     isError,
+    isFetching,
+    refresh,
   };
 };

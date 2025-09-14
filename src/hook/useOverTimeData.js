@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useUserData } from "./useUserData";
 
 export const useOverTimeData = () => {
-  const { deviceMACs } = useUserData();
   const queryClient = useQueryClient();
+  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
 
   // Fetch overtime data
   const fetchOverTime = async () => {
@@ -24,14 +23,22 @@ export const useOverTimeData = () => {
   const {
     data: overTime = [],
     isLoading,
-    error,
-    refetch,
+    isError,
+    isFetching,
   } = useQuery({
     queryKey: ["overtime", deviceMACs],
     queryFn: fetchOverTime,
     enabled: !!deviceMACs && deviceMACs.length > 0,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: Infinity, // never auto refetch
+    cacheTime: Infinity, // keep in memory
+    refetchOnWindowFocus: false, // disable auto refetch
+    refetchOnReconnect: false, // disable auto refetch
   });
+
+  // ✅ Manual refresh function
+  const refresh = async () => {
+    await queryClient.invalidateQueries(["overtime", deviceMACs]);
+  };
 
   // Create overtime
   const createOverTime = async (newOverTime) => {
@@ -45,16 +52,17 @@ export const useOverTimeData = () => {
   const mutation = useMutation({
     mutationFn: createOverTime,
     onSuccess: () => {
-      // Refetch overtime data after a successful creation
+      // ✅ Force refetch after creation
       queryClient.invalidateQueries(["overtime", deviceMACs]);
     },
   });
 
   return {
     overTime,
-    isLoading,
-    error,
-    refetch,
+    isLoading, // first-time load only
+    isError,
+    isFetching, // any background refetch
+    refresh, // manual refresh
     createOverTime: mutation.mutate,
     createLoading: mutation.isLoading,
     createError: mutation.error,

@@ -58,7 +58,6 @@ import Dashboard from "../pages/Dashboard";
 import SignInPage from "../pages/SignInPage";
 import EmployeePage from "@/pages/EmployeePage";
 import SalaryCalculationPage from "@/pages/SalaryCalculationPage";
-import Warehouse from "@/components/salaryCalculation/test";
 import DeviceManagementPage from "@/pages/DeviceManagementPage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
 import EmployeeManagementPage from "@/pages/EmployeeManagementPage";

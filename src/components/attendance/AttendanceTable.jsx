@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState, useCallback } from "react";
+import React, { memo, useMemo, useState, useCallback, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,6 +9,8 @@ import AttendanceFilters from "./AttendanceFilters";
 import DateRangePicker from "./DateRangePicker";
 import AttendanceExport from "./AttendanceExport";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+import { RefreshIcon } from "@/constants/icons";
+import { useAttendanceData } from "@/hook/useAttendanceData";
 
 // --- Layout constants ---
 const COL_WIDTHS = { select: 56, date: 140, name: 260, employeeId: 160 };
@@ -19,14 +21,60 @@ const LEFT_POSITIONS = [
   COL_WIDTHS.select + COL_WIDTHS.date + COL_WIDTHS.name,
 ];
 
+// Memoized components to prevent unnecessary re-renders
+const MemoizedAttendanceExport = memo(AttendanceExport);
+
+// Custom debounce hook
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const AttendanceTable = ({ employees = [] }) => {
   const { IsLoading } = useAttendanceStore();
+  const { refresh, isFetching } = useAttendanceData();
 
   // --- State ---
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+
+  // Debounce search input for real-time search (300ms delay)
+  const debouncedSearchInput = useDebounce(searchInput, 300);
+
+  // --- Memoized callbacks to prevent child re-renders ---
+  const handleRefresh = useCallback(() => {
+    refresh();
+  }, [refresh]);
+
+  const toggleSelect = useCallback((id) => {
+    setSelectedEmployees((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleSearchInputChange = useCallback((value) => {
+    setSearchInput(value);
+    if (value.length > 0) {
+      setIsSearching(true);
+    }
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setIsSearching(false);
+  }, []);
 
   // --- Compute max punch count ---
   const maxPunchCount = useMemo(() => {
@@ -40,12 +88,14 @@ const AttendanceTable = ({ employees = [] }) => {
     );
   }, [employees]);
 
-  // --- Filter employees only when searchQuery changes ---
+  // --- Filter employees with debounced search ---
   const filteredData = useMemo(() => {
-    if (!searchQuery) return employees;
+    if (!debouncedSearchInput.trim()) {
+      setIsSearching(false);
+      return employees;
+    }
 
-    setIsSearching(true);
-    const q = searchQuery.toLowerCase();
+    const q = debouncedSearchInput.toLowerCase().trim();
     const result = employees.filter((emp) => {
       const date = (emp?.punch?.date ?? "").toLowerCase();
       const name = (emp?.name ?? "").split("<")[0].toLowerCase();
@@ -54,36 +104,54 @@ const AttendanceTable = ({ employees = [] }) => {
         .toLowerCase();
       return date.includes(q) || name.includes(q) || empId.includes(q);
     });
-    setIsSearching(false);
 
+    setIsSearching(false);
     return result;
-  }, [employees, searchQuery]);
+  }, [employees, debouncedSearchInput]);
 
   // --- Selection logic ---
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
     [selectedEmployees]
   );
-  const isAllSelected =
-    filteredData.length > 0 && selectedEmployees.length === filteredData.length;
-  const isIndeterminate =
-    selectedEmployees.length > 0 &&
-    selectedEmployees.length < filteredData.length;
 
-  const handleSelectAll = (checked) => {
-    if (checked) {
-      setSelectedEmployees(
-        employees.map((emp) => emp.companyEmployeeId || emp.id)
-      );
-    } else {
-      setSelectedEmployees([]);
-    }
-  };
-
-  const toggleSelect = (id) =>
-    setSelectedEmployees((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+  const isAllSelected = useMemo(() => {
+    return (
+      filteredData.length > 0 &&
+      filteredData.every((emp) =>
+        selectedEmployees.includes(emp.companyEmployeeId || emp.id)
+      )
     );
+  }, [filteredData, selectedEmployees]);
+
+  const isIndeterminate = useMemo(() => {
+    return (
+      selectedEmployees.length > 0 &&
+      !isAllSelected &&
+      filteredData.some((emp) =>
+        selectedEmployees.includes(emp.companyEmployeeId || emp.id)
+      )
+    );
+  }, [selectedEmployees, isAllSelected, filteredData]);
+
+  const handleSelectAll = useCallback(
+    (checked) => {
+      if (checked) {
+        const filteredIds = filteredData.map(
+          (emp) => emp.companyEmployeeId || emp.id
+        );
+        setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
+      } else {
+        const filteredIds = new Set(
+          filteredData.map((emp) => emp.companyEmployeeId || emp.id)
+        );
+        setSelectedEmployees((prev) =>
+          prev.filter((id) => !filteredIds.has(id))
+        );
+      }
+    },
+    [filteredData]
+  );
 
   // --- Columns (sticky + dynamic punches) ---
   const columns = useMemo(() => {
@@ -124,7 +192,7 @@ const AttendanceTable = ({ employees = [] }) => {
     }));
 
     return [...base, ...punchCols];
-  }, [maxPunchCount, selectedEmployeeIdsSet]);
+  }, [maxPunchCount, selectedEmployeeIdsSet, toggleSelect]);
 
   const table = useReactTable({
     data: filteredData,
@@ -132,9 +200,12 @@ const AttendanceTable = ({ employees = [] }) => {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const selectedEmployeeData = employees.filter((emp) =>
-    selectedEmployees.includes(emp.companyEmployeeId || emp.id)
-  );
+  // --- Memoized selected employee data ---
+  const selectedEmployeeData = useMemo(() => {
+    return employees.filter((emp) =>
+      selectedEmployees.includes(emp.companyEmployeeId || emp.id)
+    );
+  }, [employees, selectedEmployees]);
 
   // --- Render helper for sticky cell/header ---
   const getStickyStyle = useCallback((colIndex) => {
@@ -163,46 +234,56 @@ const AttendanceTable = ({ employees = [] }) => {
         <AttendanceFilters />
         <DateRangePicker />
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search by Date, Employee ID or Name..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004368] border-[#004368]"
-          />
-          <button
-            onClick={() => setSearchQuery(searchInput)}
-            className="px-4 py-2 bg-[#004368] text-white rounded-md text-sm"
-          >
-            Search
-          </button>
-          {searchQuery && (
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by Date, Employee ID or Name..."
+              value={searchInput}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
+              className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004368] border-[#004368]"
+            />
+            {/* Search indicator */}
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin h-4 w-4 border-2 border-[#004368] border-t-transparent rounded-full"></div>
+              </div>
+            )}
+          </div>
+          {searchInput && (
             <button
-              onClick={() => {
-                setSearchInput("");
-                setSearchQuery("");
-              }}
+              onClick={clearSearch}
               className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm"
             >
-              Reset
+              Clear
             </button>
           )}
         </div>
       </div>
 
       {/* --- Select All --- */}
-      <div className="flex items-center gap-2 mb-3">
-        <Checkbox
-          checked={isAllSelected}
-          indeterminate={isIndeterminate}
-          onCheckedChange={handleSelectAll}
-        />
-        <p className="text-[#8AA9BA] font-semibold">Select All</p>
+      <div className="flex justify-between mb-2">
+        <div className="flex items-center gap-2  justify-center">
+          <Checkbox
+            checked={isAllSelected}
+            indeterminate={isIndeterminate}
+            onCheckedChange={handleSelectAll}
+          />
+          <p className="text-[#8AA9BA] font-semibold">Select All</p>
+        </div>
+        <div
+          className="border border-[#004368] text-[#004368] rounded-2xl flex justify-center items-center gap-2.5 px-4 py-1 cursor-pointer"
+          onClick={handleRefresh}
+        >
+          <div className={isFetching ? "animate-spin" : ""}>
+            <RefreshIcon />
+          </div>
+          Refresh
+        </div>
       </div>
 
       {/* --- Table --- */}
       <div className="overflow-x-auto overflow-y-auto relative h-[60vh] border rounded-md">
-        {isSearching || IsLoading ? (
+        {IsLoading || isFetching ? (
           <div className="flex justify-center items-center h-full text-gray-500">
             Loading...
           </div>
@@ -271,8 +352,8 @@ const AttendanceTable = ({ employees = [] }) => {
 
       {/* --- Bottom Controls --- */}
       <div className="flex justify-end mt-4 text-sm text-gray-500">
-        <AttendanceExport
-          selectedRows={selectedEmployeeData}
+        <MemoizedAttendanceExport
+          selectedEmployeeData={selectedEmployeeData}
           maxPunchCount={maxPunchCount}
         />
       </div>

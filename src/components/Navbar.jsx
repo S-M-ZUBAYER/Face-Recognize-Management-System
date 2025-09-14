@@ -36,7 +36,7 @@ const Navbar = () => {
         <SideDrawer />
       </div>
       <div className="flex items-center gap-4">
-        <Avatar className="w-[2vw]">
+        <Avatar>
           <AvatarImage src={imageUrl} />
         </Avatar>
       </div>

@@ -149,7 +149,7 @@ const Sidebar = () => {
           }}
         >
           <div className="flex items-center gap-2">
-            <Avatar className="w-[2vw]">
+            <Avatar>
               <AvatarImage src={imageUrl} />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
