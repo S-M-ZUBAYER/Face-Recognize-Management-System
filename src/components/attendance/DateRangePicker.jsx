@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, memo } from "react";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -203,10 +203,19 @@ const DateRangePicker = ({
   );
 
   return (
-    <div className={cn("relative inline-block", className)}>
+    <div className={cn("relative inline-block ", className)}>
+      <p className="text-[#1F1F1F] text-[1vw]  font-[600] font-poppins-regular pb-3.5">
+        Choose Date
+      </p>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center gap-2">
-          <PopoverTrigger asChild>
+          <PopoverTrigger
+            asChild
+            style={{
+              backgroundColor: "transparent",
+              border: "1px solid #B0C5D0",
+            }}
+          >
             <Button
               variant="outline"
               className={cn(
@@ -224,7 +233,7 @@ const DateRangePicker = ({
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 hover:bg-transparent"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Clear selection</span>
@@ -339,4 +348,4 @@ const DateRangePicker = ({
   );
 };
 
-export default DateRangePicker;
+export default memo(DateRangePicker);

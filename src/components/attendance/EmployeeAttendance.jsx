@@ -1,103 +1,42 @@
-import { useState, useMemo } from "react";
-import AttendanceFilters from "./AttendanceFilters ";
 import AttendanceTable from "./AttendanceTable";
-import { useEmployeeData } from "@/hook/useEmployeeData";
-import { useOverTimeData } from "@/hook/useOverTimeData";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
-import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 
 const EmployeeAttendance = () => {
-  const { attendedEmployees, absentEmployees } = useEmployeeData();
-  const { overTime } = useOverTimeData();
-  const employeeAttendanceData = useEmployeeAttendanceData();
-  const { startDate, endDate } = useDateRangeStore();
+  const { isProcessing } = useEmployeeAttendanceData();
+  const {
+    allEmployees,
+    presentEmployees,
+    absentEmployees,
+    overTimeEmployees,
+    activeFilter,
+  } = useAttendanceStore();
 
-  const [activeFilter, setActiveFilter] = useState("present");
-
-  // Check if date range is selected
-  const isDateRangeMode = startDate && endDate;
-
-  const getCurrentEmployees = useMemo(() => {
-    if (isDateRangeMode) {
-      return employeeAttendanceData;
-    }
-
-    // Normal mode - filter by attendance status
-    const today = new Date().toISOString().split("T")[0];
-
+  const getFilteredEmployees = () => {
     switch (activeFilter) {
       case "present":
-        return attendedEmployees;
+        return presentEmployees;
       case "absent":
         return absentEmployees;
-      case "all":
-        return [...attendedEmployees, ...absentEmployees];
-      case "overtime": {
-        const allEmployees = [...attendedEmployees, ...absentEmployees];
-        return allEmployees.filter((employee) =>
-          overTime.some(
-            (record) =>
-              record.employeeId === employee.employeeId &&
-              record.date.split("T")[0] === today
-          )
-        );
-      }
+      case "overtime":
+        return overTimeEmployees;
       default:
-        return [];
+        return allEmployees;
     }
-  }, [
-    activeFilter,
-    attendedEmployees,
-    absentEmployees,
-    overTime,
-    employeeAttendanceData,
-    isDateRangeMode,
-  ]);
-
-  const currentEmployees = getCurrentEmployees;
-
-  // Filter change handler (disabled in date range mode)
-  const handleFilterChange = (filter) => {
-    if (isDateRangeMode) return; // Prevent filter changes in date range mode
-
-    setActiveFilter(filter);
   };
+  const filteredEmployees = getFilteredEmployees();
+  console.log(filteredEmployees);
 
   return (
     <div className="p-6 space-y-4">
-      {/* Hide AttendanceFilters when date range is selected */}
-      {!isDateRangeMode && (
-        <AttendanceFilters
-          activeFilter={activeFilter}
-          onFilterChange={handleFilterChange}
-          attendedCount={attendedEmployees.length}
-          absentCount={absentEmployees.length}
-        />
-      )}
-
-      {/* Show date range info when in date range mode */}
-      {isDateRangeMode && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-blue-800">
-                Date Range View
-              </h3>
-              <p className="text-sm text-blue-600">
-                Showing attendance data from {startDate} to {endDate}
-              </p>
-            </div>
-            <div className="text-sm text-blue-600">
-              {currentEmployees.length} employees found
-            </div>
-          </div>
+      {isProcessing ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Processing attendance data...</p>
         </div>
+      ) : (
+        <AttendanceTable employees={filteredEmployees} />
       )}
-
-      <AttendanceTable
-        employees={currentEmployees}
-        isDateRangeMode={isDateRangeMode}
-      />
     </div>
   );
 };

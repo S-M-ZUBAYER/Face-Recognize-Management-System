@@ -1,84 +1,81 @@
-import { useMemo } from "react";
-import { useEmployeeData } from "./useEmployeeData";
-import { useSalaryCalculationData } from "./useSalaryCalculationData";
+// hooks/useEmployeeAttendanceData.js - FIXED VERSION
+import { useEffect, useRef } from "react";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
+import { useOverTimeData } from "./useOverTimeData";
+import { useAttendanceData } from "./useAttendanceData";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+import { useEmployees } from "./useEmployees";
 
 export const useEmployeeAttendanceData = () => {
-  const { employees } = useEmployeeData();
-  const { Attendance } = useSalaryCalculationData();
   const { startDate, endDate } = useDateRangeStore();
+  const { employees } = useEmployees();
+  const { Attendance } = useAttendanceData();
+  const { overTime } = useOverTimeData();
 
-  // console.log("employees", employees);
-  // console.log("attendanceData", Attendance);
-  // console.log("startDate", startDate);
-  // console.log("endDate", endDate);
+  // Get functions from store without subscribing to state changes
+  const processAttendanceData = useAttendanceStore(
+    (state) => state.processAttendanceData
+  );
+  const resetAttendanceData = useAttendanceStore(
+    (state) => state.resetAttendanceData
+  );
+  const isProcessing = useAttendanceStore((state) => state.isProcessing);
+  const lastProcessedRange = useAttendanceStore(
+    (state) => state.lastProcessedRange
+  );
 
-  const employeeAttendanceData = useMemo(() => {
-    if (!employees || !Attendance) {
-      return [];
+  // Track previous values to detect changes
+  const prevDateRangeRef = useRef(null);
+  const isFirstRenderRef = useRef(true);
+
+  const currentRange = startDate && endDate ? `${startDate}-${endDate}` : null;
+
+  // Handle date range changes
+  useEffect(() => {
+    const dateRangeChanged = prevDateRangeRef.current !== currentRange;
+
+    if (dateRangeChanged && !isFirstRenderRef.current) {
+      console.log(
+        "📅 Date range changed:",
+        prevDateRangeRef.current,
+        "->",
+        currentRange
+      );
+      resetAttendanceData();
     }
 
-    // Filter attendance by date range
-    const filteredAttendance = Attendance.filter((record) => {
-      if (!startDate || !endDate) return true;
-      return record.date >= startDate && record.date <= endDate;
-    });
+    prevDateRangeRef.current = currentRange;
+    isFirstRenderRef.current = false;
+  }, [currentRange, resetAttendanceData]);
 
-    // Group attendance by employee ID
-    const attendanceByEmployee = filteredAttendance.reduce((acc, record) => {
-      const { empId, date, checkIn } = record;
-
-      if (!acc[empId]) {
-        acc[empId] = [];
-      }
-
-      // Parse checkIn JSON string to array
-      let checkInArray = [];
-      try {
-        if (typeof checkIn === "string" && checkIn) {
-          // Clean malformed JSON
-          const cleanedCheckIn = checkIn
-            .replace(/,+/g, ",")
-            .replace(/,\s*]/g, "]")
-            .replace(/\[\s*,/g, "[")
-            .replace(/,\s*,/g, ",");
-
-          checkInArray = JSON.parse(cleanedCheckIn);
-        } else if (Array.isArray(checkIn)) {
-          checkInArray = checkIn;
-        }
-      } catch {
-        console.warn(
-          `Failed to parse checkIn for employee ${empId} on ${date}:`,
-          checkIn
-        );
-        checkInArray = [];
-      }
-
-      acc[empId].push({
-        date,
-        checkIn: checkInArray,
-      });
-
-      return acc;
-    }, {});
-
-    // Combine employee data with punch data
-    return employees.map((employee) => {
-      const employeeId = employee.empId || employee.id || employee.employeeId;
-      const punchData = attendanceByEmployee[employeeId] || [];
-
-      // Sort punch data by date
-      const sortedPunchData = punchData.sort(
-        (a, b) => new Date(a.date) - new Date(b.date)
+  // Process data when dependencies change
+  useEffect(() => {
+    if (
+      employees?.length &&
+      Attendance?.length &&
+      currentRange !== lastProcessedRange
+    ) {
+      console.log("🔄 Processing attendance for range:", currentRange);
+      processAttendanceData(
+        employees,
+        Attendance,
+        overTime,
+        startDate,
+        endDate
       );
+    }
+  }, [
+    employees,
+    Attendance,
+    overTime,
+    startDate,
+    endDate,
+    currentRange,
+    lastProcessedRange,
+    processAttendanceData,
+  ]);
 
-      return {
-        ...employee,
-        punch: sortedPunchData,
-      };
-    });
-  }, [employees, Attendance, startDate, endDate]);
-
-  return employeeAttendanceData;
+  return {
+    isProcessing,
+  };
 };

@@ -58,7 +58,6 @@ import Dashboard from "../pages/Dashboard";
 import SignInPage from "../pages/SignInPage";
 import EmployeePage from "@/pages/EmployeePage";
 import SalaryCalculationPage from "@/pages/SalaryCalculationPage";
-import Warehouse from "@/components/salaryCalculation/test";
 import DeviceManagementPage from "@/pages/DeviceManagementPage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
 import EmployeeManagementPage from "@/pages/EmployeeManagementPage";
@@ -67,7 +66,7 @@ import PrivateRoute from "./PrivateRoute"; // ✅ import
 
 const AppLayout = () => {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[100vh] w-[100vw]  ">
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Navbar />

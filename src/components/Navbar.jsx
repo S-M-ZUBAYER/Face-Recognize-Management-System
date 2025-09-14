@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { memo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useUserData } from "@/hook/useUserData";
@@ -36,7 +36,7 @@ const Navbar = () => {
         <SideDrawer />
       </div>
       <div className="flex items-center gap-4">
-        <Avatar className="w-[2vw]">
+        <Avatar>
           <AvatarImage src={imageUrl} />
         </Avatar>
       </div>
@@ -44,4 +44,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default memo(Navbar);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "react-router-dom";
 import { useUserData } from "@/hook/useUserData";
@@ -61,6 +61,7 @@ const Sidebar = () => {
   if (user?.photo) {
     imageUrl = base64ToImage(user.photo);
   }
+  console.log("sidebar");
   return (
     <aside className="w-80 h-screen  border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0] ">
       <div className=" flex flex-col justify-center items-center">
@@ -148,7 +149,7 @@ const Sidebar = () => {
           }}
         >
           <div className="flex items-center gap-2">
-            <Avatar className="w-[2vw]">
+            <Avatar>
               <AvatarImage src={imageUrl} />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
@@ -163,4 +164,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default memo(Sidebar);

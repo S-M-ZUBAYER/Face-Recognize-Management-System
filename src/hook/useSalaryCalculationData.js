@@ -1,13 +1,17 @@
 import { useQueries } from "@tanstack/react-query";
 import axios from "axios";
-import { useEmployeeData } from "./useEmployeeData";
+import { useEmployees } from "./useEmployees";
 import { calculateSalary } from "@/lib/calculateSalary";
 import { useDateStore } from "@/zustand/useDateStore";
+import { useGlobalSalary } from "./useGlobalSalary";
+import { useAttendanceData } from "./useAttendanceData";
 
 export const useSalaryCalculationData = () => {
-  const { employees, globalSalaryRules } = useEmployeeData();
+  const { employees } = useEmployees();
+  const { globalSalaryRules } = useGlobalSalary();
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
   const { selectedMonth, selectedYear } = useDateStore();
+  const { Attendance } = useAttendanceData();
 
   // --- Fetch PayPeriod per deviceMAC ---
   const payPeriodQueries = useQueries({
@@ -29,26 +33,6 @@ export const useSalaryCalculationData = () => {
     .filter(Boolean)
     .flat();
 
-  // Attendance per deviceMAC
-  const attendanceQueries = useQueries({
-    queries: deviceMACs.map((mac) => ({
-      queryKey: ["attendance", mac.deviceMAC],
-      queryFn: async () => {
-        const res = await axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/attendance/attendance-by-device?deviceId=${mac.deviceMAC}`
-        );
-        return res.data;
-      },
-    })),
-  });
-
-  const Attendance = attendanceQueries
-    .map((q) => q.data)
-    .filter(Boolean)
-    .flat();
-
-  // console.log("Attendance Data:", Attendance);
-
   // --- Helper: get pay info and salary rules by deviceMAC ---
   function getPayInfoByDevice(mac) {
     const found = payPeriodData.find((d) => d.deviceMAC === mac);
@@ -61,11 +45,8 @@ export const useSalaryCalculationData = () => {
       : { PayPeriod: {}, SalaryRules: {} };
   }
 
-  console.log(selectedMonth, selectedYear);
-
   // --- Helper: get employee monthly attendance ---
   function getEmployeeMonthlyAttendance(empId) {
-    // Filter by current month, year, and employee ID
     return Attendance.filter((record) => {
       const recordDate = new Date(record.date);
       return (
@@ -126,17 +107,12 @@ export const useSalaryCalculationData = () => {
   });
 
   // --- Combined loading and error states ---
-  const isLoading =
-    payPeriodQueries.some((q) => q.isLoading) ||
-    attendanceQueries.some((q) => q.isLoading);
-  const isError =
-    payPeriodQueries.some((q) => q.isError) ||
-    attendanceQueries.some((q) => q.isError);
+  const isLoading = payPeriodQueries.some((q) => q.isLoading);
+  const isError = payPeriodQueries.some((q) => q.isError);
 
   return {
     payPeriod: payPeriodData,
     enrichedEmployees,
-    Attendance, // Raw attendance data if needed
     isLoading,
     isError,
   };
