@@ -52,6 +52,7 @@ export function DatePicker() {
             align="start"
             alignOffset={-20}
             sideOffset={15}
+            style={{ backgroundColor: "white" }}
           >
             <Calendar
               mode="single"
