@@ -1,11 +1,10 @@
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeManagementTable from "@/components/employeeManagement/EmployeeManagementTable";
 import React from "react";
-import { useEmployeeData } from "@/hook/useEmployeeData";
-
+import { useEmployees } from "@/hook/useEmployees";
 
 function EmployeeManagementPage() {
-  const { employees } = useEmployeeData();
+  const { employees } = useEmployees();
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
 
   const filters = [

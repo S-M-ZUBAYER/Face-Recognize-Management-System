@@ -18,8 +18,7 @@ const DateRangePicker = ({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectingStart, setSelectingStart] = useState(true);
 
-  const { startDate, endDate, setDateRange, clearDateRange } =
-    useDateRangeStore();
+  const { startDate, endDate, setDateRange } = useDateRangeStore();
 
   // Memoize date formatting function
   const formatDateForStore = useCallback((date) => {
@@ -141,10 +140,10 @@ const DateRangePicker = ({
     );
   }, []);
 
-  const handleClear = useCallback(() => {
-    clearDateRange();
-    setSelectingStart(true);
-  }, [clearDateRange]);
+  // const handleClear = useCallback(() => {
+  //   clearDateRange();
+  //   setSelectingStart(true);
+  // }, [clearDateRange]);
 
   // Create reactive formatted range
   const getFormattedRange = useCallback(() => {
@@ -228,7 +227,7 @@ const DateRangePicker = ({
             </Button>
           </PopoverTrigger>
 
-          {(startDate || endDate) && (
+          {/* {(startDate || endDate) && (
             <Button
               variant="ghost"
               size="sm"
@@ -238,11 +237,11 @@ const DateRangePicker = ({
               <X className="h-4 w-4" />
               <span className="sr-only">Clear selection</span>
             </Button>
-          )}
+          )} */}
         </div>
 
         <PopoverContent className="w-auto p-0" align="start">
-          <div className="p-4">
+          <div className="p-4 bg-white">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <Button

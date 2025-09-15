@@ -1,8 +1,6 @@
 import AttendanceTable from "./AttendanceTable";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
-import { useEmployees } from "@/hook/useEmployees";
-import { useAttendanceData } from "@/hook/useAttendanceData";
 
 const EmployeeAttendance = () => {
   const { isProcessing } = useEmployeeAttendanceData();
@@ -13,9 +11,6 @@ const EmployeeAttendance = () => {
     overTimeEmployees,
     activeFilter,
   } = useAttendanceStore();
-  const { employees } = useEmployees();
-  const { Attendance } = useAttendanceData();
-  console.log(employees, Attendance);
 
   const getFilteredEmployees = () => {
     switch (activeFilter) {

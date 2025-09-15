@@ -8,10 +8,9 @@ export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
   const { globalSalaryRules } = useGlobalSalary();
 
-  const { employees, isLoading: employeesLoading } = useEmployees();
+  const { employees } = useEmployees();
 
-  const { attendanceData, isLoading: attendanceLoading } =
-    useAttendance(selectedDate);
+  const { attendanceData } = useAttendance(selectedDate);
 
   // derive attended, absent, late as before...
   const attendedIds = attendanceData.map((att) => att.empId);
@@ -64,6 +63,5 @@ export const useEmployeeData = () => {
     totalPresent: attendedEmployees.length,
     totalAbsent: absentEmployees.length,
     totalLate,
-    isLoading: employeesLoading || attendanceLoading,
   };
 };

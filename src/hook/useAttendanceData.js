@@ -34,7 +34,10 @@ export const useAttendanceData = () => {
   // ✅ Manual refresh only
   const refresh = async () => {
     const refreshPromises = deviceMACs.map((mac) =>
-      queryClient.invalidateQueries(["attendance", mac.deviceMAC])
+      queryClient.invalidateQueries({
+        queryKey: ["attendance", mac.deviceMAC],
+        exact: true, // Only invalidate exact matches
+      })
     );
     await Promise.all(refreshPromises);
   };

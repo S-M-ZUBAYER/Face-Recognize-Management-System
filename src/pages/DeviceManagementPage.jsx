@@ -2,10 +2,10 @@ import React from "react";
 import DeviceCard from "@/components/deviceManagement/DeviceCard";
 import { useUserData } from "@/hook/useUserData";
 import FancyLoader from "@/components/FancyLoader";
-import { useEmployeeData } from "@/hook/useEmployeeData";
+import { useEmployees } from "@/hook/useEmployees";
 
 function DeviceManagementPage() {
-  const { employeeCounts } = useEmployeeData();
+  const { employeeCounts } = useEmployees();
   const { deviceMACs } = useUserData();
   console.log("DeviceManagementPage Re-render:", {
     employeeCounts,

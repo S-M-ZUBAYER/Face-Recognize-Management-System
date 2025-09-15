@@ -41,7 +41,7 @@ function EmployeeTable({ employees }) {
             {paginatedEmployee.map((emp, idx) => (
               <tr key={idx} className="border-b">
                 <td className="p-3">{String(idx + 1).padStart(2, "0")}</td>
-                <td className="p-3">{emp.name}</td>
+                <td className="p-3">{emp.name.split("<")[0]}</td>
                 <td className="p-3">{emp.employeeId}</td>
                 <td className="p-3">{emp.designation}</td>
                 <td className="p-3">{emp.department}</td>
