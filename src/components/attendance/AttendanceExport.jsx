@@ -10,6 +10,8 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
   console.log("Max Punch Count:", maxPunchCount);
   const { startDate, getFormattedRange } = useDateRangeStore();
 
+  const format = getFormattedRange();
+
   const { selectedDate } = useAttendanceStore();
   const date = new Date(selectedDate);
   const formatted = date.toLocaleDateString("en-GB", {
@@ -76,7 +78,7 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
 
     // Row 2: Selected Date
     const selectedRow = worksheet.addRow([
-      `Selected Date: ${startDate !== null ? getFormattedRange : selectedDate}`,
+      `Selected Date: ${startDate !== null ? format : selectedDate}`,
     ]);
     worksheet.mergeCells(
       selectedRow.number,
@@ -196,9 +198,7 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(
       new Blob([buffer]),
-      `${
-        startDate !== null ? getFormattedRange : formatted
-      }_Attendance_Report.xlsx`
+      `${startDate !== null ? format : formatted}_Attendance_Report.xlsx`
     );
   };
 

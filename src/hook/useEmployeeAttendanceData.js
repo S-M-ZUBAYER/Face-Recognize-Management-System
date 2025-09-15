@@ -1,5 +1,5 @@
-// hooks/useEmployeeAttendanceData.js - FIXED VERSION
-import { useEffect, useRef } from "react";
+// hooks/useEmployeeAttendanceData.js - WITH REFRESH FUNCTION
+import { useEffect, useRef, useCallback } from "react";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 import { useOverTimeData } from "./useOverTimeData";
 import { useAttendanceData } from "./useAttendanceData";
@@ -8,9 +8,9 @@ import { useEmployees } from "./useEmployees";
 
 export const useEmployeeAttendanceData = () => {
   const { startDate, endDate } = useDateRangeStore();
-  const { employees } = useEmployees();
-  const { Attendance } = useAttendanceData();
-  const { overTime } = useOverTimeData();
+  const { employees, refetch: refetchEmployees } = useEmployees();
+  const { Attendance, refetch: refetchAttendance } = useAttendanceData();
+  const { overTime, refetch: refetchOverTime } = useOverTimeData();
 
   // Get functions from store without subscribing to state changes
   const processAttendanceData = useAttendanceStore(
@@ -24,16 +24,20 @@ export const useEmployeeAttendanceData = () => {
     (state) => state.lastProcessedRange
   );
 
+  // Get refresh functions from store
+  const refreshAttendanceData = useAttendanceStore(
+    (state) => state.refreshAttendanceData
+  );
+  const isRefreshing = useAttendanceStore((state) => state.isRefreshing);
+
   // Track previous values to detect changes
   const prevDateRangeRef = useRef(null);
   const isFirstRenderRef = useRef(true);
-
   const currentRange = startDate && endDate ? `${startDate}-${endDate}` : null;
 
   // Handle date range changes
   useEffect(() => {
     const dateRangeChanged = prevDateRangeRef.current !== currentRange;
-
     if (dateRangeChanged && !isFirstRenderRef.current) {
       console.log(
         "📅 Date range changed:",
@@ -43,7 +47,6 @@ export const useEmployeeAttendanceData = () => {
       );
       resetAttendanceData();
     }
-
     prevDateRangeRef.current = currentRange;
     isFirstRenderRef.current = false;
   }, [currentRange, resetAttendanceData]);
@@ -75,7 +78,33 @@ export const useEmployeeAttendanceData = () => {
     processAttendanceData,
   ]);
 
+  // NEW: Refresh function
+  const handleRefresh = useCallback(async () => {
+    console.log("🔄 Manual refresh triggered");
+
+    const success = await refreshAttendanceData({
+      refetchEmployees,
+      refetchAttendance,
+      refetchOverTime,
+    });
+
+    if (success) {
+      console.log("✅ Manual refresh completed successfully");
+    } else {
+      console.error("❌ Manual refresh failed");
+    }
+
+    return success;
+  }, [
+    refreshAttendanceData,
+    refetchEmployees,
+    refetchAttendance,
+    refetchOverTime,
+  ]);
+
   return {
     isProcessing,
+    isRefreshing,
+    refresh: handleRefresh,
   };
 };

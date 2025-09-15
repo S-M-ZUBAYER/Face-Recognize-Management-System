@@ -116,7 +116,9 @@ const EmployeeManagementTable = ({ employees }) => {
                       }
                     />
                   </td>
-                  <td className="p-3 text-sm text-gray-900">{employee.name}</td>
+                  <td className="p-3 text-sm text-gray-900">
+                    {employee.name.split("<")[0]}
+                  </td>
                   <td className="p-3 text-sm text-gray-600">
                     {employee.employeeId}
                   </td>

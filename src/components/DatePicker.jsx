@@ -9,7 +9,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-import { useEmployeeData } from "@/hook/useEmployeeData";
+// import { useEmployeeData } from "@/hook/useEmployeeData";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 function formatDate(date) {
   if (!date) return "";
@@ -24,7 +25,7 @@ export function DatePicker() {
   const [open, setOpen] = React.useState(false);
 
   // ✅ get selectedDate and setter from your hook
-  const { selectedDate, setSelectedDate } = useEmployeeData();
+  const { selectedDate, setSelectedDate } = useAttendanceStore();
 
   React.useEffect(() => {
     console.log(selectedDate);
