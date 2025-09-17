@@ -4,7 +4,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useDateStore } from "@/zustand/useDateStore";
 
-function AttendanceExportMonthly({ selectedEmployeeData }) {
+function SalaryExportMonthly({ selectedEmployeeData }) {
   const { selectedMonth, selectedYear } = useDateStore();
 
   const getMonthInfo = (month, year) => {
@@ -49,40 +49,46 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
     }
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Timesheet");
+    const worksheet = workbook.addWorksheet("Salary Details");
 
     // =========================================================
-    // 🔹 FIND MAX PUNCH COUNT
+    // 🔹 HEADERS
     // =========================================================
-    let maxPunchCount = 0;
-    selectedEmployeeData.forEach((emp) => {
-      emp.salaryDetails?.punchData?.forEach((day) => {
-        const times = Array.isArray(day.checkIn) ? day.checkIn : [];
-        if (times.length > maxPunchCount) {
-          maxPunchCount = times.length;
-        }
-      });
-    });
-
-    // If no punches, fallback to at least 1 punch column
-    if (maxPunchCount === 0) maxPunchCount = 1;
-
-    // =========================================================
-    // 🔹 DYNAMIC HEADERS
-    // =========================================================
-    const baseHeaders = ["Date", "Name", "ID", "Department", "Designation"];
-    const punchHeaders = Array.from(
-      { length: maxPunchCount },
-      (_, i) => `Punch ${i + 1}`
-    );
-    const headers = [...baseHeaders, ...punchHeaders];
-    const totalColumns = headers.length;
+    const headers = [
+      "Name",
+      "Employee ID",
+      "Company ID",
+      "Department",
+      "Designation",
+      "Late Count",
+      "Early Departure Count",
+      "Missed Punch",
+      "Missed Full Punch",
+      "Total Lateness Hours",
+      "Normal Overtime",
+      "Weekend Overtime",
+      "Holiday Overtime",
+      "Overtime Pay",
+      "Overtime Rate",
+      "Standard Pay",
+      "Earned Salary",
+      "Present Days Salary",
+      "Total Pay",
+      "Normal Present",
+      "Weekend Present",
+      "Holiday Present",
+      "Absent Days",
+      "Working Days",
+      "Working Days (Up to Current)",
+    ];
 
     // =========================================================
     // 🔹 TITLE ROW
     // =========================================================
-    const titleRow = worksheet.addRow(["Attendance Punch Data"]);
-    worksheet.mergeCells(1, 1, 1, totalColumns);
+    const titleRow = worksheet.addRow([
+      `Salary Details - ${monthInfo.monthYear}`,
+    ]);
+    worksheet.mergeCells(1, 1, 1, headers.length);
     titleRow.getCell(1).font = {
       bold: true,
       size: 20,
@@ -97,23 +103,23 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
       pattern: "solid",
       fgColor: { argb: "228B22" },
     };
+
     worksheet.addRow([]);
     worksheet.addRow([]);
 
     // =========================================================
-    // 🔹 META INFO ROWS
+    // 🔹 META INFO
     // =========================================================
     const selectedRow = worksheet.addRow([
-      `Selected Date: ${monthInfo.startDate} - ${monthInfo.endDate}`,
+      `Selected Period: ${monthInfo.startDate} - ${monthInfo.endDate}`,
     ]);
     worksheet.mergeCells(
       selectedRow.number,
       1,
       selectedRow.number,
-      totalColumns
+      headers.length
     );
-    selectedRow.getCell(1).font = { bold: true, size: 14 };
-    selectedRow.getCell(1).alignment = { horizontal: "left" };
+    selectedRow.font = { bold: true, size: 14 };
 
     const now = new Date();
     const DateTime = `${now.getFullYear()}-${String(
@@ -122,15 +128,14 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
       now.getHours()
     ).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
-    const exportedRow = worksheet.addRow([`Export Date & Time: ${DateTime}`]);
+    const exportedRow = worksheet.addRow([`Exported: ${DateTime}`]);
     worksheet.mergeCells(
       exportedRow.number,
       1,
       exportedRow.number,
-      totalColumns
+      headers.length
     );
-    exportedRow.getCell(1).font = { bold: true, size: 14 };
-    exportedRow.getCell(1).alignment = { horizontal: "left" };
+    exportedRow.font = { bold: true, size: 14 };
 
     worksheet.addRow([]);
 
@@ -149,47 +154,46 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
     });
 
     // =========================================================
-    // 🔹 BUILD DATA
+    // 🔹 ROWS
     // =========================================================
     selectedEmployeeData.forEach((emp) => {
-      const punchDataArr = emp.salaryDetails?.punchData || [];
+      const stats = emp.salaryDetails?.attendanceStats || {};
+      const overtime = emp.salaryDetails?.overtimeDetails || {};
+      const present = emp.salaryDetails?.Present || {};
 
-      punchDataArr.forEach((day) => {
-        const times = Array.isArray(day.checkIn) ? day.checkIn : [];
+      const rowData = [
+        emp.name?.split("<")[0] || "",
+        emp.employeeId || emp.companyEmployeeId || "",
+        emp.companyEmployeeId || "",
+        emp.department || "",
+        emp.designation || "",
+        stats.lateCount ?? 0,
+        stats.earlyDepartureCount ?? 0,
+        stats.missedPunch ?? 0,
+        stats.missedFullPunch ?? 0,
+        stats.totalLatenessHours ?? 0,
+        overtime.normal ?? 0,
+        overtime.weekend ?? 0,
+        overtime.holiday ?? 0,
+        emp.salaryDetails?.overtimePay ?? 0,
+        emp.salaryDetails?.overtimeSalary ?? 0,
+        emp.salaryDetails?.standardPay ?? 0,
+        emp.salaryDetails?.earnedSalary ?? 0,
+        emp.salaryDetails?.presentDaysSalary ?? 0,
+        emp.salaryDetails?.totalPay ?? 0,
+        present.normalPresent ?? 0,
+        present.weekendPresent ?? 0,
+        present.holidayPresent ?? 0,
+        emp.salaryDetails?.absent ?? 0,
+        emp.salaryDetails?.workingDays ?? 0,
+        emp.salaryDetails?.workingDaysUpToCurrent ?? 0,
+      ];
 
-        // Fill up row with punches, up to maxPunchCount
-        const punchCols = [];
-        for (let i = 0; i < maxPunchCount; i++) {
-          punchCols.push(times[i] || "-");
-        }
-        // Format date + weekday inside one column
-        const dateObj = day.date ? new Date(day.date) : null;
-        const formattedDate = dateObj
-          ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(
-              2,
-              "0"
-            )}-${String(dateObj.getDate()).padStart(
-              2,
-              "0"
-            )} (${dateObj.toLocaleDateString("en-US", { weekday: "long" })})`
-          : "";
-
-        // Row data
-        const rowData = [
-          formattedDate || "", // Date with weekday
-          emp.name.split("<")[0] || "",
-          emp.companyEmployeeId || "",
-          emp.department || "",
-          emp.designation || "",
-          ...punchCols,
-        ];
-
-        worksheet.addRow(rowData);
-      });
+      worksheet.addRow(rowData);
     });
 
     // =========================================================
-    // 🔹 AUTO COLUMN WIDTHS
+    // 🔹 AUTO COLUMN WIDTH
     // =========================================================
     worksheet.columns.forEach((col) => {
       let maxLength = 0;
@@ -197,16 +201,16 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
         const value = cell.value ? cell.value.toString() : "";
         maxLength = Math.max(maxLength, value.length);
       });
-      col.width = Math.min(Math.max(maxLength + 2, 10), 30);
+      col.width = Math.min(Math.max(maxLength + 2, 12), 30);
     });
 
     // =========================================================
-    // 🔹 FREEZE PANES (header row + first 2 columns)
+    // 🔹 FREEZE PANES
     // =========================================================
     worksheet.views = [
       {
         state: "frozen",
-        xSplit: 2, // freeze Date + Name
+        xSplit: 2, // freeze first 2 columns
         ySplit: headerRow.number, // freeze header
       },
     ];
@@ -215,7 +219,7 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
     // 🔹 EXPORT FILE
     // =========================================================
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `${monthInfo.monthYear}.xlsx`);
+    saveAs(new Blob([buffer]), `Salary_${monthInfo.monthYear}.xlsx`);
   };
 
   return (
@@ -223,9 +227,9 @@ function AttendanceExportMonthly({ selectedEmployeeData }) {
       onClick={handleExport}
       className="flex items-center gap-2 border border-[#004368] text-[#004368] px-4 py-1 rounded-lg hover:bg-blue-50 font-bold"
     >
-      <img src={image.xls} alt="xls" /> Export Monthly Attendance
+      <img src={image.xls} alt="xls" /> Export Monthly Salary
     </button>
   );
 }
 
-export default AttendanceExportMonthly;
+export default SalaryExportMonthly;

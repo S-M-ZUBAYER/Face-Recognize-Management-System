@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import CustomPagination from "../CustomPagination";
-import ExportButton from "../ExportButton";
 import image from "@/constants/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "../ui/button";
 // import AttendanceExportMonthly from "./AttendanceExportMonthly";
-import EployeeeSalaryDetailsModal from "./EployeeeSalaryDetailsModal";
+import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
+import SalaryExportMonthly from "./SalaryExportMonthly";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -179,10 +179,10 @@ function SalaryTable({ employees }) {
 
         {/* Modal */}
         {selectedEmp && (
-          <EployeeeSalaryDetailsModal
+          <EmployeeSalaryDetailsModal
             selectedEmp={selectedEmp}
             setSelectedEmp={setSelectedEmp}
-          ></EployeeeSalaryDetailsModal>
+          ></EmployeeSalaryDetailsModal>
         )}
       </div>
       <div className="flex justify-end mt-4 space-x-2 text-sm text-gray-500">
@@ -191,8 +191,8 @@ function SalaryTable({ employees }) {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton selectedEmployeeData={selectedEmployeeData} />
-        {/* <AttendanceExportMonthly selectedEmployeeData={selectedEmployeeData} /> */}
+        {/* <ExportButton selectedEmployeeData={selectedEmployeeData} /> */}
+        <SalaryExportMonthly selectedEmployeeData={selectedEmployeeData} />
         <Button
           onClick={handleCalculateSalary}
           className="flex items-center gap-2 bg-[#004368] hover:bg-[#004368] text-[#EAEAEA] px-8 py-1 rounded-lg font-bold"
