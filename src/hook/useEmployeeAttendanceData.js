@@ -12,6 +12,8 @@ export const useEmployeeAttendanceData = () => {
   const { Attendance, refetch: refetchAttendance } = useAttendanceData();
   const { overTime, refetch: refetchOverTime } = useOverTimeData();
 
+  console.log("attendance records:", Attendance);
+
   // Get functions from store without subscribing to state changes
   const processAttendanceData = useAttendanceStore(
     (state) => state.processAttendanceData

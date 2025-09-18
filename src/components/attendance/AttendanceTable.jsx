@@ -1,4 +1,11 @@
-import React, { memo, useState, useMemo, useCallback } from "react";
+import React, {
+  memo,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { AutoSizer, MultiGrid } from "react-virtualized";
 import "react-virtualized/styles.css";
 import AttendanceFilters from "./AttendanceFilters";
@@ -7,6 +14,7 @@ import AttendanceExport from "./AttendanceExport";
 import { RefreshIcon } from "@/constants/icons";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useAttendanceData } from "@/hook/useAttendanceData";
+import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEmployees } from "@/hook/useEmployees";
 import { useOverTimeData } from "@/hook/useOverTimeData";
@@ -39,7 +47,7 @@ const SearchBox = memo(function SearchBox({
         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
           searchInput.trim()
             ? "bg-[#004368] text-white hover:bg-[#003155]"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-[#004368] text-white cursor-not-allowed"
         }`}
       >
         Search
@@ -60,6 +68,10 @@ const AttendanceTable = ({ employees = [] }) => {
   // Simple individual selectors - NO custom equality functions
   const isProcessing = useAttendanceStore((state) => state.isProcessing);
   const isFilterLoading = useAttendanceStore((state) => state.isFilterLoading);
+  const activeFilter = useAttendanceStore((state) => state.activeFilter);
+
+  // Date range from store
+  const { startDate, endDate } = useDateRangeStore();
 
   // FIXED: Get isRefreshing from store and use the store's refresh function
   const isRefreshing = useAttendanceStore((state) => state.isRefreshing);
@@ -77,6 +89,36 @@ const AttendanceTable = ({ employees = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Refs to track previous values for auto-unselect
+  const prevActiveFilterRef = useRef(activeFilter);
+  const prevStartDateRef = useRef(startDate);
+  const prevEndDateRef = useRef(endDate);
+  const prevSearchQueryRef = useRef("");
+
+  // Auto-unselect effect when activeFilter, date range, or search changes
+  useEffect(() => {
+    const filterChanged = prevActiveFilterRef.current !== activeFilter;
+    const dateChanged =
+      prevStartDateRef.current !== startDate ||
+      prevEndDateRef.current !== endDate;
+    const searchChanged = prevSearchQueryRef.current !== searchQuery;
+
+    if (filterChanged || dateChanged || searchChanged) {
+      if (selectedEmployees.length > 0) {
+        console.log(
+          "🔄 Auto-unselecting employees due to filter/date/search change"
+        );
+        setSelectedEmployees([]);
+      }
+    }
+
+    // Update refs
+    prevActiveFilterRef.current = activeFilter;
+    prevStartDateRef.current = startDate;
+    prevEndDateRef.current = endDate;
+    prevSearchQueryRef.current = searchQuery;
+  }, [activeFilter, startDate, endDate, searchQuery, selectedEmployees.length]);
 
   const handleSearch = useCallback(() => {
     if (searchInput.trim()) {

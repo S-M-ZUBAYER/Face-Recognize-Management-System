@@ -1,6 +1,6 @@
 import React from "react";
 
-const EployeeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
+const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       {/* Backdrop blur */}
@@ -135,4 +135,4 @@ const EployeeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   );
 };
 
-export default EployeeeSalaryDetailsModal;
+export default EmployeeSalaryDetailsModal;

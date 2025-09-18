@@ -27,10 +27,6 @@ export function DatePicker() {
   // ✅ get selectedDate and setter from your hook
   const { selectedDate, setSelectedDate } = useAttendanceStore();
 
-  React.useEffect(() => {
-    console.log(selectedDate);
-  }, [selectedDate]);
-
   // Convert string date from hook into JS Date
   const selectedDateObj = selectedDate ? new Date(selectedDate) : new Date();
 
@@ -63,6 +59,7 @@ export function DatePicker() {
               onSelect={(date) => {
                 if (!date) return;
                 setSelectedDate(format(date, "yyyy-MM-dd")); // ✅ update hook state
+
                 setOpen(false);
               }}
             />

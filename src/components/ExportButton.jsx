@@ -36,8 +36,6 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 function ExportButton({ selectedEmployeeData }) {
-  console.log(selectedEmployeeData, "excel");
-
   const handleExport = () => {
     if (!selectedEmployeeData || selectedEmployeeData.length === 0) return;
 

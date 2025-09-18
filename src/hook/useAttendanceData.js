@@ -15,10 +15,10 @@ export const useAttendanceData = () => {
         );
         return res.data;
       },
-      staleTime: Infinity, // never auto refetch
-      cacheTime: Infinity, // keep data forever in memory
-      refetchOnWindowFocus: false, // prevent auto refetch on tab focus
-      refetchOnReconnect: false, // prevent auto refetch on reconnect
+      // 👇 ensures fresh fetch on reload / remount
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true, // optional: refetch when tab is focused
+      staleTime: 0, // data is immediately stale, so refetch triggers
     })),
   });
 
@@ -36,7 +36,7 @@ export const useAttendanceData = () => {
     const refreshPromises = deviceMACs.map((mac) =>
       queryClient.invalidateQueries({
         queryKey: ["attendance", mac.deviceMAC],
-        exact: true, // Only invalidate exact matches
+        exact: true,
       })
     );
     await Promise.all(refreshPromises);

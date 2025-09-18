@@ -13,43 +13,9 @@ import {
 import { useEmployeeData } from "@/hook/useEmployeeData";
 
 function Dashboard() {
-  const {
-    totalEmployees,
-    totalPresent,
-    totalAbsent,
-    totalLate,
-    isLoading,
+  const { totalEmployees, totalPresent, totalAbsent, totalLate, isLoading } =
+    useEmployeeData();
 
-    employees,
-    globalSalaryRules,
-    // absentEmployees,
-    // attendedEmployees,
-  } = useEmployeeData();
-
-  console.log(
-    "Dashboard Re-render:",
-    {
-      employees,
-    },
-    globalSalaryRules
-  );
-
-  // console.log(
-  //   "totalEmployees",
-  //   totalEmployees,
-  //   "totalPresent",
-  //   totalPresent,
-  //   "totalAbsent",
-  //   totalAbsent,
-  //   "totalLate",
-  //   totalLate,
-  //   employees,
-  //   "Employees in Dashboard",
-  //   absentEmployees,
-  //   "Absent Employees",
-  //   attendedEmployees,
-  //   "Attended Employees"
-  // );
   const cards = [
     {
       title: "Total Employee",

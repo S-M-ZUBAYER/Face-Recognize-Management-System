@@ -11,6 +11,7 @@ const EmployeeAttendance = () => {
     overTimeEmployees,
     activeFilter,
   } = useAttendanceStore();
+  // console.log(allEmployees, presentEmployees, absentEmployees);
 
   const getFilteredEmployees = () => {
     switch (activeFilter) {

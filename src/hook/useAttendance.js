@@ -13,6 +13,10 @@ export const useAttendance = (selectedDate) => {
         );
         return res.data;
       },
+      // 👇 ensures fresh fetch on reload / remount
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true, // optional: refetch when tab is focused
+      staleTime: 0, // data is immediately stale, so refetch triggers
     })),
   });
 
