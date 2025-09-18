@@ -157,6 +157,7 @@ export const useAttendanceStore = create((set, get) => ({
     startDate,
     endDate
   ) => {
+    console.log(attendance);
     const today = new Date().toISOString().split("T")[0];
     const currentRange =
       startDate && endDate ? `${startDate}-${endDate}` : today;

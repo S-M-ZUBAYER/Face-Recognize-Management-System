@@ -28,7 +28,7 @@ const DateRangePicker = ({
     return `${year}-${month}-${day}`;
   }, []);
 
-  // Memoize today's date string
+  // Memoize today's date string - this will be our max date
   const todayStr = useMemo(
     () => formatDateForStore(new Date()),
     [formatDateForStore]
@@ -78,8 +78,13 @@ const DateRangePicker = ({
       const isSelected = dateStr === startDate || dateStr === endDate;
       const isInRange =
         startDate && endDate && dateStr >= startDate && dateStr <= endDate;
+
+      // Check if date is disabled (including future dates)
       const isDisabled =
-        (minDate && dateStr < minDate) || (maxDate && dateStr > maxDate);
+        (minDate && dateStr < minDate) ||
+        (maxDate && dateStr > maxDate) ||
+        dateStr > todayStr; // Block future dates
+
       const isToday = dateStr === todayStr;
 
       days.push({
@@ -135,10 +140,24 @@ const DateRangePicker = ({
   }, []);
 
   const handleNextMonth = useCallback(() => {
-    setCurrentMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1)
+    const nextMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1
     );
-  }, []);
+    const today = new Date();
+
+    // Don't allow navigation to months that are entirely in the future
+    // Allow navigation to current month or any month that has at least one past/present date
+    if (
+      nextMonth.getFullYear() > today.getFullYear() ||
+      (nextMonth.getFullYear() === today.getFullYear() &&
+        nextMonth.getMonth() > today.getMonth())
+    ) {
+      return; // Don't navigate to future months
+    }
+
+    setCurrentMonth(nextMonth);
+  }, [currentMonth]);
 
   // const handleClear = useCallback(() => {
   //   clearDateRange();
@@ -188,6 +207,11 @@ const DateRangePicker = ({
       if (option.days === "month") {
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        // Ensure end date doesn't exceed today
+        if (formatDateForStore(end) > todayStr) {
+          end = today;
+        }
       } else {
         end = today;
         start = new Date(today);
@@ -198,8 +222,23 @@ const DateRangePicker = ({
       setSelectingStart(true);
       setIsOpen(false);
     },
-    [formatDateForStore, setDateRange]
+    [formatDateForStore, setDateRange, todayStr]
   );
+
+  // Check if next month navigation should be disabled
+  const isNextMonthDisabled = useMemo(() => {
+    const today = new Date();
+    const nextMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1
+    );
+
+    return (
+      nextMonth.getFullYear() > today.getFullYear() ||
+      (nextMonth.getFullYear() === today.getFullYear() &&
+        nextMonth.getMonth() > today.getMonth())
+    );
+  }, [currentMonth]);
 
   return (
     <div className={cn("relative inline-block ", className)}>
@@ -262,7 +301,11 @@ const DateRangePicker = ({
                 variant="outline"
                 size="sm"
                 onClick={handleNextMonth}
-                className="h-8 w-8 p-0"
+                disabled={isNextMonthDisabled}
+                className={cn(
+                  "h-8 w-8 p-0",
+                  isNextMonthDisabled && "opacity-50 cursor-not-allowed"
+                )}
               >
                 <ChevronRight className="h-4 w-4" />
                 <span className="sr-only">Next month</span>
@@ -271,7 +314,9 @@ const DateRangePicker = ({
 
             {/* Instructions */}
             <div className="mb-3 text-sm text-muted-foreground">
-              {selectingStart ? "Select start date" : "Select end date"}
+              {selectingStart
+                ? "Select start date (past/present only)"
+                : "Select end date (past/present only)"}
             </div>
 
             {/* Days of week */}
@@ -312,7 +357,7 @@ const DateRangePicker = ({
                         !dayData.isInRange &&
                         "bg-accent font-semibold",
                       dayData.isDisabled &&
-                        "text-muted-foreground opacity-50 cursor-not-allowed"
+                        "text-muted-foreground opacity-30 cursor-not-allowed"
                     )}
                   >
                     {dayData.day}
@@ -324,7 +369,7 @@ const DateRangePicker = ({
             {/* Quick Select Options */}
             <div className="mt-4 pt-3 border-t">
               <div className="text-xs text-muted-foreground mb-2">
-                Quick select:
+                Quick select (past dates only):
               </div>
               <div className="flex gap-2 flex-wrap">
                 {quickSelectOptions.map((option) => (
