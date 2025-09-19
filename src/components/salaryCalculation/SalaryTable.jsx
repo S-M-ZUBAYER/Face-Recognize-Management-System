@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import CustomPagination from "../CustomPagination";
-import image from "@/constants/image";
+import { EyeClosed } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "../ui/button";
 // import AttendanceExportMonthly from "./AttendanceExportMonthly";
@@ -79,6 +79,11 @@ function SalaryTable({ employees }) {
     setCalculatedSalaries(newSalaries);
   };
 
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedEmployees([]);
+  }, [employees]);
+
   return (
     <>
       <div className="flex items-center gap-2.5 ">
@@ -121,7 +126,7 @@ function SalaryTable({ employees }) {
                 Absent
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Salary Calc / Edit
+                Salary Calc
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Details
@@ -157,10 +162,10 @@ function SalaryTable({ employees }) {
                   <td className="p-3">
                     {calculatedSalaries[empId] ? (
                       <span className="font-bold text-green-700">
-                        {calculatedSalaries[empId]}
+                        {emp.salaryDetails.totalPay || 0}
                       </span>
                     ) : (
-                      <img src={image.Edit} alt="edit" />
+                      <EyeClosed />
                     )}
                   </td>
                   <td className="p-3">

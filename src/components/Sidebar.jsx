@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "react-router-dom";
 import { useUserData } from "@/hook/useUserData";
@@ -56,6 +56,7 @@ const links = [
 ];
 
 const Sidebar = () => {
+  const [pendingRoute, setPendingRoute] = useState(null);
   const { user } = useUserData();
   let imageUrl = "https://i.pravatar.cc/300";
   if (user?.photo) {
@@ -124,10 +125,11 @@ const Sidebar = () => {
             <NavLink
               key={idx}
               to={link.path}
+              onClick={() => setPendingRoute(link.path)}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 px-4 py-2 text-sm font-medium transition-all relative",
-                  isActive
+                  isActive || pendingRoute === link.path
                     ? "text-[#004368] before:absolute before:left-[-30px] before:top-0 before:bottom-0 before:w-1 before:bg-[#004368]"
                     : "text-[#BDBDBD] hover:text-[#004368]"
                 )

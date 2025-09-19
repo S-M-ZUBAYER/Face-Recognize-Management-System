@@ -6,8 +6,6 @@ import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 
 function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
-  console.log("Selected Employee Data:", selectedEmployeeData);
-  console.log("Max Punch Count:", maxPunchCount);
   const { startDate, getFormattedRange } = useDateRangeStore();
 
   const format = getFormattedRange();

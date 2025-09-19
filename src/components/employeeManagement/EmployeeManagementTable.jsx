@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
 import { Checkbox } from "../ui/checkbox";
@@ -61,6 +61,10 @@ const EmployeeManagementTable = ({ employees }) => {
       return record.employeeId === employeeId && recordDate === today;
     });
   }
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedEmployees([]);
+  }, [employees]);
 
   return (
     <>

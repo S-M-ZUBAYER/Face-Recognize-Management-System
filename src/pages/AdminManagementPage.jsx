@@ -5,6 +5,7 @@ import React from "react";
 
 function AdminManagementPage() {
   const { isLoading, admins } = useAdminData();
+  console.log(admins);
   return (
     <>
       <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F] mb-5">

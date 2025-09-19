@@ -3,25 +3,19 @@ import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeTable from "@/components/employee/EmployeeTable";
 import FancyLoader from "@/components/FancyLoader";
 import { useEmployees } from "@/hook/useEmployees";
+import { useDesignation } from "../hook/useDesignation";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { employees, isLoading } = useEmployees();
+  const { Employees, isLoading } = useEmployees();
 
-  const filters = [
-    "All Employees",
-    "Information Technology",
-    "Marketing",
-    "Research and Development",
-    "E-commerce",
-    "Customer Support",
-    "Finance",
-  ];
+  console.log(Employees);
 
-  // Filter employees based on activeFilter
+  const { designation } = useDesignation();
+
   const getFilteredEmployees = () => {
-    if (activeFilter === "All Employees") return employees;
-    return employees.filter((emp) => emp.department === activeFilter);
+    if (activeFilter === "All Employees") return Employees;
+    return Employees.filter((emp) => emp.department === activeFilter);
   };
 
   return (
@@ -30,7 +24,7 @@ function EmployeePage() {
         Employee List
       </p>
       <EmployeeFilterTabs
-        filters={filters}
+        filters={designation}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
       />
