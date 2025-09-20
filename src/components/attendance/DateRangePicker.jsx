@@ -110,27 +110,35 @@ const DateRangePicker = ({
     todayStr,
   ]);
 
-  // Optimized click handler
+  // UPDATED: Modified click handler for single-click same date selection
   const handleDateClick = useCallback(
     (dayData) => {
       if (dayData.isDisabled) return;
 
       const clickedDate = dayData.dateStr;
 
-      if (selectingStart) {
-        setDateRange(clickedDate, null);
+      // If selecting start date (first click or no dates selected)
+      if (selectingStart || (!startDate && !endDate)) {
+        // Set both start and end to the same date for single-day selection
+        setDateRange(clickedDate, clickedDate);
         setSelectingStart(false);
       } else {
-        if (clickedDate < startDate) {
-          setDateRange(clickedDate, startDate);
+        // If user clicks a different date, create a range
+        if (clickedDate !== startDate) {
+          if (clickedDate < startDate) {
+            setDateRange(clickedDate, startDate);
+          } else {
+            setDateRange(startDate, clickedDate);
+          }
         } else {
-          setDateRange(startDate, clickedDate);
+          // If user clicks the same date again, keep it as single day
+          setDateRange(clickedDate, clickedDate);
         }
         setSelectingStart(true);
         setIsOpen(false);
       }
     },
-    [selectingStart, startDate, setDateRange]
+    [selectingStart, startDate, setDateRange, endDate]
   );
 
   const handlePrevMonth = useCallback(() => {
@@ -159,11 +167,6 @@ const DateRangePicker = ({
     setCurrentMonth(nextMonth);
   }, [currentMonth]);
 
-  // const handleClear = useCallback(() => {
-  //   clearDateRange();
-  //   setSelectingStart(true);
-  // }, [clearDateRange]);
-
   // Create reactive formatted range
   const getFormattedRange = useCallback(() => {
     if (!startDate && !endDate) return null;
@@ -179,6 +182,8 @@ const DateRangePicker = ({
 
     if (startDate && !endDate) return formatDate(startDate);
     if (!startDate && endDate) return formatDate(endDate);
+
+    // UPDATED: Show single date if start and end are the same
     if (startDate === endDate) return formatDate(startDate);
 
     return `${formatDate(startDate)} - ${formatDate(endDate)}`;
@@ -192,6 +197,7 @@ const DateRangePicker = ({
   // Memoize quick select options
   const quickSelectOptions = useMemo(
     () => [
+      { label: "Today", days: 0 }, // NEW: Added today option for single day
       { label: "Last 7 days", days: 7 },
       { label: "Last 30 days", days: 30 },
       { label: "This month", days: "month" },
@@ -204,7 +210,11 @@ const DateRangePicker = ({
       const today = new Date();
       let start, end;
 
-      if (option.days === "month") {
+      if (option.days === 0) {
+        // NEW: Handle "Today" option - single day selection
+        start = today;
+        end = today;
+      } else if (option.days === "month") {
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
@@ -265,18 +275,6 @@ const DateRangePicker = ({
               <span className="flex-1">{displayText}</span>
             </Button>
           </PopoverTrigger>
-
-          {/* {(startDate || endDate) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClear}
-              className="h-8 w-8 p-0 hover:bg-transparent"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Clear selection</span>
-            </Button>
-          )} */}
         </div>
 
         <PopoverContent className="w-auto p-0" align="start">
@@ -312,11 +310,13 @@ const DateRangePicker = ({
               </Button>
             </div>
 
-            {/* Instructions */}
+            {/* UPDATED: Instructions for new behavior */}
             <div className="mb-3 text-sm text-muted-foreground">
-              {selectingStart
-                ? "Select start date (past/present only)"
-                : "Select end date (past/present only)"}
+              {!startDate && !endDate
+                ? "Click a date to select (single day or start of range)"
+                : selectingStart
+                ? "Click a date to set new range"
+                : "Click another date to complete range, or same date for single day"}
             </div>
 
             {/* Days of week */}
@@ -369,7 +369,7 @@ const DateRangePicker = ({
             {/* Quick Select Options */}
             <div className="mt-4 pt-3 border-t">
               <div className="text-xs text-muted-foreground mb-2">
-                Quick select (past dates only):
+                Quick select:
               </div>
               <div className="flex gap-2 flex-wrap">
                 {quickSelectOptions.map((option) => (

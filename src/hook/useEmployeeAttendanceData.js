@@ -8,9 +8,21 @@ import { useEmployees } from "./useEmployees";
 
 export const useEmployeeAttendanceData = () => {
   const { startDate, endDate } = useDateRangeStore();
-  const { Employees, refetch: refetchEmployees } = useEmployees();
-  const { Attendance, refetch: refetchAttendance } = useAttendanceData();
-  const { overTime, refetch: refetchOverTime } = useOverTimeData();
+  const {
+    Employees,
+    refetch: refetchEmployees,
+    isFetching: isEmployeesFetching,
+  } = useEmployees();
+  const {
+    Attendance,
+    refetch: refetchAttendance,
+    isFetching: isAttendanceFetching,
+  } = useAttendanceData();
+  const {
+    overTime,
+    refetch: refetchOverTime,
+    isFetching: isOverTimeFetching,
+  } = useOverTimeData();
 
   // Get functions from store without subscribing to state changes
   const processAttendanceData = useAttendanceStore(
@@ -33,7 +45,8 @@ export const useEmployeeAttendanceData = () => {
   // Track previous values to detect changes
   const prevDateRangeRef = useRef(null);
   const isFirstRenderRef = useRef(true);
-  const currentRange = startDate && endDate ? `${startDate}-${endDate}` : null;
+  const today = new Date().toISOString().split("T")[0]; // ADD: For fallback
+  const currentRange = startDate && endDate ? `${startDate}-${endDate}` : today; // CHANGE: Use today instead of null
 
   // Handle date range changes
   useEffect(() => {
@@ -51,13 +64,16 @@ export const useEmployeeAttendanceData = () => {
     isFirstRenderRef.current = false;
   }, [currentRange, resetAttendanceData]);
 
-  // FIXED: Process data when dependencies change - removed Attendance?.length requirement
+  // FIXED: Process data when dependencies change and ALL data is ready (no fetching in progress)
   useEffect(() => {
-    // FIXED: Only require Employees and that attendance data has been fetched (even if empty)
-    // Attendance can be an empty array if no one was present
+    // FIXED: Add !isFetching checks to prevent race conditions
     if (
       Employees?.length &&
-      Attendance !== undefined && // Check if attendance data has been fetched (can be empty array)
+      Attendance !== undefined &&
+      overTime !== undefined && // ADD: Symmetry with Attendance
+      !isEmployeesFetching &&
+      !isAttendanceFetching &&
+      !isOverTimeFetching &&
       currentRange !== lastProcessedRange
     ) {
       console.log("🔄 Processing attendance for range:", currentRange, {
@@ -78,19 +94,26 @@ export const useEmployeeAttendanceData = () => {
         Employees: Employees?.length || 0,
         attendance:
           Attendance !== undefined ? Attendance?.length || 0 : "undefined",
+        overtime: overTime !== undefined ? overTime?.length || 0 : "undefined",
+        isEmployeesFetching,
+        isAttendanceFetching,
+        isOverTimeFetching,
         currentRange,
         lastProcessedRange,
       });
     }
   }, [
     Employees,
-    Attendance, // Keep this dependency to trigger when attendance data is fetched
+    Attendance,
     overTime,
     startDate,
     endDate,
     currentRange,
     lastProcessedRange,
     processAttendanceData,
+    isEmployeesFetching, // ADD
+    isAttendanceFetching, // ADD
+    isOverTimeFetching, // ADD
   ]);
 
   // NEW: Refresh function

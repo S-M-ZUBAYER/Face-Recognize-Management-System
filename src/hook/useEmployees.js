@@ -98,6 +98,7 @@ export const useEmployees = () => {
       count: employeeQueries[idx].data?.length || 0,
     })),
     isLoading: employeeQueries.some((q) => q.isLoading),
+    isFetching: employeeQueries.some((q) => q.isFetching),
     refetch: refresh,
   };
 };

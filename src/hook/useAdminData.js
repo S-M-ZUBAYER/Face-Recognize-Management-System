@@ -16,10 +16,8 @@ export const useAdminData = () => {
 
         return res.data;
       },
-      //   staleTime: Infinity,
-      //   cacheTime: Infinity,
-      //   refetchOnWindowFocus: false,
-      //   refetchOnReconnect: false,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
     })),
   });
 

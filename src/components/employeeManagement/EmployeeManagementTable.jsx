@@ -73,6 +73,7 @@ const EmployeeManagementTable = ({ employees }) => {
           checked={isAllSelected}
           indeterminate={isIndeterminate}
           onCheckedChange={handleSelectAll}
+          className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
         />
         <p className="text-[#8AA9BA] font-semibold">Select All</p>
       </div>
@@ -118,6 +119,7 @@ const EmployeeManagementTable = ({ employees }) => {
                       onCheckedChange={() =>
                         handleSelectEmployee(employee.employeeId || employee.id)
                       }
+                      className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                     />
                   </td>
                   <td className="p-3 text-sm text-gray-900">
