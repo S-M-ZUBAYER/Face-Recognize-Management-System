@@ -32,13 +32,13 @@ const AttendanceFilters = memo(() => {
     [activeFilter, isFilterLoading, setActiveFilter]
   );
 
-  console.log("AttendanceFilters re-rendered", {
-    activeFilter,
-    totalCount,
-    presentCount,
-    absentCount,
-    isFilterLoading,
-  });
+  // console.log("AttendanceFilters re-rendered", {
+  //   activeFilter,
+  //   totalCount,
+  //   presentCount,
+  //   absentCount,
+  //   isFilterLoading,
+  // });
 
   return (
     <div className="flex flex-col gap-3.5">

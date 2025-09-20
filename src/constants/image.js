@@ -6,6 +6,7 @@ import Edit from "../assets/image/edit.svg";
 import deviceIcon from "../assets/image/deviceIcon.svg";
 import deleteIcon from "../assets/image/delete-01.svg";
 import settingIcon from "../assets/image/setting.svg";
+import alert from "../assets/image/Alert.svg";
 
 export default {
   logo,
@@ -16,4 +17,5 @@ export default {
   deviceIcon,
   deleteIcon,
   settingIcon,
+  alert,
 };

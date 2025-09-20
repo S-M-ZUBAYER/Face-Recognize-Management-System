@@ -1,6 +1,7 @@
 import React from "react";
 
 const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
+  console.log(selectedEmp);
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       {/* Backdrop blur */}
@@ -42,13 +43,14 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         {/* Salary Info */}
         <div className="grid grid-cols-2 gap-4 mb-4 border-t pt-4">
           <p>
-            <strong>Salary:</strong> {selectedEmp.salaryInfo?.salary}
+            <strong>Salary:</strong> {selectedEmp.salary}
           </p>
           <p>
-            <strong>Hourly Rate:</strong> {selectedEmp.salaryInfo?.hourlyRate}
+            <strong>Hourly Rate:</strong>{" "}
+            {selectedEmp.payPeriod?.overtimeSalary}
           </p>
           <p>
-            <strong>Shift:</strong> {selectedEmp.salaryInfo?.shift}
+            <strong>Shift:</strong> {selectedEmp.payPeriod?.shift}
           </p>
 
           <p>

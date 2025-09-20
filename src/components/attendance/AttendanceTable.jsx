@@ -400,8 +400,11 @@ const AttendanceTable = ({ employees = [] }) => {
     [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee]
   );
 
+  const isWaiting = employees.length === 0 && !isProcessing && !isFetching;
+
   // FIXED: Updated loading logic to include isRefreshing
   const showLoading =
+    isWaiting ||
     isSearching ||
     isProcessing ||
     isFetching ||
@@ -409,6 +412,7 @@ const AttendanceTable = ({ employees = [] }) => {
     isRefreshing;
 
   const getLoadingMessage = () => {
+    if (isWaiting) return "Loading employee data...";
     if (isRefreshing) return "Refreshing all data...";
     if (isProcessing) return "Processing attendance data...";
     if (isFilterLoading) return "Switching filter...";

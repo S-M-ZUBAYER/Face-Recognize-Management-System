@@ -137,3 +137,56 @@ input:-webkit-autofill {
   transition: background-color 5000s ease-in-out 0s;
   color: #004368 !important;
 }
+
+/*filter tabs*/
+
+/* For just your filter container */
+
+/* .filter-scroll::-webkit-scrollbar-track {
+  border-radius: 9999px;
+}
+
+.filter-scroll::-webkit-scrollbar-thumb {
+  background: #004368;
+  border-radius: 9999px;
+}
+
+.filter-scroll::-webkit-scrollbar-thumb:hover {
+  background: #003155;
+}
+
+.filter-scroll::-webkit-scrollbar {
+  height: 10px !important;
+  width: 40px !important;
+  background: #e6ecf0 !important;
+} */
+
+/* hide scrollbar but keep scroll functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Add to your global CSS */
+.nav-link-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.nav-link-loading::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border: 2px solid #004368;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}

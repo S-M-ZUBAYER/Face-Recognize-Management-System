@@ -1,9 +1,10 @@
 import AttendanceTable from "./AttendanceTable";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
+import { useEffect } from "react";
 
 const EmployeeAttendance = () => {
-  const { isProcessing } = useEmployeeAttendanceData();
+  const { isProcessing, refresh } = useEmployeeAttendanceData();
   const {
     allEmployees,
     presentEmployees,
@@ -27,6 +28,10 @@ const EmployeeAttendance = () => {
   };
   const filteredEmployees = getFilteredEmployees();
   console.log(filteredEmployees);
+
+  useEffect(() => {
+    refresh();
+  }, []);
 
   return (
     <div className="p-6 space-y-4">

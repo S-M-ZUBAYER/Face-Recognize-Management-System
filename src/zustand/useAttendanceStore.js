@@ -1,4 +1,4 @@
-// zustand/useAttendanceStore.js - WITH REFRESH FUNCTION
+// zustand/useAttendanceStore.js - REVERTED TO ORIGINAL
 import { create } from "zustand";
 
 /** ---------- Utilities ---------- **/
@@ -109,7 +109,7 @@ export const useAttendanceStore = create((set, get) => ({
 
   // NEW: Refresh function
   refreshAttendanceData: async (refetchCallbacks = {}) => {
-    const state = get();
+    // const state = get();
     console.log("🔄 Refreshing attendance data...");
 
     set({ isRefreshing: true });
@@ -157,7 +157,12 @@ export const useAttendanceStore = create((set, get) => ({
     startDate,
     endDate
   ) => {
-    console.log(attendance);
+    console.log("Processing with data:", {
+      employees: employees?.length,
+      attendance: attendance?.length,
+      overTime: overTime?.length,
+    });
+
     const today = new Date().toISOString().split("T")[0];
     const currentRange =
       startDate && endDate ? `${startDate}-${endDate}` : today;
@@ -172,18 +177,22 @@ export const useAttendanceStore = create((set, get) => ({
     set({ isProcessing: true });
 
     try {
-      if (!employees?.length || !attendance?.length) {
-        console.warn("⚠️ Missing employees or attendance data");
+      if (!employees?.length) {
+        console.warn("⚠️ No employees data available");
         set({ isProcessing: false });
         return;
       }
+
+      // Handle case where attendance might be empty (everyone absent)
+      const attendanceData = attendance || [];
+      const overTimeData = overTime || [];
 
       const dateRange =
         startDate && endDate ? getDateRangeArray(startDate, endDate) : [today];
 
       // Build attendance lookup
       const attendanceByEmployee = new Map();
-      attendance.forEach(({ empId, date, checkIn }) => {
+      attendanceData.forEach(({ empId, date, checkIn }) => {
         if (!attendanceByEmployee.has(empId))
           attendanceByEmployee.set(empId, new Map());
         attendanceByEmployee
@@ -212,7 +221,9 @@ export const useAttendanceStore = create((set, get) => ({
 
       const presentRecords = allRecords.filter((r) => r.isPresent);
       const absentRecords = allRecords.filter((r) => !r.isPresent);
-      const overtimeEmployeeIds = new Set(overTime?.map((r) => r.empId) || []);
+      const overtimeEmployeeIds = new Set(
+        overTimeData.map((r) => r.empId) || []
+      );
       const overtimeRecords = allRecords.filter((r) =>
         overtimeEmployeeIds.has(r.employeeId)
       );

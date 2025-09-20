@@ -35,9 +35,12 @@ export const useOverTimeData = () => {
     refetchOnReconnect: false, // disable auto refetch
   });
 
-  // ✅ Manual refresh function
+  // ✅ Manual refresh: forces a new API call
   const refresh = async () => {
-    await queryClient.invalidateQueries(["overtime", deviceMACs]);
+    const promises = deviceMACs.map((mac) =>
+      queryClient.refetchQueries(["employees", mac.deviceMAC])
+    );
+    await Promise.all(promises);
   };
 
   // Create overtime

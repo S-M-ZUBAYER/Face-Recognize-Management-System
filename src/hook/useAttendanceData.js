@@ -34,7 +34,7 @@ export const useAttendanceData = () => {
   // ✅ Manual refresh only
   const refresh = async () => {
     const refreshPromises = deviceMACs.map((mac) =>
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ["attendance", mac.deviceMAC],
         exact: true,
       })

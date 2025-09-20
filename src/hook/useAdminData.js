@@ -1,44 +1,40 @@
-// import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useUserData } from "./useUserData";
-// import { useAdminStore } from "../zustand/useAdminStore";
 
 export const useAdminData = () => {
-  const { deviceMACs } = useUserData();
-  // const { admins, setAdmins } = useAdminStore();
+  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
+  const queryClient = useQueryClient();
 
-  const fetchAdmins = async () => {
-    if (!deviceMACs || deviceMACs.length === 0) return [];
-    const response = await Promise.all(
-      deviceMACs.map((mac) =>
-        axios.get(
+  const adminQueries = useQueries({
+    queries: deviceMACs.map((mac) => ({
+      queryKey: ["adminData", mac.deviceMAC ?? mac],
+      queryFn: async () => {
+        const res = await axios.get(
           `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admins-device-map-by-device`,
           { params: { mac: mac.deviceMAC ?? mac } }
-        )
-      )
-    );
-    return response.flatMap((res) => res.data);
-  };
+        );
 
-  const {
-    data: admins = [],
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ["admins", deviceMACs],
-    queryFn: fetchAdmins,
-    enabled: !!deviceMACs && deviceMACs.length > 0,
-    staleTime: 1000 * 60, // 1 minute
+        return res.data;
+      },
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    })),
   });
 
-  // Sync React Query data into Zustand
-  // useEffect(() => {
-  //   if (queryAdmins.length > 0) {
-  //     setAdmins(queryAdmins);
-  //   }
-  // }, [queryAdmins, setAdmins]);
+  const admins = adminQueries
+    .map((q) => q.data)
+    .filter(Boolean)
+    .flat();
+
+  const isLoading = adminQueries.some((q) => q.isLoading);
+  const error = adminQueries.find((q) => q.error)?.error || null;
+
+  // ✅ Manual refresh: now matches queryKey
+  const refetch = () => {
+    deviceMACs.forEach((mac) =>
+      queryClient.invalidateQueries(["adminData", mac.deviceMAC ?? mac])
+    );
+  };
 
   return {
     admins,

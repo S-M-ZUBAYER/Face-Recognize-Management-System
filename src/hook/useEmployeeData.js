@@ -6,29 +6,27 @@ import { useGlobalSalary } from "./useGlobalSalary";
 
 export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
-  const { globalSalaryRules } = useGlobalSalary();
+  const { globalSalaryRules = [] } = useGlobalSalary();
+  const { Employees = [], isLoading: employeesLoading } = useEmployees();
+  const { attendanceData = [], isLoading: attendanceLoading } =
+    useAttendance(selectedDate);
 
-  const { employees } = useEmployees();
-
-  const { attendanceData } = useAttendance(selectedDate);
-
-  // derive attended, absent, late as before...
   const attendedIds = attendanceData.map((att) => att.empId);
 
-  const attendedEmployees = employees
-    .filter((emp) => attendedIds.includes(emp.employeeId))
-    .map((emp) => {
-      const attendance = attendanceData.find(
-        (att) => att.empId === emp.employeeId
-      );
-      return {
-        ...emp,
-        date: selectedDate,
-        checkIn: attendance?.checkIn || null,
-      };
-    });
+  const attendedEmployees = Employees.filter((emp) =>
+    attendedIds.includes(emp.employeeId)
+  ).map((emp) => {
+    const attendance = attendanceData.find(
+      (att) => att.empId === emp.employeeId
+    );
+    return {
+      ...emp,
+      date: selectedDate,
+      checkIn: attendance?.checkIn || null,
+    };
+  });
 
-  const absentEmployees = employees.filter(
+  const absentEmployees = Employees.filter(
     (emp) => !attendedIds.includes(emp.employeeId)
   );
 
@@ -59,9 +57,10 @@ export const useEmployeeData = () => {
   }, [attendanceData, attendedEmployees, globalSalaryRules]);
 
   return {
-    totalEmployees: employees.length,
+    totalEmployees: Employees.length,
     totalPresent: attendedEmployees.length,
     totalAbsent: absentEmployees.length,
     totalLate,
+    isLoading: employeesLoading || attendanceLoading,
   };
 };

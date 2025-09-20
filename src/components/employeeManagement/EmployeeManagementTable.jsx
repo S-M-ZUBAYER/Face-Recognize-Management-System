@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import CustomPagination from "../CustomPagination";
 import ExportButton from "../ExportButton";
 import { Checkbox } from "../ui/checkbox";
@@ -61,6 +61,10 @@ const EmployeeManagementTable = ({ employees }) => {
       return record.employeeId === employeeId && recordDate === today;
     });
   }
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedEmployees([]);
+  }, [employees]);
 
   return (
     <>
@@ -69,6 +73,7 @@ const EmployeeManagementTable = ({ employees }) => {
           checked={isAllSelected}
           indeterminate={isIndeterminate}
           onCheckedChange={handleSelectAll}
+          className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
         />
         <p className="text-[#8AA9BA] font-semibold">Select All</p>
       </div>
@@ -114,6 +119,7 @@ const EmployeeManagementTable = ({ employees }) => {
                       onCheckedChange={() =>
                         handleSelectEmployee(employee.employeeId || employee.id)
                       }
+                      className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                     />
                   </td>
                   <td className="p-3 text-sm text-gray-900">
