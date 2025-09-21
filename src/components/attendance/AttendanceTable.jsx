@@ -35,7 +35,7 @@ const SearchBox = memo(function SearchBox({
     <div className="flex items-center gap-2">
       <input
         type="text"
-        placeholder="Search by Date, Employee ID or Name..."
+        placeholder="Search by Date,ID, Name or Department..."
         value={searchInput}
         onChange={(e) => setSearchInput(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -173,7 +173,13 @@ const AttendanceTable = ({ employees = [] }) => {
       const empId = (emp?.companyEmployeeId ?? emp?.employeeId ?? emp?.id ?? "")
         .toString()
         .toLowerCase();
-      return date.includes(q) || name.includes(q) || empId.includes(q);
+      const department = (emp?.department ?? "").toLowerCase();
+      return (
+        date.includes(q) ||
+        name.includes(q) ||
+        empId.includes(q) ||
+        department.includes(q)
+      );
     });
   }, [employees, searchQuery]);
 

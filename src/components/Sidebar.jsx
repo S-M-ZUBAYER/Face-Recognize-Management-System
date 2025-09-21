@@ -33,7 +33,7 @@ const links = [
     path: "/employee-management",
   },
   {
-    label: "Device management",
+    label: "Device List",
     icon: DeviceManagementIcon,
     path: "/device-management",
   },

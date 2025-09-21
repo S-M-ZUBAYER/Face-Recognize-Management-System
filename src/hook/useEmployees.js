@@ -25,7 +25,7 @@ export const useEmployees = () => {
           email: emp.email?.split("|")[0],
           designation: emp.designation,
           deviceMAC: mac.deviceMAC,
-          salaryRules: parseSalaryRules(emp.salaryRules),
+          salaryRules: emp.salaryRules,
           salaryInfo: JSON.parse(emp.payPeriod),
         }));
       },
@@ -80,7 +80,7 @@ export const useEmployees = () => {
     return {
       ...emp,
       payPeriod,
-      salaryRules,
+      salaryRules: parseSalaryRules(salaryRules),
     };
   });
 

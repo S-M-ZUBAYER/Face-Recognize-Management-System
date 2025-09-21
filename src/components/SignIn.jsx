@@ -37,14 +37,17 @@ export default function Signin() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
+          body: JSON.stringify({
+            userEmail: values.userEmail.trim(),
+            userPassword: values.userPassword.trim(),
+          }),
         }
       );
       const data = await res.json();
 
       if (res.ok && !data.error) {
         const response = await fetch(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admin-info?email=${values.userEmail}`
+          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admin-info?email=${values.userEmail.trim()}`
         );
         const userInfo = await response.json();
 
