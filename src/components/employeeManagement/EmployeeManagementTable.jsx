@@ -111,7 +111,7 @@ const EmployeeManagementTable = ({ employees }) => {
               );
               return (
                 <tr key={employee.id} className="hover:bg-gray-50">
-                  <td className="p-3">
+                  <td className="px-4">
                     <Checkbox
                       checked={selectedEmployees.includes(
                         employee.employeeId || employee.id
@@ -122,19 +122,19 @@ const EmployeeManagementTable = ({ employees }) => {
                       className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                     />
                   </td>
-                  <td className="p-3 text-sm text-gray-900">
+                  <td className="px-4 text-sm text-gray-900">
                     {employee.name.split("<")[0]}
                   </td>
-                  <td className="p-3 text-sm text-gray-600">
-                    {employee.employeeId}
+                  <td className="p-4 text-sm text-gray-600">
+                    {employee.companyEmployeeId}
                   </td>
-                  <td className="p-3 text-sm text-gray-600">
+                  <td className="px-4 text-sm text-gray-600">
                     {employee.designation}
                   </td>
-                  <td className="p-3 text-sm text-gray-600">
+                  <td className="px-4 text-sm text-gray-600">
                     {employee.department}
                   </td>
-                  <td className="p-3">
+                  <td className="px-4">
                     <span
                       className={`${
                         hasOvertime ? "text-green-600" : "text-gray-600"
@@ -143,7 +143,7 @@ const EmployeeManagementTable = ({ employees }) => {
                       {hasOvertime ? "Yes" : "No"}
                     </span>
                   </td>
-                  <td className="p-3">
+                  <td className="px-4">
                     <EmployeeModal employee={employee} />
                   </td>
                 </tr>

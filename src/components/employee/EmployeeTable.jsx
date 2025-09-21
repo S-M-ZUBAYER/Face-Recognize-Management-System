@@ -106,7 +106,7 @@ function EmployeeTable({ employees }) {
                     />
                   </td>
                   <td className="p-3">{emp.name.split("<")[0]}</td>
-                  <td className="p-3">{emp.employeeId}</td>
+                  <td className="p-3">{emp.companyEmployeeId}</td>
                   <td className="p-3">{emp.designation}</td>
                   <td className="p-3">{emp.department}</td>
                   <td className="p-3">

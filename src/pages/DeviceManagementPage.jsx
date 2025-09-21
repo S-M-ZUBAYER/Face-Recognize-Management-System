@@ -23,7 +23,7 @@ function DeviceManagementPage() {
     <>
       <div>
         <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
-          device management
+          device list
         </p>
         <div className="grid grid-cols-4 gap-4 mt-4">
           {merged ? (
