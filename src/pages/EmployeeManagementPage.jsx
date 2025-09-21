@@ -1,27 +1,28 @@
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeManagementTable from "@/components/employeeManagement/EmployeeManagementTable";
 import React from "react";
-import { useEmployeeData } from "@/hook/useEmployeeData";
-
+import { useEmployees } from "@/hook/useEmployees";
+import { useDesignation } from "@/hook/useDesignation";
 
 function EmployeeManagementPage() {
-  const { employees } = useEmployeeData();
+  const { Employees } = useEmployees();
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
+  const { designation } = useDesignation();
 
-  const filters = [
-    "All Employees",
-    "Information Technology",
-    "Marketing",
-    "Research and Development",
-    "E-commerce",
-    "Customer Support",
-    "Finance",
-  ];
+  // const filters = [
+  //   "All Employees",
+  //   "Information Technology",
+  //   "Marketing",
+  //   "Research and Development",
+  //   "E-commerce",
+  //   "Customer Support",
+  //   "Finance",
+  // ];
 
-  // Filter employees based on activeFilter
+  // Filter Employees based on activeFilter
   const getFilteredEmployees = () => {
-    if (activeFilter === "All Employees") return employees;
-    return employees.filter((emp) => emp.department === activeFilter);
+    if (activeFilter === "All Employees") return Employees;
+    return Employees.filter((emp) => emp.department === activeFilter);
   };
 
   return (
@@ -31,7 +32,7 @@ function EmployeeManagementPage() {
           Employee Management
         </p>
         <EmployeeFilterTabs
-          filters={filters}
+          filters={designation}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
         />

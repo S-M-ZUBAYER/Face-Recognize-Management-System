@@ -2,10 +2,10 @@ import React from "react";
 import DeviceCard from "@/components/deviceManagement/DeviceCard";
 import { useUserData } from "@/hook/useUserData";
 import FancyLoader from "@/components/FancyLoader";
-import { useEmployeeData } from "@/hook/useEmployeeData";
+import { useEmployees } from "@/hook/useEmployees";
 
 function DeviceManagementPage() {
-  const { employeeCounts } = useEmployeeData();
+  const { employeeCounts } = useEmployees();
   const { deviceMACs } = useUserData();
   console.log("DeviceManagementPage Re-render:", {
     employeeCounts,
@@ -23,7 +23,7 @@ function DeviceManagementPage() {
     <>
       <div>
         <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
-          device management
+          device list
         </p>
         <div className="grid grid-cols-4 gap-4 mt-4">
           {merged ? (

@@ -1,6 +1,7 @@
 import React from "react";
 
-const EployeeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
+const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
+  console.log(selectedEmp);
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       {/* Backdrop blur */}
@@ -42,13 +43,14 @@ const EployeeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         {/* Salary Info */}
         <div className="grid grid-cols-2 gap-4 mb-4 border-t pt-4">
           <p>
-            <strong>Salary:</strong> {selectedEmp.salaryInfo?.salary}
+            <strong>Salary:</strong> {selectedEmp.salary}
           </p>
           <p>
-            <strong>Hourly Rate:</strong> {selectedEmp.salaryInfo?.hourlyRate}
+            <strong>Hourly Rate:</strong>{" "}
+            {selectedEmp.payPeriod?.overtimeSalary}
           </p>
           <p>
-            <strong>Shift:</strong> {selectedEmp.salaryInfo?.shift}
+            <strong>Shift:</strong> {selectedEmp.payPeriod?.shift}
           </p>
 
           <p>
@@ -125,7 +127,7 @@ const EployeeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         <div className="flex justify-end mt-6">
           <button
             onClick={() => setSelectedEmp(null)}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-700 transition"
+            className="px-4 py-2 bg-[#004368] text-white rounded-lg shadow  transition"
           >
             Close
           </button>
@@ -135,4 +137,4 @@ const EployeeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   );
 };
 
-export default EployeeeSalaryDetailsModal;
+export default EmployeeSalaryDetailsModal;

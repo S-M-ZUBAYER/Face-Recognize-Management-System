@@ -3,7 +3,6 @@ import { useDailyActivityData } from "@/hook/useDailyActivityData";
 
 function DailyActivities() {
   const { dailyActivities, isLoading } = useDailyActivityData();
-  console.log("dailyActivities", dailyActivities);
 
   const todayString = new Date()
     .toLocaleDateString("en-GB", {

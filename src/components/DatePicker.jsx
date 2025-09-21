@@ -9,7 +9,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-import { useEmployeeData } from "@/hook/useEmployeeData";
+// import { useEmployeeData } from "@/hook/useEmployeeData";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 function formatDate(date) {
   if (!date) return "";
@@ -24,11 +25,7 @@ export function DatePicker() {
   const [open, setOpen] = React.useState(false);
 
   // ✅ get selectedDate and setter from your hook
-  const { selectedDate, setSelectedDate } = useEmployeeData();
-
-  React.useEffect(() => {
-    console.log(selectedDate);
-  }, [selectedDate]);
+  const { selectedDate, setSelectedDate } = useAttendanceStore();
 
   // Convert string date from hook into JS Date
   const selectedDateObj = selectedDate ? new Date(selectedDate) : new Date();
@@ -51,6 +48,7 @@ export function DatePicker() {
             align="start"
             alignOffset={-20}
             sideOffset={15}
+            style={{ backgroundColor: "white" }}
           >
             <Calendar
               mode="single"
@@ -61,6 +59,7 @@ export function DatePicker() {
               onSelect={(date) => {
                 if (!date) return;
                 setSelectedDate(format(date, "yyyy-MM-dd")); // ✅ update hook state
+
                 setOpen(false);
               }}
             />

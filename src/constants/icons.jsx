@@ -660,3 +660,25 @@ export const RangeAttendanceIcon = () => {
     </svg>
   );
 };
+
+export const RefreshIcon = ({ className = "" }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      className={`transform-gpu ${className}`} // Add transform-gpu for better performance
+      style={{ transformOrigin: "center" }} // Ensure rotation happens from center
+    >
+      <path
+        d="M13.3395 1.3335V3.42162C13.3395 3.61753 13.0945 3.70622 12.9691 3.55572C11.7484 2.19183 9.97446 1.3335 8 1.3335C4.31809 1.3335 1.33333 4.31826 1.33333 8.00016C1.33333 11.682 4.31809 14.6668 8 14.6668C11.6819 14.6668 14.6667 11.682 14.6667 8.00016"
+        stroke="#004368"
+        strokeWidth="1.5" // Changed from stroke-width to strokeWidth for React
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};

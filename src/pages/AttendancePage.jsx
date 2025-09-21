@@ -1,19 +1,10 @@
 import EmployeeAttendance from "@/components/attendance/EmployeeAttendance";
-import { DatePicker } from "@/components/DatePicker";
-import React from "react";
-import DateRangePicker from "@/components/attendance/DateRangePicker";
-
 function AttendancePage() {
   return (
     <>
-      <div className="flex justify-between items-center px-6">
-        <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F] text-center">
-          Employee’s Attendance
-        </p>
-        <div className="flex items-center gap-4">
-          <DateRangePicker />
-        </div>
-      </div>
+      <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] text-start px-6">
+        Employee's Attendance
+      </p>
       <EmployeeAttendance />
     </>
   );

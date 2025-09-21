@@ -1,10 +1,15 @@
-import React from "react";
+import React, { memo } from "react";
 import image from "@/constants/image";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 
-function AttendanceExport({ selectedEmployeeData }) {
+function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
+  const { startDate, getFormattedRange } = useDateRangeStore();
+
+  const format = getFormattedRange();
+
   const { selectedDate } = useAttendanceStore();
   const date = new Date(selectedDate);
   const formatted = date.toLocaleDateString("en-GB", {
@@ -13,34 +18,38 @@ function AttendanceExport({ selectedEmployeeData }) {
   });
 
   const handleExport = async () => {
+    // Check if there's data to export
+    if (!selectedEmployeeData || selectedEmployeeData.length === 0) {
+      alert("Please select employees to export");
+      return;
+    }
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Timesheet");
 
     // =========================================================
-    // 🔹 FIND MAX PUNCH COUNT
+    // 🔹 USE MAX PUNCH COUNT FROM PROPS OR CALCULATE
     // =========================================================
-    let maxPunchCount = 0;
+    let finalMaxPunchCount = maxPunchCount;
+
+    // Double-check max punch count from selected data
     selectedEmployeeData.forEach((emp) => {
-      let times = [];
-      try {
-        if (typeof emp.checkIn === "string") times = JSON.parse(emp.checkIn);
-        else if (Array.isArray(emp.checkIn)) times = emp.checkIn;
-      } catch {
-        times = [];
-      }
-      if (times.length > maxPunchCount) {
-        maxPunchCount = times.length;
+      const checkIn = emp?.punch?.checkIn;
+      if (Array.isArray(checkIn)) {
+        finalMaxPunchCount = Math.max(finalMaxPunchCount, checkIn.length);
+      } else if (checkIn) {
+        finalMaxPunchCount = Math.max(finalMaxPunchCount, 1);
       }
     });
-    if (maxPunchCount === 0) maxPunchCount = 1;
+
+    if (finalMaxPunchCount === 0) finalMaxPunchCount = 1;
 
     // =========================================================
     // 🔹 HEADER SECTION
     // =========================================================
     const baseHeaders = ["Date", "Name", "ID", "Department", "Designation"];
-    const punchHeaders = Array.from(
-      { length: maxPunchCount },
-      (_, i) => `Punch ${i + 1}`
+    const punchHeaders = Array.from({ length: finalMaxPunchCount }, (_, i) =>
+      finalMaxPunchCount === 1 ? "Punch" : `Punch ${i + 1}`
     );
     const headers = [...baseHeaders, ...punchHeaders];
     const totalColumns = headers.length;
@@ -66,7 +75,9 @@ function AttendanceExport({ selectedEmployeeData }) {
     worksheet.addRow([]);
 
     // Row 2: Selected Date
-    const selectedRow = worksheet.addRow([`Selected Date: ${selectedDate}`]);
+    const selectedRow = worksheet.addRow([
+      `Selected Date: ${startDate !== null ? format : selectedDate}`,
+    ]);
     worksheet.mergeCells(
       selectedRow.number,
       1,
@@ -111,24 +122,28 @@ function AttendanceExport({ selectedEmployeeData }) {
     });
 
     // =========================================================
-    // 🔹 TABLE DATA
+    // 🔹 TABLE DATA (Updated for AttendanceTable structure)
     // =========================================================
     selectedEmployeeData.forEach((emp) => {
+      // Get punch data from the emp.punch.checkIn structure
+      const checkIn = emp?.punch?.checkIn;
       let times = [];
-      try {
-        if (typeof emp.checkIn === "string") times = JSON.parse(emp.checkIn);
-        else if (Array.isArray(emp.checkIn)) times = emp.checkIn;
-      } catch {
-        times = [];
+
+      if (Array.isArray(checkIn)) {
+        times = checkIn;
+      } else if (checkIn) {
+        times = [checkIn];
       }
 
-      // Fill punches dynamically up to maxPunchCount
+      // Fill punches dynamically up to finalMaxPunchCount
       const punchCols = [];
-      for (let i = 0; i < maxPunchCount; i++) {
+      for (let i = 0; i < finalMaxPunchCount; i++) {
         punchCols.push(times[i] || "-");
       }
 
-      const dateObj = selectedDate ? new Date(selectedDate) : null;
+      // Get date from emp.punch.date or use selectedDate
+      const punchDate = emp?.punch?.date || selectedDate;
+      const dateObj = punchDate ? new Date(punchDate) : null;
       const formattedDate = dateObj
         ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(
             2,
@@ -142,8 +157,8 @@ function AttendanceExport({ selectedEmployeeData }) {
       // Row data
       const rowData = [
         formattedDate || "", // Date with weekday
-        emp.name.split("<")[0] || "",
-        emp.companyEmployeeId || "",
+        (emp.name || "").split("<")[0] || "", // Clean name
+        emp.companyEmployeeId || emp.id || "",
         emp.department || "",
         emp.designation || "",
         ...punchCols,
@@ -179,17 +194,22 @@ function AttendanceExport({ selectedEmployeeData }) {
     // 🔹 EXPORT FILE
     // =========================================================
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `${formatted}_Attendance_Report.xlsx`);
+    saveAs(
+      new Blob([buffer]),
+      `${startDate !== null ? format : formatted}_Attendance_Report.xlsx`
+    );
   };
 
   return (
     <button
       onClick={handleExport}
       className="flex items-center gap-2 border border-[#004368] text-[#004368] px-8 py-1 rounded-lg hover:bg-blue-50 font-bold"
+      disabled={!selectedEmployeeData || selectedEmployeeData.length === 0}
     >
-      <img src={image.xls} alt="xls" /> Export Excel
+      <img src={image.xls} alt="xls" />
+      Export Excel ({selectedEmployeeData?.length || 0} selected)
     </button>
   );
 }
 
-export default AttendanceExport;
+export default memo(AttendanceExport);

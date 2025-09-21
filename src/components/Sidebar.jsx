@@ -1,6 +1,6 @@
-import React from "react";
+import React, { memo, useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useUserData } from "@/hook/useUserData";
 import {
   DashboardIcon,
@@ -33,7 +33,7 @@ const links = [
     path: "/employee-management",
   },
   {
-    label: "Device management",
+    label: "Device List",
     icon: DeviceManagementIcon,
     path: "/device-management",
   },
@@ -42,28 +42,60 @@ const links = [
     icon: AdminManagementIcon,
     path: "/admin-management",
   },
-  // {
-  //   label: "Task management",
-  //   icon: TaskManagementIcon,
-  //   path: "/task-management",
-  // },
-  // {
-  //   label: "Leave management",
-  //   icon: LeaveManagementIcon,
-  //   path: "/leave-management",
-  // },
-  // { label: "Rules", icon: RulesIcon, path: "/rules" },
 ];
 
 const Sidebar = () => {
-  const { user } = useUserData();
+  const [pendingRoute, setPendingRoute] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const location = useLocation();
+  const { user, loading, error } = useUserData();
+
   let imageUrl = "https://i.pravatar.cc/300";
   if (user?.photo) {
     imageUrl = base64ToImage(user.photo);
   }
+
+  // Clear pending route when navigation completes
+  useEffect(() => {
+    if (pendingRoute && location.pathname === pendingRoute) {
+      const timer = setTimeout(() => setPendingRoute(null), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, pendingRoute]);
+
+  const handleNavClick = useCallback((path) => {
+    setPendingRoute(path);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("deviceMACs");
+
+      // Small delay for better UX feedback
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      window.location.href = "/signin";
+    } catch (error) {
+      console.error("Logout error:", error);
+      setIsLoggingOut(false);
+    }
+  }, [isLoggingOut]);
+
+  const handleKeyDown = useCallback((e, action) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      action();
+    }
+  }, []);
+
   return (
-    <aside className="w-80 h-screen  border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0] ">
-      <div className=" flex flex-col justify-center items-center">
+    <aside className="w-80 h-screen border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0]">
+      <div className="flex flex-col justify-center items-center">
         <div className="py-10 w-full px-10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -71,6 +103,8 @@ const Sidebar = () => {
             height="28"
             viewBox="0 0 145 28"
             fill="none"
+            role="img"
+            aria-label="Company Logo"
           >
             <g clipPath="url(#clip0_769_7740)">
               <path
@@ -118,49 +152,114 @@ const Sidebar = () => {
             </defs>
           </svg>
         </div>
-        <div className="space-y-2">
-          {links.map((link, idx) => (
-            <NavLink
-              key={idx}
-              to={link.path}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 px-4 py-2 text-sm font-medium transition-all relative",
-                  isActive
-                    ? "text-[#004368] before:absolute before:left-[-30px] before:top-0 before:bottom-0 before:w-1 before:bg-[#004368]"
-                    : "text-[#BDBDBD] hover:text-[#004368]"
-                )
-              }
-            >
-              <link.icon />
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
-        </div>
+
+        <nav
+          className="space-y-2"
+          role="navigation"
+          aria-label="Main navigation"
+        >
+          {links.map((link, idx) => {
+            const isActive = location.pathname === link.path;
+            const isPending = pendingRoute === link.path;
+
+            return (
+              <NavLink
+                key={idx}
+                to={link.path}
+                onClick={() => handleNavClick(link.path)}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, () => handleNavClick(link.path))
+                }
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 px-4 py-2 text-sm font-medium transition-all relative",
+                    isActive || isPending
+                      ? "text-[#004368] before:absolute before:left-[-30px] before:top-0 before:bottom-0 before:w-1 before:bg-[#004368]"
+                      : "text-[#BDBDBD] hover:text-[#004368]"
+                  )
+                }
+                aria-label={`Navigate to ${link.label}`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <link.icon aria-hidden="true" />
+                <span>{link.label}</span>
+                {isPending && (
+                  <div
+                    className="ml-auto animate-spin h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
+                    aria-label="Loading"
+                  />
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
       </div>
+
       <div className="pl-9">
         <div
-          className="flex items-center gap-2 justify-between"
-          onClick={() => {
-            localStorage.removeItem("user");
-            localStorage.removeItem("deviceMACs");
-            window.location.href = "/signin";
-          }}
+          className={cn(
+            "flex items-center gap-2 justify-between cursor-pointer",
+            isLoggingOut && "opacity-50 pointer-events-none"
+          )}
+          onClick={handleLogout}
+          onKeyDown={(e) => handleKeyDown(e, handleLogout)}
+          role="button"
+          tabIndex={0}
+          aria-label={isLoggingOut ? "Logging out..." : "Logout"}
+          disabled={isLoggingOut}
         >
           <div className="flex items-center gap-2">
-            <Avatar className="w-[2vw]">
-              <AvatarImage src={imageUrl} />
-              <AvatarFallback>CN</AvatarFallback>
+            <Avatar>
+              {loading ? (
+                <AvatarFallback>...</AvatarFallback>
+              ) : (
+                <>
+                  <AvatarImage
+                    src={imageUrl}
+                    alt={user?.userName || "User avatar"}
+                  />
+                  <AvatarFallback>
+                    {user?.userName?.charAt(0)?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </>
+              )}
             </Avatar>
-            <p className="text-[#2A2A2A] text-[14px]  font-[700] uppercase ">
-              {user?.userName}
-            </p>
+            <div>
+              {loading ? (
+                <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">
+                  Loading...
+                </p>
+              ) : error ? (
+                <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">
+                  Error
+                </p>
+              ) : (
+                <>
+                  <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">
+                    {user?.userName || "User"}
+                  </p>
+                  {user?.adminEmail && (
+                    <p className="text-[#2A2A2A] text-[10px] opacity-60">
+                      {user.adminEmail}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-          <LogoutIcon />
+          <div className="flex items-center gap-1">
+            {isLoggingOut && (
+              <div
+                className="animate-spin h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
+                aria-label="Logging out"
+              />
+            )}
+            <LogoutIcon aria-hidden="true" />
+          </div>
         </div>
       </div>
     </aside>
   );
 };
 
-export default Sidebar;
+export default memo(Sidebar);

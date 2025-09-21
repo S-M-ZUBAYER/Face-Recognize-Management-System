@@ -197,7 +197,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //   return "No attendance records";
   // }
 
-  if (id === "70709903") {
+  if (id === "2109058927") {
     console.log(attendanceRecords);
   }
 

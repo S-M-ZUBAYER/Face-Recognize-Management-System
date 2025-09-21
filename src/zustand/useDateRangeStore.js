@@ -2,8 +2,8 @@ import { create } from "zustand";
 
 // Zustand store for date range
 export const useDateRangeStore = create((set) => ({
-  startDate: null, // Format: "2025-09-01"
-  endDate: null, // Format: "2025-09-30"
+  startDate: new Date().toISOString().split("T")[0], // Format: "2025-09-01"
+  endDate: new Date().toISOString().split("T")[0], // Format: "2025-09-30"
   setDateRange: (startDate, endDate) => set({ startDate, endDate }),
   clearDateRange: () => set({ startDate: null, endDate: null }),
 

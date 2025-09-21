@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import CustomPagination from "../CustomPagination";
-import ExportButton from "../ExportButton";
-import image from "@/constants/image";
+import { EyeClosed } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "../ui/button";
 // import AttendanceExportMonthly from "./AttendanceExportMonthly";
-import EployeeeSalaryDetailsModal from "./EployeeeSalaryDetailsModal";
+import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
+import SalaryExportMonthly from "./SalaryExportMonthly";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -13,7 +13,7 @@ function SalaryTable({ employees }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-  const [calculatedSalaries, setCalculatedSalaries] = useState({}); // store calculated salaries
+  const [calculatedSalaries, setCalculatedSalaries] = useState({});
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -79,6 +79,11 @@ function SalaryTable({ employees }) {
     setCalculatedSalaries(newSalaries);
   };
 
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedEmployees([]);
+  }, [employees]);
+
   return (
     <>
       <div className="flex items-center gap-2.5 ">
@@ -121,7 +126,7 @@ function SalaryTable({ employees }) {
                 Absent
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Salary Calc / Edit
+                Salary Calc
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Details
@@ -157,10 +162,10 @@ function SalaryTable({ employees }) {
                   <td className="p-3">
                     {calculatedSalaries[empId] ? (
                       <span className="font-bold text-green-700">
-                        {calculatedSalaries[empId]}
+                        {emp.salaryDetails.totalPay || 0}
                       </span>
                     ) : (
-                      <img src={image.Edit} alt="edit" />
+                      <EyeClosed />
                     )}
                   </td>
                   <td className="p-3">
@@ -179,10 +184,10 @@ function SalaryTable({ employees }) {
 
         {/* Modal */}
         {selectedEmp && (
-          <EployeeeSalaryDetailsModal
+          <EmployeeSalaryDetailsModal
             selectedEmp={selectedEmp}
             setSelectedEmp={setSelectedEmp}
-          ></EployeeeSalaryDetailsModal>
+          ></EmployeeSalaryDetailsModal>
         )}
       </div>
       <div className="flex justify-end mt-4 space-x-2 text-sm text-gray-500">
@@ -191,8 +196,8 @@ function SalaryTable({ employees }) {
           handlePageChange={handlePageChange}
           totalPages={totalPages}
         />
-        <ExportButton selectedEmployeeData={selectedEmployeeData} />
-        {/* <AttendanceExportMonthly selectedEmployeeData={selectedEmployeeData} /> */}
+        {/* <ExportButton selectedEmployeeData={selectedEmployeeData} /> */}
+        <SalaryExportMonthly selectedEmployeeData={selectedEmployeeData} />
         <Button
           onClick={handleCalculateSalary}
           className="flex items-center gap-2 bg-[#004368] hover:bg-[#004368] text-[#EAEAEA] px-8 py-1 rounded-lg font-bold"
