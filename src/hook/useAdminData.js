@@ -21,15 +21,25 @@ export const useAdminData = () => {
     })),
   });
 
-  const admins = adminQueries
+  // Flatten the array of arrays and filter out any null or undefined data.
+  const allAdmins = adminQueries
     .map((q) => q.data)
     .filter(Boolean)
     .flat();
 
+  // Use a Map to filter for unique adminEmail, keeping the first occurrence
+  const uniqueAdminsMap = new Map();
+  allAdmins.forEach((admin) => {
+    if (admin?.adminEmail && !uniqueAdminsMap.has(admin.adminEmail)) {
+      uniqueAdminsMap.set(admin.adminEmail, admin);
+    }
+  });
+
+  const admins = Array.from(uniqueAdminsMap.values());
+
   const isLoading = adminQueries.some((q) => q.isLoading);
   const error = adminQueries.find((q) => q.error)?.error || null;
 
-  // ✅ Manual refresh: now matches queryKey
   const refetch = () => {
     deviceMACs.forEach((mac) =>
       queryClient.invalidateQueries(["adminData", mac.deviceMAC ?? mac])
