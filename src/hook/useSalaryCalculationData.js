@@ -24,7 +24,7 @@ export const useSalaryCalculationData = () => {
 
     const salaryDetails = calculateSalary(
       monthlyAttendance,
-      emp.payPeriod,
+      emp.salaryInfo,
       emp.salaryRules,
       emp.employeeId
     );

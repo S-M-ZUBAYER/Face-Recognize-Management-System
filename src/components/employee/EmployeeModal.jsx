@@ -33,24 +33,24 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
             <strong>Device MAC:</strong> {selectedEmp?.deviceMAC}
           </p>
           <p>
-            <strong>Shift:</strong> {selectedEmp?.payPeriod?.shift}
+            <strong>Shift:</strong> {selectedEmp?.salaryInfo?.shift}
           </p>
           <p>
-            <strong>Pay Period:</strong> {selectedEmp?.payPeriod?.payPeriod}
+            <strong>Pay Period:</strong> {selectedEmp?.salaryInfo?.payPeriod}
           </p>
         </div>
         {/* totalPay, overtimeDetails */}
         {/* Salary Info */}
         <div className="grid grid-cols-2 gap-4 mb-4 border-t pt-4">
           <p>
-            <strong>Salary:</strong> {selectedEmp.payPeriod.salary}
+            <strong>Salary:</strong> {selectedEmp.salaryInfo.salary}
           </p>
           <p>
             <strong>Hourly Rate:</strong>{" "}
-            {selectedEmp.payPeriod?.overtimeSalary}
+            {selectedEmp.salaryInfo?.overtimeSalary}
           </p>
           <p>
-            <strong>Shift:</strong> {selectedEmp.payPeriod?.shift}
+            <strong>Shift:</strong> {selectedEmp.salaryInfo?.shift}
           </p>
         </div>
         {/* Attendance Stats */}

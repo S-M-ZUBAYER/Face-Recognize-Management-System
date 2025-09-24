@@ -2,6 +2,8 @@ import React, { memo, useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useUserData } from "@/hook/useUserData";
+import { useQueryClient } from "@tanstack/react-query";
+import localforage from "localforage";
 import {
   DashboardIcon,
   EmployeeIcon,
@@ -49,6 +51,7 @@ const Sidebar = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
   const { user, loading, error } = useUserData();
+  const queryClient = useQueryClient();
 
   let imageUrl = "https://i.pravatar.cc/300";
   if (user?.photo) {
@@ -79,12 +82,17 @@ const Sidebar = () => {
       // Small delay for better UX feedback
       await new Promise((resolve) => setTimeout(resolve, 300));
 
+      queryClient.clear();
+
+      // Remove persisted cache from IndexedDB
+      await localforage.removeItem("reactQuery");
+
       window.location.href = "/signin";
     } catch (error) {
       console.error("Logout error:", error);
       setIsLoggingOut(false);
     }
-  }, [isLoggingOut]);
+  }, [isLoggingOut, queryClient]);
 
   const handleKeyDown = useCallback((e, action) => {
     if (e.key === "Enter" || e.key === " ") {

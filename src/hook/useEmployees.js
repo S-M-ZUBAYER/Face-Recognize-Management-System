@@ -1,6 +1,6 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { parseSalaryRules } from "@/lib/parseSalaryRules";
+import { parseNormalData } from "@/lib/parseNormalData";
 import { usePayPeriod } from "./usePayPeriod";
 import { useGlobalSalary } from "./useGlobalSalary";
 
@@ -29,10 +29,12 @@ export const useEmployees = () => {
           salaryInfo: JSON.parse(emp.payPeriod),
         }));
       },
-      staleTime: Infinity, //  never becomes stale
-      cacheTime: Infinity, //  never garbage-collected in memory
-      refetchOnWindowFocus: false, // stop auto refetch on focus
+      staleTime: Infinity,
+      cacheTime: Infinity,
+      refetchOnWindowFocus: false,
       refetchOnReconnect: false,
+      // Only enable query if dependencies are loaded
+      enabled: payPeriodData?.length >= 0 && globalSalaryRules?.length >= 0,
     })),
   });
 
@@ -43,44 +45,79 @@ export const useEmployees = () => {
 
   // --- Helper: get pay info and salary rules by deviceMAC ---
   function getPayInfoByDevice(mac) {
+    // Add safety checks
+    if (!payPeriodData || !globalSalaryRules) {
+      return { PayPeriod: {}, SalaryRules: {} };
+    }
+
     const found = payPeriodData.find((d) => d.deviceMAC === mac);
     const Rule = globalSalaryRules.find((rule) => rule.deviceMAC === mac);
-    return found
-      ? {
-          PayPeriod: found.payPeriod,
-          SalaryRules: Rule?.salaryRules,
-        }
-      : { PayPeriod: {}, SalaryRules: {} };
+
+    return {
+      PayPeriod: found?.payPeriod || {},
+      SalaryRules: Rule?.salaryRules || {},
+    };
   }
+
+  // Helper function to check if salary info is invalid
+  const isInvalidSalaryInfo = (salaryInfo) => {
+    return (
+      salaryInfo === 999 ||
+      salaryInfo === null ||
+      salaryInfo === undefined ||
+      (typeof salaryInfo === "object" && Object.keys(salaryInfo).length === 0)
+    );
+  };
+
+  // Helper function to check if salary rules are invalid
+  const isInvalidSalaryRules = (salaryRules) => {
+    return (
+      !salaryRules ||
+      (typeof salaryRules === "object" &&
+        Object.keys(salaryRules).length === 0) ||
+      (salaryRules.rules &&
+        (!Array.isArray(salaryRules.rules) || salaryRules.rules.length === 0))
+    );
+  };
 
   const Employees = employees.map((emp) => {
     let payPeriod, salaryRules;
 
-    const hasInvalidSalaryInfo =
-      emp.salaryInfo === 999 ||
-      !emp.salaryInfo ||
-      (typeof emp.salaryInfo === "object" &&
-        Object.keys(emp.salaryInfo).length === 0);
-    const hasInvalidSalaryRules =
-      !emp.salaryRules?.rules?.length ||
-      (typeof emp.salaryRules === "object" &&
-        Object.keys(emp.salaryRules).length === 0);
+    const hasInvalidSalaryInfo = isInvalidSalaryInfo(emp.salaryInfo);
+    const hasInvalidSalaryRules = isInvalidSalaryRules(emp.salaryRules);
 
     if (hasInvalidSalaryInfo || hasInvalidSalaryRules) {
       const { SalaryRules, PayPeriod } = getPayInfoByDevice(emp.deviceMAC);
-      payPeriod = PayPeriod;
-      salaryRules = SalaryRules;
+
+      // Use fallback data, but keep original if fallback is also invalid
+      payPeriod = !isInvalidSalaryInfo(PayPeriod)
+        ? PayPeriod
+        : emp.salaryInfo || {};
+      salaryRules = !isInvalidSalaryRules(SalaryRules)
+        ? SalaryRules
+        : emp.salaryRules || {};
     } else {
       payPeriod = emp.salaryInfo;
       salaryRules = emp.salaryRules;
     }
 
-    // Get employee's monthly attendance records
+    let parsedSalaryRules;
+    let parsedPayPeriod;
+    try {
+      parsedSalaryRules = parseNormalData(salaryRules);
+      parsedPayPeriod = parseNormalData(payPeriod);
+    } catch (error) {
+      console.warn(
+        `Error parsing salary rules for employee ${emp.employeeId}:`,
+        error
+      );
+      parsedSalaryRules = {};
+    }
 
     return {
       ...emp,
-      payPeriod,
-      salaryRules: parseSalaryRules(salaryRules),
+      salaryInfo: parsedPayPeriod,
+      salaryRules: parsedSalaryRules,
     };
   });
 
@@ -91,13 +128,16 @@ export const useEmployees = () => {
     );
   };
 
+  // Check if any dependency is still loading
+  const isDependencyLoading = !payPeriodData || !globalSalaryRules;
+
   return {
     Employees,
     employeeCounts: deviceMACs.map((mac, idx) => ({
       deviceMAC: mac.deviceMAC,
       count: employeeQueries[idx].data?.length || 0,
     })),
-    isLoading: employeeQueries.some((q) => q.isLoading),
+    isLoading: employeeQueries.some((q) => q.isLoading) || isDependencyLoading,
     isFetching: employeeQueries.some((q) => q.isFetching),
     refetch: refresh,
   };

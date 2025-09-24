@@ -33,10 +33,10 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             <strong>Device MAC:</strong> {selectedEmp?.deviceMAC}
           </p>
           <p>
-            <strong>Shift:</strong> {selectedEmp?.payPeriod?.shift}
+            <strong>Shift:</strong> {selectedEmp?.salaryInfo?.shift}
           </p>
           <p>
-            <strong>Pay Period:</strong> {selectedEmp?.payPeriod?.payPeriod}
+            <strong>Pay Period:</strong> {selectedEmp?.salaryInfo?.payPeriod}
           </p>
         </div>
         {/* totalPay, overtimeDetails */}
@@ -47,10 +47,10 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
           </p>
           <p>
             <strong>Hourly Rate:</strong>{" "}
-            {selectedEmp.payPeriod?.overtimeSalary}
+            {selectedEmp.salaryInfo?.overtimeSalary}
           </p>
           <p>
-            <strong>Shift:</strong> {selectedEmp.payPeriod?.shift}
+            <strong>Shift:</strong> {selectedEmp.salaryInfo?.shift}
           </p>
 
           <p>
@@ -90,17 +90,6 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             <strong>Overtime Salary:</strong>{" "}
             {selectedEmp?.salaryDetails?.overtimeSalary || 0}
           </p>
-          {/* <p>
-                  <strong>Other Salary:</strong>
-                  {selectedEmp?.salaryInfo?.otherSalary &&
-                    JSON.parse(selectedEmp?.salaryInfo?.otherSalary).map(
-                      (item, idx) => (
-                        <span key={idx} className="block">
-                          {item.type}: {item.amount || 0}
-                        </span>
-                      )
-                    )}
-                </p> */}
         </div>
         {/* Attendance Stats */}
         <div className="grid grid-cols-2 gap-4 mb-4 border-t pt-4">
