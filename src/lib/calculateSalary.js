@@ -13,11 +13,8 @@ function toHours(mins) {
 
 function normalizeDate(dateStr) {
   if (!dateStr) return "";
-  try {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-  } catch {
-    return "Failed to parse date";
+  if (typeof dateStr === "string" && dateStr.includes("T")) {
+    return dateStr.split("T")[0]; // safely strip time
   }
   return String(dateStr).slice(0, 10);
 }
@@ -66,6 +63,22 @@ function firstNumericParam(rule) {
     }
   }
   return null;
+}
+function secondNumericParam(rule) {
+  const params = getParamsArray(rule);
+  let count = 0;
+
+  for (const v of params) {
+    if (v !== null && v !== undefined && String(v).trim() !== "") {
+      const n = Number(v);
+      if (!Number.isNaN(n)) {
+        count++;
+        if (count === 2) return n;
+      }
+    }
+  }
+
+  return null; // if no second numeric found
 }
 
 function firstNonEmptyParam(rule) {
@@ -371,14 +384,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     });
   });
 
-  // Debug logging
-  if (id === "44141259") {
-    console.log("Weekend days:", Array.from(weekendDayNames));
-    console.log("Rule 3s found:", allRule3s.length);
-    console.log("holidaysSet:", holidaysSet);
-    console.log("holidaysArr:", holidaysArr);
-  }
-
   const getRule = (n) => getRuleByNumber(filteredRules, n);
 
   // ============================================================================
@@ -408,9 +413,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule9 = getRule(9);
   const weekendMultiplier = Number(firstNumericParam(rule9) || 1);
+  const weekendNormalShiftMultiplier = Number(secondNumericParam(rule9) || 1);
 
   const rule10 = getRule(10);
   const holidayMultiplier = Number(firstNumericParam(rule10) || 1);
+  const holidayNormalShiftMultiplier = Number(secondNumericParam(rule10) || 1);
 
   const rule11 = getRule(11);
   const sickLeaveDays = Number(rule11?.param3 || 0);
@@ -555,9 +562,12 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     if (!date) return;
 
     const isHoliday = holidaysSet.has(date);
-    if (id === "44141259") {
-      console.log(date, "Holiday:", isHoliday);
-    }
+
+    // --- DEBUGGING LOG ---
+
+    // if (id === "44141259") {
+    //   console.log(date, "Holiday:", isHoliday);
+    // }
     const dayName = new Date(date).toLocaleDateString("en-US", {
       weekday: "long",
     });
@@ -834,6 +844,32 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     } else {
       overtimePay += toHours(overtimeHoliday) * (overtimeSalaryRate || 0) * 1;
     }
+  }
+
+  const weekendNormalShiftPay =
+    (monthlySalary / workingDaysConfigured) *
+    weekendNormalShiftMultiplier *
+    weekendPresent;
+  const holidayNormalShiftPay =
+    (monthlySalary / workingDaysConfigured) *
+    holidayNormalShiftMultiplier *
+    holidayPresent;
+
+  earnedSalary += weekendNormalShiftPay + holidayNormalShiftPay;
+  presentDaysSalary += weekendNormalShiftPay + holidayNormalShiftPay;
+
+  // Debug logging
+  if (id === "44141259") {
+    // console.log("Weekend days:", Array.from(weekendDayNames));
+    // console.log("Rule 3s found:", allRule3s.length);
+    // console.log("holidaysSet:", holidaysSet);
+    // console.log("holidaysArr:", holidaysArr);
+    console.log("weekNormalShiftMultiplier:", weekendNormalShiftMultiplier);
+    console.log("weekendMultiplier:", weekendMultiplier);
+    console.log("holidayNormalShiftMultiplier:", holidayNormalShiftMultiplier);
+    console.log("holidayMultiplier:", holidayMultiplier);
+    console.log("weekendNormalShiftPay:", weekendNormalShiftPay);
+    console.log("holidayNormalShiftPay:", holidayNormalShiftPay);
   }
 
   const totalPay =

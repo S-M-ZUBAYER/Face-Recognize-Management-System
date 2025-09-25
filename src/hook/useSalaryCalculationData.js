@@ -31,7 +31,7 @@ export const useSalaryCalculationData = () => {
 
     return {
       ...emp,
-      salary: emp.payPeriod?.salary || 0,
+      salary: emp.salaryInfo?.salary || 0,
       salaryDetails,
     };
   });
