@@ -285,17 +285,19 @@ function calculateOvertimeForComplexShift(
 
 // --- Helper for working days calculation ---
 function getWorkingDaysInMonth(year, month, weekendDayNames) {
+  const weekends = new Set(weekendDayNames);
   let workingDays = 0;
-  const weekends = Array.from(weekendDayNames);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInMonth = new Date(year, month, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d);
+    const date = new Date(year, month - 1, d);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    const isWeekend = weekends.includes(dayName);
-    const isWorkingDay = !isWeekend;
-    if (isWorkingDay) workingDays++;
+
+    if (!weekends.has(dayName)) {
+      workingDays++;
+    }
   }
+
   return workingDays;
 }
 
@@ -313,28 +315,48 @@ function getWorkingDaysUpToDate(
   const weekends = Array.from(weekendDayNames);
 
   for (let d = 1; d <= currentDay; d++) {
-    const date = new Date(year, month, d);
+    const monthStr = String(month).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+
+    // Combine into YYYY-MM-DD
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    const date = new Date(dateStr);
+
+    // Get weekday name
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-    const dateStr = date.toISOString().slice(0, 10);
 
-    const isHoliday = holidaysSet.has(dateStr);
-    const weekendByName = weekends.includes(dayName);
+    // if (d === 1) {
+    //   console.log(year, month);
+    //   console.log(dateStr, dayName);
+    // }
 
-    const isGeneralDay = generalDaysSet.has(dateStr);
-    const isWeekend =
-      weekendByName && !isGeneralDay && !replaceDaysSet.has(dateStr);
-    const isReplacedWorkday = replaceDaysSet.has(dateStr);
+    // ✅ Apply rules in correct priority
+    if (replaceDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
 
-    const isWorkingDay =
-      isGeneralDay || (!isHoliday && !isWeekend) || isReplacedWorkday;
+    if (holidaysSet.has(dateStr)) {
+      continue; // holiday → skip
+    }
 
-    if (isWorkingDay) workingDays++;
+    if (generalDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
+
+    if (weekends.includes(dayName)) {
+      continue; // weekend → skip
+    }
+
+    // Otherwise → working
+    workingDays++;
   }
   return workingDays;
 }
 
 export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
-  if (id === "44141259") {
+  if (id === "2109058927") {
     console.log(attendanceRecords);
   }
 
@@ -471,10 +493,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   // WORKING DAYS CALCULATION
   // ============================================================================
   let year, month;
+
   if (attendanceRecords.length > 0) {
-    const firstDate = new Date(attendanceRecords[0].date);
-    year = firstDate.getFullYear();
-    month = firstDate.getMonth();
+    const [y, m] = attendanceRecords[0].date.split("-"); // "2025-09-01"
+    year = Number(y);
+    month = Number(m);
   } else {
     const now = new Date();
     year = now.getFullYear();
@@ -490,7 +513,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const now = new Date();
   const currentDay = now.getDate();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const currentMonth = now.getMonth() + 1;
+
+  // console.log(year, currentYear, month, currentMonth, currentDay);
 
   let workingDaysUpToCurrent = workingDaysConfigured;
   if (year === currentYear && month === currentMonth) {
@@ -859,18 +884,18 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   presentDaysSalary += weekendNormalShiftPay + holidayNormalShiftPay;
 
   // Debug logging
-  if (id === "44141259") {
-    // console.log("Weekend days:", Array.from(weekendDayNames));
-    // console.log("Rule 3s found:", allRule3s.length);
-    // console.log("holidaysSet:", holidaysSet);
-    // console.log("holidaysArr:", holidaysArr);
-    console.log("weekNormalShiftMultiplier:", weekendNormalShiftMultiplier);
-    console.log("weekendMultiplier:", weekendMultiplier);
-    console.log("holidayNormalShiftMultiplier:", holidayNormalShiftMultiplier);
-    console.log("holidayMultiplier:", holidayMultiplier);
-    console.log("weekendNormalShiftPay:", weekendNormalShiftPay);
-    console.log("holidayNormalShiftPay:", holidayNormalShiftPay);
-  }
+  // if (id === "44141259") {
+  //   console.log("Weekend days:", Array.from(weekendDayNames));
+  //   console.log("Rule 3s found:", allRule3s.length);
+  //   console.log("holidaysSet:", holidaysSet);
+  //   console.log("holidaysArr:", holidaysArr);
+  //   console.log("weekNormalShiftMultiplier:", weekendNormalShiftMultiplier);
+  //   console.log("weekendMultiplier:", weekendMultiplier);
+  //   console.log("holidayNormalShiftMultiplier:", holidayNormalShiftMultiplier);
+  //   console.log("holidayMultiplier:", holidayMultiplier);
+  //   console.log("weekendNormalShiftPay:", weekendNormalShiftPay);
+  //   console.log("holidayNormalShiftPay:", holidayNormalShiftPay);
+  // }
 
   const totalPay =
     earnedSalary -

@@ -132,7 +132,7 @@ function SalaryTable({ employees }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white  h-[62vh] overflow-y-auto ">
+      <div className="overflow-x-auto bg-white h-[62vh] overflow-y-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-[#E6ECF0] sticky top-0 z-10">
             <tr>
@@ -175,7 +175,10 @@ function SalaryTable({ employees }) {
             {filteredEmployees.map((emp, idx) => {
               const empId = emp.employeeId || emp.id;
               return (
-                <tr key={empId || idx} className="border-b hover:bg-gray-50">
+                <tr
+                  key={`employee-${empId}-${idx}`} // Fixed unique key
+                  className="border-b hover:bg-gray-50"
+                >
                   <td className="p-3">
                     <Checkbox
                       checked={selectedEmployees.includes(empId)}
@@ -212,7 +215,10 @@ function SalaryTable({ employees }) {
 
                   <td className="p-3">
                     <button
-                      onClick={() => setSelectedEmp(emp)}
+                      onClick={() => {
+                        console.log("Clicking view for:", emp);
+                        setSelectedEmp(emp);
+                      }}
                       className="bg-[#004368] hover:bg-[#003652] text-[#EAEAEA] px-4 py-1 rounded-lg font-semibold"
                     >
                       View
@@ -223,20 +229,20 @@ function SalaryTable({ employees }) {
             })}
           </tbody>
         </table>
-
-        {/* Modal */}
-        {selectedEmp && (
-          <EmployeeSalaryDetailsModal
-            selectedEmp={selectedEmp}
-            setSelectedEmp={setSelectedEmp}
-          />
-        )}
       </div>
 
       {/* Export */}
       <div className="flex justify-end mt-4 space-x-2 text-sm text-gray-500">
         <SalaryExportMonthly selectedEmployeeData={selectedEmployeeData} />
       </div>
+
+      {/* Modal - MOVED OUTSIDE table container */}
+      {selectedEmp && (
+        <EmployeeSalaryDetailsModal
+          selectedEmp={selectedEmp}
+          setSelectedEmp={setSelectedEmp}
+        />
+      )}
     </>
   );
 }
