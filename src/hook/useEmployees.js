@@ -29,7 +29,7 @@ export const useEmployees = () => {
           salaryInfo: JSON.parse(emp.payPeriod),
         }));
       },
-      staleTime: Infinity,
+      staleTime: 0,
       cacheTime: Infinity,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,

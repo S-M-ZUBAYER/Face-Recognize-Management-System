@@ -18,7 +18,7 @@ function Dashboard() {
 
   const cards = [
     {
-      title: "Total Employee",
+      title: "Total Employees",
       count: totalEmployees,
       icon: <TotalEmployeeIcon className="text-xl text-blue-500" />,
     },

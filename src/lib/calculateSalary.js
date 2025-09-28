@@ -64,6 +64,7 @@ function firstNumericParam(rule) {
   }
   return null;
 }
+
 function secondNumericParam(rule) {
   const params = getParamsArray(rule);
   let count = 0;
@@ -127,7 +128,7 @@ function parseOtherSalary(otherSalary) {
   return 0;
 }
 
-// Enhanced function to parse Rule 1 (shifts and overtime)
+// Enhanced function to parse Rule 1 (shifts and overtime) - now supports Rule 0
 function parseRule1(rule1) {
   if (!rule1) return null;
 
@@ -157,8 +158,122 @@ function parseRule1(rule1) {
   };
 }
 
+// NEW: Function to get Rule 0 configuration for an employee
+function getRule0Config(empId, filteredRules) {
+  const rule0 = filteredRules.find(
+    (r) =>
+      String(r.ruleId) === "0" &&
+      Number(r.ruleStatus) === 1 &&
+      String(r.empId) === String(empId)
+  );
+  return rule0;
+}
+
+// NEW: Function to get time table entry for specific date and employee
+function getTimeTableForDate(empId, date, timeTables) {
+  if (!Array.isArray(timeTables)) return null;
+
+  const normalizedDate = normalizeDate(date);
+  return timeTables.find(
+    (entry) =>
+      String(entry.empId) === String(empId) &&
+      normalizeDate(entry.date) === normalizedDate &&
+      String(entry.ruleId) === "0"
+  );
+}
+
 // Enhanced function to get shift information for a given time
-function getShiftForTime(checkInTime, shiftRules, crossMidnightTime) {
+function getShiftForTime(
+  checkInTime,
+  shiftRules,
+  crossMidnightTime,
+  empId,
+  date,
+  rule0Config,
+  timeTables
+) {
+  // NEW: Handle Rule 0 logic first
+  if (rule0Config) {
+    if (rule0Config.param3 === "special") {
+      // Get from time table
+      const timeTableEntry = getTimeTableForDate(empId, date, timeTables);
+      if (timeTableEntry) {
+        return {
+          format: "complex",
+          normalShifts: timeTableEntry.param1 || [],
+          overtimeShifts: timeTableEntry.param2 || [],
+          shiftType: "special",
+          crossMidnight: toMinutes(crossMidnightTime || "00:00"),
+          shiftStart:
+            timeTableEntry.param1 && timeTableEntry.param1[0]
+              ? toMinutes(timeTableEntry.param1[0].start)
+              : toMinutes("08:00"),
+          shiftEnd:
+            timeTableEntry.param1 &&
+            timeTableEntry.param1[timeTableEntry.param1.length - 1]
+              ? toMinutes(
+                  timeTableEntry.param1[timeTableEntry.param1.length - 1].end
+                )
+              : toMinutes("17:00"),
+          halfDayBoundary: toMinutes("12:00"),
+          otStart:
+            timeTableEntry.param2 && timeTableEntry.param2[0]
+              ? toMinutes(timeTableEntry.param2[0].start)
+              : null,
+          otEnd:
+            timeTableEntry.param2 && timeTableEntry.param2[0]
+              ? toMinutes(timeTableEntry.param2[0].end)
+              : null,
+        };
+      }
+    } else {
+      // Regular Rule 0 (complex or simple format)
+      const config = parseRule1(rule0Config);
+      if (config) {
+        if (config.format === "complex") {
+          return {
+            format: "complex",
+            normalShifts: config.normalShifts,
+            overtimeShifts: config.overtimeShifts,
+            shiftType: config.shiftType,
+            crossMidnight: toMinutes(config.crossMidnightTime || "00:00"),
+            shiftStart:
+              config.normalShifts && config.normalShifts[0]
+                ? toMinutes(config.normalShifts[0].start)
+                : toMinutes("08:00"),
+            shiftEnd:
+              config.normalShifts &&
+              config.normalShifts[config.normalShifts.length - 1]
+                ? toMinutes(
+                    config.normalShifts[config.normalShifts.length - 1].end
+                  )
+                : toMinutes("17:00"),
+            halfDayBoundary: toMinutes("12:00"),
+            otStart:
+              config.overtimeShifts && config.overtimeShifts[0]
+                ? toMinutes(config.overtimeShifts[0].start)
+                : null,
+            otEnd:
+              config.overtimeShifts && config.overtimeShifts[0]
+                ? toMinutes(config.overtimeShifts[0].end)
+                : null,
+          };
+        } else {
+          return {
+            format: "simple",
+            shiftStart: toMinutes(config.shiftStart),
+            shiftEnd: toMinutes(config.shiftEnd),
+            halfDayBoundary: toMinutes(config.halfDayBoundary),
+            otStart: toMinutes(config.otStart),
+            otEnd: toMinutes(config.otEnd),
+            crossMidnight: toMinutes(config.crossMidnightTime),
+          };
+        }
+      }
+    }
+  }
+
+  // Original logic for Rule 1 shifts
   if (!shiftRules || shiftRules.length === 0) return null;
 
   const checkInMinutes = toMinutes(checkInTime);
@@ -325,11 +440,6 @@ function getWorkingDaysUpToDate(
     // Get weekday name
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-    // if (d === 1) {
-    //   console.log(year, month);
-    //   console.log(dateStr, dayName);
-    // }
-
     // ✅ Apply rules in correct priority
     if (replaceDaysSet.has(dateStr)) {
       workingDays++;
@@ -370,6 +480,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   // Filter out ruleId: 24 (future Rule 25), skip it
   const filteredRules = rulesArr.filter((r) => r.ruleId !== "24");
 
+  // NEW: Extract time tables for Rule 0 special handling
+  const timeTables = Array.isArray(salaryRules.timeTables)
+    ? salaryRules.timeTables
+    : tryParseMaybeString(salaryRules.timeTables) || [];
+
   const holidaysArr = Array.isArray(salaryRules.holidays)
     ? salaryRules.holidays
     : tryParseMaybeString(salaryRules.holidays);
@@ -409,8 +524,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const getRule = (n) => getRuleByNumber(filteredRules, n);
 
   // ============================================================================
-  // RULE 1: SHIFTS & OVERTIME PERIODS - Extract shift configurations
+  // RULE 0 & RULE 1: SHIFTS & OVERTIME PERIODS
   // ============================================================================
+  // NEW: Get Rule 0 configuration for this employee
+  const rule0Config = getRule0Config(id, filteredRules);
+
   const shiftRules = filteredRules.filter(
     (r) => String(r.ruleId) === String(1 - 1) && Number(r.ruleStatus) === 1
   );
@@ -515,8 +633,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  // console.log(year, currentYear, month, currentMonth, currentDay);
-
   let workingDaysUpToCurrent = workingDaysConfigured;
   if (year === currentYear && month === currentMonth) {
     workingDaysUpToCurrent = getWorkingDaysUpToDate(
@@ -587,12 +703,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     if (!date) return;
 
     const isHoliday = holidaysSet.has(date);
-
-    // --- DEBUGGING LOG ---
-
-    // if (id === "44141259") {
-    //   console.log(date, "Holiday:", isHoliday);
-    // }
     const dayName = new Date(date).toLocaleDateString("en-US", {
       weekday: "long",
     });
@@ -618,12 +728,33 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       checkIns = [];
     }
 
-    if (!checkIns || checkIns.length === 0) {
-      if (isWorkingDay) {
-        absent += 1;
-        missedFullPunch += 1;
+    // NEW: Handle Rule 0 special case - check if employee is present in time table
+    if (rule0Config && rule0Config.param3 === "special") {
+      const timeTableEntry = getTimeTableForDate(id, date, timeTables);
+      if (timeTableEntry) {
+        // Employee has a schedule for this date
+        if (!checkIns || checkIns.length === 0) {
+          // Absent from scheduled day
+          if (isWorkingDay) {
+            absent += 1;
+            missedFullPunch += 1;
+          }
+          return;
+        }
+        // Continue with attendance processing using time table data
+      } else {
+        // No schedule for this date - skip processing
+        return;
       }
-      return;
+    } else {
+      // Regular processing for non-special Rule 0 or Rule 1
+      if (!checkIns || checkIns.length === 0) {
+        if (isWorkingDay) {
+          absent += 1;
+          missedFullPunch += 1;
+        }
+        return;
+      }
     }
 
     if (isHoliday) {
@@ -644,7 +775,16 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     const firstIn = String(checkIns[0] || "");
     const lastOut = String(checkIns[checkIns.length - 1] || "");
 
-    const shiftInfo = getShiftForTime(firstIn, shiftRules, crossMidnightTime);
+    // MODIFIED: Pass additional parameters for Rule 0 handling
+    const shiftInfo = getShiftForTime(
+      firstIn,
+      shiftRules,
+      crossMidnightTime,
+      id,
+      date,
+      rule0Config,
+      timeTables
+    );
     if (!shiftInfo) return;
 
     const inMins = toMinutes(firstIn);
@@ -798,7 +938,36 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   if (rule22 && (dayShiftPenalty || nightShiftPenalty)) {
     let isNightShift = false;
-    if (shiftRules && shiftRules.length > 0) {
+
+    // NEW: Check Rule 0 first for night shift detection
+    if (rule0Config) {
+      if (rule0Config.param3 === "special") {
+        // Check time tables for night shift patterns
+        const hasNightShift = timeTables.some((entry) => {
+          if (
+            String(entry.empId) === String(id) &&
+            entry.param1 &&
+            Array.isArray(entry.param1)
+          ) {
+            return entry.param1.some(
+              (shift) => toMinutes(shift.start) >= toMinutes("18:00")
+            );
+          }
+          return false;
+        });
+        isNightShift = hasNightShift;
+      } else if (Array.isArray(rule0Config.param1)) {
+        // Complex Rule 0 format
+        isNightShift = rule0Config.param1.some(
+          (shift) => toMinutes(shift.start) >= toMinutes("18:00")
+        );
+      } else {
+        // Simple Rule 0 format
+        const startMin = toMinutes(rule0Config.param1);
+        if (startMin >= toMinutes("18:00")) isNightShift = true;
+      }
+    } else if (shiftRules && shiftRules.length > 0) {
+      // Original Rule 1 logic
       const firstShift = parseRule1(shiftRules[0]);
       if (firstShift && firstShift.format === "simple") {
         const startMin = toMinutes(firstShift.shiftStart);
@@ -813,6 +982,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         }
       }
     }
+
     const perOccPenalty = isNightShift ? nightShiftPenalty : dayShiftPenalty;
     if (perOccPenalty) deductions += lateCount * perOccPenalty;
   }
@@ -883,20 +1053,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   earnedSalary += weekendNormalShiftPay + holidayNormalShiftPay;
   presentDaysSalary += weekendNormalShiftPay + holidayNormalShiftPay;
 
-  // Debug logging
-  // if (id === "44141259") {
-  //   console.log("Weekend days:", Array.from(weekendDayNames));
-  //   console.log("Rule 3s found:", allRule3s.length);
-  //   console.log("holidaysSet:", holidaysSet);
-  //   console.log("holidaysArr:", holidaysArr);
-  //   console.log("weekNormalShiftMultiplier:", weekendNormalShiftMultiplier);
-  //   console.log("weekendMultiplier:", weekendMultiplier);
-  //   console.log("holidayNormalShiftMultiplier:", holidayNormalShiftMultiplier);
-  //   console.log("holidayMultiplier:", holidayMultiplier);
-  //   console.log("weekendNormalShiftPay:", weekendNormalShiftPay);
-  //   console.log("holidayNormalShiftPay:", holidayNormalShiftPay);
-  // }
-
   const totalPay =
     earnedSalary -
     deductions -
@@ -941,6 +1097,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     shiftConfiguration: {
       format: shiftConfig?.format || "none",
       details: shiftConfig,
+    },
+    // NEW: Rule 0 debugging information
+    rule0Info: {
+      hasRule0: !!rule0Config,
+      isSpecial: rule0Config?.param3 === "special",
+      timeTablesFound: timeTables.length,
+      rule0Config: rule0Config,
     },
   };
 }
