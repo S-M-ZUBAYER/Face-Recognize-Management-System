@@ -19,6 +19,8 @@ function AdminTable({ admins }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState("");
 
+  console.log(admins);
+
   // Reset page when admins data changes and sync adminList
   useEffect(() => {
     setAdminList(admins || []);

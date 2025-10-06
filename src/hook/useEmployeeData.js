@@ -41,12 +41,16 @@ export const useEmployeeData = () => {
         const checkInArray = JSON.parse(att.checkIn);
         const actualCheckIn = checkInArray?.[0];
 
-        let expectedTime = employee.salaryRules?.rules?.[0]?.param1;
+        let expectedTime =
+          employee.salaryRules?.rules?.[0]?.param1 ||
+          employee.salaryRules?.rules?.[0]?.param1?.[0]?.start;
         if (!expectedTime) {
           const globalRule = globalSalaryRules.find(
             (rule) => rule.deviceMAC === employee.deviceMAC
           );
-          expectedTime = globalRule?.salaryRules?.rules?.[0]?.param1;
+          expectedTime =
+            globalRule?.salaryRules?.rules?.[0]?.param1 ||
+            employee.salaryRules?.rules?.[0]?.param1?.[0].start;
         }
 
         return actualCheckIn && expectedTime && actualCheckIn > expectedTime;

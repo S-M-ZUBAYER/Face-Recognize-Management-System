@@ -24,14 +24,14 @@ export const useSalaryCalculationData = () => {
 
     const salaryDetails = calculateSalary(
       monthlyAttendance,
-      emp.payPeriod,
+      emp.salaryInfo,
       emp.salaryRules,
       emp.employeeId
     );
 
     return {
       ...emp,
-      salary: emp.payPeriod?.salary || 0,
+      salary: emp.salaryInfo?.salary || 0,
       salaryDetails,
     };
   });

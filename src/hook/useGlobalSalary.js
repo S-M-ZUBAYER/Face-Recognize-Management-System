@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import axios from "axios";
-import { parseSalaryRules } from "@/lib/parseSalaryRules";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const useGlobalSalary = () => {
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
@@ -11,7 +11,7 @@ export const useGlobalSalary = () => {
         const res = await axios.get(
           `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/salaryRules/check/${mac.deviceMAC}`
         );
-        const parsedSalaryRules = parseSalaryRules(res.data.salaryRules);
+        const parsedSalaryRules = parseNormalData(res.data.salaryRules);
 
         return {
           deviceMAC: mac.deviceMAC,
