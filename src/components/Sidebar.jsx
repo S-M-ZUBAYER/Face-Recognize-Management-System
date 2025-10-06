@@ -44,6 +44,17 @@ const links = [
     icon: AdminManagementIcon,
     path: "/admin-management",
   },
+  {
+    label: "Task management",
+    icon: TaskManagementIcon,
+    path: "/task-management",
+  },
+  {
+    label: "Leave management",
+    icon: LeaveManagementIcon,
+    path: "/leave-management",
+  },
+  { label: "Rules", icon: RulesIcon, path: "/rules" },
 ];
 
 const Sidebar = () => {

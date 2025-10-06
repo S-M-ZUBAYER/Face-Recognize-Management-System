@@ -419,6 +419,10 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
 }
 
 export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
+  // if (id === "2109058927") {
+  //   console.log(attendanceRecords);
+  // }
+
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
     : tryParseMaybeString(salaryRules.rules);
@@ -637,12 +641,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     const weekendByName = weekendDayNames.has(dayName);
 
     const isGeneralDay = generalDaysSet.has(date);
-    const isWeekend =
-      weekendByName && !isGeneralDay && !replaceDaysSet.has(date);
-    const isReplacedWorkday = replaceDaysSet.has(date);
+    const isWeekend = weekendByName && !isGeneralDay;
+    // const isReplacedWorkday = replaceDaysSet.has(date);
 
-    const isWorkingDay =
-      isGeneralDay || (!isHoliday && !isWeekend) || isReplacedWorkday;
+    const isWorkingDay = isGeneralDay || (!isHoliday && !isWeekend);
 
     // Check for leaves on this date
     const mLeave = getLeaveForDate(mLeaves, date);
@@ -747,9 +749,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
           .slice(0, 4)
           .filter((p) => p === "00:00").length;
         missedPunch += missedCount;
-        if (id === "2109058927") {
-          console.log("Missed punch on", date, missedCount);
-        }
+
+        // if (id === "2109058927") {
+        //   console.log("Missed punch on", date, missedCount);
+        // }
       }
       // Don't count late/early/lateness when there's a missed punch
       return;
@@ -766,6 +769,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         const lateMins = punchMins - lateThresh;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
+
+        // if (id === "2109058927") {
+        //   console.log("Late on", date, lateMins, lateCount);
+        // }
 
         if (rule18) {
           const halfDayBoundary = toMinutes("12:00");
@@ -784,6 +791,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         const lateMins = punchMins - shiftMins;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
+        // if (id === "2109058927") {
+        //   console.log("Late on", date, lateMins);
+        // }
       }
     }
 
@@ -819,6 +829,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         earlyDepartureCount += 1;
       }
     }
+
+    // if (id === "2109058927") {
+    //   console.log("Early departure on", date, earlyDepartureCount);
+    // }
 
     // NEW: Overtime calculation
     if (shift.length >= 6 && punches.length >= 6) {
