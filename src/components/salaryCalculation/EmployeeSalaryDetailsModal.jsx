@@ -214,9 +214,9 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                 {selectedEmp?.salaryDetails?.attendanceStats?.missedPunch || 0}
               </p>
               <p>
-                <strong>Total Lateness Hours:</strong>{" "}
+                <strong>Total Lateness Minutes:</strong>{" "}
                 {selectedEmp?.salaryDetails?.attendanceStats
-                  ?.totalLatenessHours || 0}
+                  ?.totalLatenessMinutes || 0}
               </p>
             </motion.div>
 
