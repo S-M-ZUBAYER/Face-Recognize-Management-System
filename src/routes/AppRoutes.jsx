@@ -9,6 +9,8 @@ import SalaryCalculationPage from "@/pages/SalaryCalculationPage";
 import DeviceManagementPage from "@/pages/DeviceManagementPage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
 import EmployeeManagementPage from "@/pages/EmployeeManagementPage";
+import TaskManagementPage from "@/pages/TaskManagementPage";
+import LeaveApprovalPage from "@/pages/LeaveApprovalPage";
 import AttendancePage from "@/pages/AttendancePage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
 
@@ -46,6 +48,8 @@ const AppRoutes = () => {
             element={<EmployeeManagementPage />}
           />
           <Route path="attendance" element={<AttendancePage />} />
+          <Route path="task-management" element={<TaskManagementPage />} />
+          <Route path="leave-approval" element={<LeaveApprovalPage />} />
           <Route path="*" element={<Animated404 />} />
         </Route>
       </Route>

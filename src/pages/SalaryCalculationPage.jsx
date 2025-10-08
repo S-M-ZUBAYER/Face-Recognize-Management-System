@@ -1,4 +1,3 @@
-import { Suspense, lazy } from "react";
 import React, { memo, useState } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 
@@ -7,9 +6,7 @@ import { useSalaryCalculationData } from "@/hook/useSalaryCalculationData";
 import MonthPicker from "@/components/salaryCalculation/MonthPicker";
 import { useDesignation } from "@/hook/useDesignation";
 
-const SalaryTable = lazy(() =>
-  import("@/components/salaryCalculation/SalaryTable")
-);
+import SalaryTable from "@/components/salaryCalculation/SalaryTable";
 
 function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");

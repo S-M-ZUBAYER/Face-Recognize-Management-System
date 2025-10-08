@@ -142,24 +142,24 @@ input:-webkit-autofill {
 
 /* For just your filter container */
 
-/* .filter-scroll::-webkit-scrollbar-track {
-  border-radius: 9999px;
+.task-scroll::-webkit-scrollbar-track {
+  border-radius: 99px;
 }
 
-.filter-scroll::-webkit-scrollbar-thumb {
+.task-scroll::-webkit-scrollbar-thumb {
   background: #004368;
-  border-radius: 9999px;
+  border-radius: 99px;
 }
 
-.filter-scroll::-webkit-scrollbar-thumb:hover {
+.task-scroll::-webkit-scrollbar-thumb:hover {
   background: #003155;
 }
 
-.filter-scroll::-webkit-scrollbar {
+.task-scroll::-webkit-scrollbar {
   height: 10px !important;
-  width: 40px !important;
+  width: 10px !important;
   background: #e6ecf0 !important;
-} */
+}
 
 /* hide scrollbar but keep scroll functionality */
 .scrollbar-hide::-webkit-scrollbar {
