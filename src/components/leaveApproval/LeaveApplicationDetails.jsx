@@ -1,91 +1,93 @@
 import React from "react";
-import { FileText } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
 
 const LeaveApplicationDetails = ({ data }) => {
   if (!data) {
     return (
-      <div className="w-2/3 rounded-2xl  border border-[#E6ECF0]  p-6 text-gray-500 flex items-center justify-center">
-        Select an application to view details
+      <div className="w-2/3 rounded-2xl border border-gray-200 p-6 flex items-center justify-center">
+        <p className="text-gray-500">Select an application to view details</p>
       </div>
     );
   }
 
   return (
-    <div className="w-2/3 rounded-2xl  border border-[#E6ECF0]  p-6">
-      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <button className=" justify-center items-center flex gap-2 btn btn-outline btn-sm rounded-md px-3 py-1">
-          <div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M3.99982 12H19.9998"
-                stroke="#004368"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M8.9996 17C8.9996 17 3.99965 13.3176 3.99963 12C3.99962 10.6824 8.99963 7 8.99963 7"
-                stroke="#004368"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </div>
-          <p>Application Details</p>
+    <div className="w-2/3 rounded-2xl border border-gray-200 p-6 bg-white">
+      {/* Header */}
+      <div className="mb-6">
+        <button className="inline-flex items-center gap-2 font-semibold rounded-lg  transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Application Details</span>
         </button>
-      </h2>
+      </div>
 
-      <div className="space-y-3 text-sm">
-        <p>
-          <span className="font-semibold">Approver Name:</span> {data.approver}
-        </p>
-        <p>
-          <span className="font-semibold">Applicant Name:</span>{" "}
-          {data.applicant}
-        </p>
-
-        <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
-          <p className="text-gray-600 text-sm">{data.description}</p>
+      {/* Content */}
+      <div className="space-y-6">
+        {/* Approver Name */}
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">Approver Name</p>
+          <p className="text-sm text-gray-600">{data.approver}</p>
         </div>
 
-        <p>
-          <span className="font-semibold">Leave Category:</span>{" "}
-          {data.leaveCategory}
-        </p>
-        <p>
-          <span className="font-semibold">Leave Type:</span> {data.leaveType}
-        </p>
-
-        <div className="flex gap-10">
-          <p>
-            <span className="font-semibold">Leave Start Day:</span>{" "}
-            {data.startDate}
-          </p>
-          <p>
-            <span className="font-semibold">Leave End Day:</span> {data.endDate}
-          </p>
+        {/* Applicant Name */}
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">Applicant Name</p>
+          <p className="text-sm text-gray-600">{data.applicant}</p>
         </div>
 
-        <div>
-          <p className="font-semibold mb-1">Attach Documents</p>
-          <div className="flex items-center gap-2 bg-gray-50 border p-2 rounded-md w-fit">
+        {/* Description */}
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">Description</p>
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 h-[10vh] overflow-y-auto custom-scrollbar">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {data.description}
+            </p>
+          </div>
+        </div>
+
+        {/* Leave Category */}
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">Leave Category</p>
+          <p className="text-sm text-gray-600">{data.leaveCategory}</p>
+        </div>
+
+        {/* Leave Type */}
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">Leave Type</p>
+          <p className="text-sm text-gray-600">{data.leaveType}</p>
+        </div>
+
+        {/* Date Range */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-900">
+              Leave Start Day
+            </p>
+            <p className="text-sm text-gray-600">{data.startDate}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-900">Leave End Day</p>
+            <p className="text-sm text-gray-600">{data.endDate}</p>
+          </div>
+        </div>
+
+        {/* Attachment */}
+
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-900">
+            Attached Documents
+          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg w-[49%] ">
             <FileText className="w-4 h-4 text-gray-600" />
             <span className="text-sm text-gray-700">{data.attachment}</span>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4">
-          <button className="btn btn-outline btn-error rounded-md px-5">
+        {/* Action Buttons */}
+        <div className="flex gap-4  border-gray-200">
+          <button className="flex-1 px-6 py-3 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
             Reject
           </button>
-          <button className="btn btn-success text-white rounded-md px-5">
+          <button className="flex-1 px-6 py-3 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
             Approve
           </button>
         </div>

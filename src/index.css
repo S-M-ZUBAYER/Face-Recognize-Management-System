@@ -138,29 +138,6 @@ input:-webkit-autofill {
   color: #004368 !important;
 }
 
-/*filter tabs*/
-
-/* For just your filter container */
-
-.task-scroll::-webkit-scrollbar-track {
-  border-radius: 99px;
-}
-
-.task-scroll::-webkit-scrollbar-thumb {
-  background: #004368;
-  border-radius: 99px;
-}
-
-.task-scroll::-webkit-scrollbar-thumb:hover {
-  background: #003155;
-}
-
-.task-scroll::-webkit-scrollbar {
-  height: 10px !important;
-  width: 10px !important;
-  background: #e6ecf0 !important;
-}
-
 /* hide scrollbar but keep scroll functionality */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -190,3 +167,44 @@ input:-webkit-autofill {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
+/* For just your filter container */
+
+.custom-scrollbar {
+  overflow-y: auto; /* Enable vertical scrollbar */
+}
+
+/* Scrollbar container */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* Vertical scrollbar width */
+}
+
+/* Scrollbar track */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #e6ecf0; /* Track color */
+  border-radius: 99px;
+}
+
+/* Scrollbar thumb */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #004368; /* Thumb color */
+  border-radius: 99px;
+  transform: scaleY(0.5); /* Reduce thumb height significantly */
+  transform-origin: center;
+}
+
+/* Thumb on hover */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #003155; /* Darker on hover */
+}
+
+/* .fill-primary {
+  fill: #f1042b;
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.text-primary {
+  color: #f1042b;
+} */

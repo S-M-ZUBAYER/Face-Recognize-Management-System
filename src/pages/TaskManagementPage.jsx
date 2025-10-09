@@ -43,7 +43,7 @@ const task = [
     date: "2023-10-03",
   },
   {
-    id: 1,
+    id: 4,
     employeeName: "John Doe",
     reportDetails: [
       "Completed the monthly report.",
@@ -51,11 +51,11 @@ const task = [
       "Reviewed project proposals",
       "Updated client on project status",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=1",
+    employeeImage: "https://i.pravatar.cc/150?img=4",
     date: "2023-10-01",
   },
   {
-    id: 2,
+    id: 5,
     employeeName: "Jane Smith",
     reportDetails: [
       "Conducted market research",
@@ -63,11 +63,11 @@ const task = [
       "Coordinated with design team",
       "Analyzed campaign performance",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=2",
+    employeeImage: "https://i.pravatar.cc/150?img=5",
     date: "2023-10-02",
   },
   {
-    id: 3,
+    id: 6,
     employeeName: "Alice Johnson",
     reportDetails: [
       "Designed new website layout",
@@ -75,11 +75,11 @@ const task = [
       "Collaborated with developers",
       "Tested website functionality",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=3",
+    employeeImage: "https://i.pravatar.cc/150?img=6",
     date: "2023-10-03",
   },
   {
-    id: 1,
+    id: 7,
     employeeName: "John Doe",
     reportDetails: [
       "Completed the monthly report.",
@@ -87,11 +87,11 @@ const task = [
       "Reviewed project proposals",
       "Updated client on project status",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=1",
+    employeeImage: "https://i.pravatar.cc/150?img=7",
     date: "2023-10-01",
   },
   {
-    id: 2,
+    id: 8,
     employeeName: "Jane Smith",
     reportDetails: [
       "Conducted market research",
@@ -99,11 +99,11 @@ const task = [
       "Coordinated with design team",
       "Analyzed campaign performance",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=2",
+    employeeImage: "https://i.pravatar.cc/150?img=8",
     date: "2023-10-02",
   },
   {
-    id: 3,
+    id: 9,
     employeeName: "Alice Johnson",
     reportDetails: [
       "Designed new website layout",
@@ -111,11 +111,11 @@ const task = [
       "Collaborated with developers",
       "Tested website functionality",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=3",
+    employeeImage: "https://i.pravatar.cc/150?img=9",
     date: "2023-10-03",
   },
   {
-    id: 1,
+    id: 10,
     employeeName: "John Doe",
     reportDetails: [
       "Completed the monthly report.",
@@ -123,11 +123,11 @@ const task = [
       "Reviewed project proposals",
       "Updated client on project status",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=1",
+    employeeImage: "https://i.pravatar.cc/150?img=10",
     date: "2023-10-01",
   },
   {
-    id: 2,
+    id: 11,
     employeeName: "Jane Smith",
     reportDetails: [
       "Conducted market research",
@@ -135,11 +135,11 @@ const task = [
       "Coordinated with design team",
       "Analyzed campaign performance",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=2",
+    employeeImage: "https://i.pravatar.cc/150?img=11",
     date: "2023-10-02",
   },
   {
-    id: 3,
+    id: 12,
     employeeName: "Alice Johnson",
     reportDetails: [
       "Designed new website layout",
@@ -147,7 +147,7 @@ const task = [
       "Collaborated with developers",
       "Tested website functionality",
     ],
-    employeeImage: "https://i.pravatar.cc/150?img=3",
+    employeeImage: "https://i.pravatar.cc/150?img=12",
     date: "2023-10-03",
   },
 ];
@@ -175,7 +175,7 @@ function TaskManagementPage() {
         onFilterChange={setActiveFilter}
       />
 
-      <div className="mt-6 h-[65vh] overflow-y-auto task-scroll px-1.5">
+      <div className="mt-6 h-[65vh] overflow-y-auto custom-scrollbar px-1.5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {getFilteredTasks().map((task, idx) => (
             <TaskCard key={idx} {...task} />

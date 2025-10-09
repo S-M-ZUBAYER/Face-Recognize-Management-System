@@ -17,7 +17,7 @@ const Navbar = () => {
   //   setShow(!show);
   // };
   return (
-    <div className="flex items-center justify-end gap-6 p-4 pt-8 pr-20 ">
+    <div className="flex items-center justify-end gap-6 p-4 pt-8 pr-10 ">
       {/* {show && (
         <Input
           placeholder="Search"

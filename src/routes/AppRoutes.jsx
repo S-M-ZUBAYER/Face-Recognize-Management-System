@@ -12,11 +12,12 @@ import EmployeeManagementPage from "@/pages/EmployeeManagementPage";
 import TaskManagementPage from "@/pages/TaskManagementPage";
 import LeaveApprovalPage from "@/pages/LeaveApprovalPage";
 import AttendancePage from "@/pages/AttendancePage";
+import RulesPage from "@/pages/RulesPage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
 
 const AppLayout = () => {
   return (
-    <div className="flex h-[100vh] w-[100vw]  ">
+    <div className="flex h-[100vh] w-[100vw] font-poppins-regular ">
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Navbar />
@@ -50,6 +51,7 @@ const AppRoutes = () => {
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="task-management" element={<TaskManagementPage />} />
           <Route path="leave-approval" element={<LeaveApprovalPage />} />
+          <Route path="rules" element={<RulesPage />} />
           <Route path="*" element={<Animated404 />} />
         </Route>
       </Route>
