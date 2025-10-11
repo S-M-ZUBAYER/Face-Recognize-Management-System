@@ -5,6 +5,7 @@ import { LatenessForm } from "./LatenessForm";
 import { LeaveForm } from "./LeaveForm";
 import { DefaultForm } from "./DefaultForm";
 import { EmptyState } from "./EmptyState";
+import RuleHeader from "./RuleHeader";
 
 export const RuleContent = ({ selectedRule, onBack }) => {
   if (!selectedRule) {
@@ -14,23 +15,26 @@ export const RuleContent = ({ selectedRule, onBack }) => {
   const renderForm = () => {
     switch (selectedRule.component) {
       case "workShift":
-        return <WorkShiftTimeForm onBack={onBack} />;
+        return <WorkShiftTimeForm />;
       case "holiday":
-        return <HolidayForm onBack={onBack} />;
+        return <HolidayForm />;
       case "weekend":
-        return <WeekendForm onBack={onBack} />;
+        return <WeekendForm />;
       case "lateness":
-        return <LatenessForm onBack={onBack} />;
+        return <LatenessForm />;
       case "leave":
-        return <LeaveForm onBack={onBack} />;
+        return <LeaveForm />;
       default:
-        return <DefaultForm title={selectedRule.title} onBack={onBack} />;
+        return <DefaultForm />;
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 overflow-y-auto flex-1 h-[80vh] justify-center items-center ">
-      {renderForm()}
+    <div className="border  border-gray-200 rounded-xl  py-2.5  w-[70%]">
+      <RuleHeader title={selectedRule.title} onBack={onBack} />
+      <div className="overflow-y-auto custom-scrollbar flex-1 h-[70vh] justify-center items-center px-8 ">
+        {renderForm()}
+      </div>
     </div>
   );
 };

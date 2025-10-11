@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 
 const RuleHeader = ({ title, onBack }) => {
   return (
-    <div className="flex items-center gap-3 mb-8">
+    <div className="flex items-center gap-3 mb-6 px-5 py-2.5 ">
       <button
         onClick={onBack}
         className=" hover:bg-gray-100 rounded-lg transition-colors"

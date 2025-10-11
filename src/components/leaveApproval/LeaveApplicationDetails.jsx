@@ -76,7 +76,7 @@ const LeaveApplicationDetails = ({ data }) => {
           <p className="text-sm font-semibold text-gray-900">
             Attached Documents
           </p>
-          <div className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg w-[49%] ">
+          <div className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg w-full ">
             <FileText className="w-4 h-4 text-gray-600" />
             <span className="text-sm text-gray-700">{data.attachment}</span>
           </div>

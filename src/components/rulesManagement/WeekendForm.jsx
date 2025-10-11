@@ -1,10 +1,6 @@
-import RuleHeader from "./RuleHeader";
-
-export const WeekendForm = ({ onBack }) => {
+export const WeekendForm = () => {
   return (
     <div className="space-y-6">
-      <RuleHeader title="Select Weekend" onBack={onBack} />
-
       <div>
         <label className="block text-sm font-semibold mb-3">Weekend Days</label>
         <div className="grid grid-cols-2 gap-3">

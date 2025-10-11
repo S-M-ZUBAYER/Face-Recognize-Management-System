@@ -176,7 +176,7 @@ input:-webkit-autofill {
 
 /* Scrollbar container */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px; /* Vertical scrollbar width */
+  width: 5px; /* Vertical scrollbar width */
 }
 
 /* Scrollbar track */
@@ -187,7 +187,7 @@ input:-webkit-autofill {
 
 /* Scrollbar thumb */
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #004368; /* Thumb color */
+  background: #0044683d; /* Thumb color */
   border-radius: 99px;
   transform: scaleY(0.5); /* Reduce thumb height significantly */
   transform-origin: center;
@@ -198,13 +198,15 @@ input:-webkit-autofill {
   background: #003155; /* Darker on hover */
 }
 
-/* .fill-primary {
-  fill: #f1042b;
+.fill-primary {
+  fill: #004368;
+  width: 9px;
+  height: 9px;
   border: none;
   outline: none;
   box-shadow: none;
 }
 
-.text-primary {
-  color: #f1042b;
+/* .text-primary {
+  color: #004368;
 } */

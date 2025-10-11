@@ -1,10 +1,6 @@
-import RuleHeader from "./RuleHeader";
-
-export const LeaveForm = ({ onBack }) => {
+export const LeaveForm = () => {
   return (
     <div className="space-y-6">
-      <RuleHeader title="Ask for Leave" onBack={onBack} />
-
       <div>
         <label className="block text-sm font-semibold mb-3">
           Annual Leave Days

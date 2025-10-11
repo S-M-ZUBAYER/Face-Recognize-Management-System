@@ -1,10 +1,6 @@
-import RuleHeader from "./RuleHeader";
-
-export const LatenessForm = ({ onBack }) => {
+export const LatenessForm = () => {
   return (
     <div className="space-y-6">
-      <RuleHeader title="Lateness Warning System" onBack={onBack} />
-
       <div>
         <label className="block text-sm font-semibold mb-3">
           Grace Period (minutes)

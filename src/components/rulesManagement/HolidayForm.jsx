@@ -1,11 +1,9 @@
 import RuleHeader from "./RuleHeader";
 import { Plus } from "lucide-react";
 
-export const HolidayForm = ({ onBack }) => {
+export const HolidayForm = () => {
   return (
     <div className="space-y-6">
-      <RuleHeader title="Select Holiday" onBack={onBack} />
-
       <div>
         <label className="block text-sm font-semibold mb-3">
           Holiday Calendar
