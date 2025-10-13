@@ -7,12 +7,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ExcelFormatExample from "./ExcelFormatExample";
 import toast from "react-hot-toast";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
 
 export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
@@ -194,6 +188,12 @@ export const WorkShiftTimeForm = () => {
             selected={specialDates}
             onSelect={setSpecialDates}
             className="rounded-md border w-[18vw] "
+            modifiersStyles={{
+              today: {
+                backgroundColor: "transparent",
+                color: "inherit",
+              },
+            }}
           />
         </div>
       )}
@@ -290,9 +290,25 @@ export const WorkShiftTimeForm = () => {
       {/* Details */}
       <div>
         <h3 className="text-sm font-semibold mb-2">Details</h3>
-        <p className="text-sm text-gray-500">
-          Define the details of your pay period and time shift structure.
-        </p>
+        <div className="space-y-2.5">
+          <p className="text-sm text-gray-500">
+            1. You can set multiple shift.For example,setting it to 0 allows
+            flexible clock-in with no shift restrictions,but you must set a
+            cross-midnight time.Once set,the system will treat time after that
+            point as a new day.Clock-in records will automatically wrap to the
+            next line. For example,if the default new day starts at 00:00 and
+            you set it to 05:00,then clock-ins after 5 AM will be treated as a
+            new day and shown on the next line.
+          </p>
+          <p className="text-sm text-gray-500">
+            2. You can also set 1,2,3 etc.Which refers to several shift
+            groups.Once set, you need to configure the start and end times for
+            each group.
+          </p>
+          <p className="text-sm text-gray-500">
+            So set the shift according to your actual needs.
+          </p>
+        </div>
       </div>
 
       {/* Save */}

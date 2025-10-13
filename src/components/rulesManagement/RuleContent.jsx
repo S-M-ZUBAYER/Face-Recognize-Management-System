@@ -6,6 +6,12 @@ import { LeaveForm } from "./LeaveForm";
 import { DefaultForm } from "./DefaultForm";
 import { EmptyState } from "./EmptyState";
 import RuleHeader from "./RuleHeader";
+import { WorkOnHoliday } from "./WorkOnHoliday";
+import { FlexibleWork } from "./FlexibleWork";
+import { UseOverTimeLateness } from "./UseOverTimeLateness";
+import { OvertImeCount } from "./OvertimeCount";
+import { WeekendOvertime } from "./WeekendOvertime";
+import { HolidayOvertime } from "./HolidayOvertime";
 
 export const RuleContent = ({ selectedRule, onBack }) => {
   if (!selectedRule) {
@@ -20,8 +26,20 @@ export const RuleContent = ({ selectedRule, onBack }) => {
         return <HolidayForm />;
       case "weekend":
         return <WeekendForm />;
+      case "workOnHoliday":
+        return <WorkOnHoliday />;
       case "lateness":
         return <LatenessForm />;
+      case "flexible":
+        return <FlexibleWork />;
+      case "overtimeOffset":
+        return <UseOverTimeLateness />;
+      case "overtimeCount":
+        return <OvertImeCount />;
+      case "weekendOvertime":
+        return <WeekendOvertime />;
+      case "holidayOvertime":
+        return <HolidayOvertime />;
       case "leave":
         return <LeaveForm />;
       default:

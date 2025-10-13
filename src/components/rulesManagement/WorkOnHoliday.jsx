@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Calendar } from "../ui/calendar";
 
-export const HolidayForm = () => {
+export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
 
   return (
@@ -24,10 +24,10 @@ export const HolidayForm = () => {
         <h3 className="text-sm font-semibold mb-2">Details</h3>
         <div className="space-y-2.5">
           <p className="text-sm text-gray-500">
-            Select national holiday, click the date to choose.When the selected
-            date turns blue,it indicates that it is a holiday and no attendance
-            is required.the selection will be automatically saved (set according
-            to your company's actual situation)
+            when a national holiday shifts, some weekends become regular
+            workdays. Select these dates to indicate that attendance is
+            required. Click the date and it will turn blue to indicate
+            selection. The selection will be automatically saved.
           </p>
         </div>
       </div>

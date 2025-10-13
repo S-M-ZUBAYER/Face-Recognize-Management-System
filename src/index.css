@@ -124,11 +124,11 @@
   }
 }
 
-[data-state="open"] {
+/* [data-state="open"] {
   background-color: transparent;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-}
+} */
 
 /* globals.css */
 input:-webkit-autofill {
@@ -170,32 +170,36 @@ input:-webkit-autofill {
 
 /* For just your filter container */
 
+/* Custom scrollbar styles */
 .custom-scrollbar {
-  overflow-y: auto; /* Enable vertical scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
 
-/* Scrollbar container */
+.custom-scrollbar:hover {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px; /* Vertical scrollbar width */
+  width: 6px;
 }
 
-/* Scrollbar track */
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #e6ecf0; /* Track color */
-  border-radius: 99px;
+  background: transparent;
 }
 
-/* Scrollbar thumb */
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #0044683d; /* Thumb color */
-  border-radius: 99px;
-  transform: scaleY(0.5); /* Reduce thumb height significantly */
-  transform-origin: center;
+  background: transparent;
+  border-radius: 3px;
 }
 
-/* Thumb on hover */
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #003155; /* Darker on hover */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .fill-primary {
@@ -210,3 +214,32 @@ input:-webkit-autofill {
 /* .text-primary {
   color: #004368;
 } */
+
+.data-\[selected-single\=true\]\:bg-primary {
+  &[data-selected-single="true"] {
+    background-color: #004368;
+    border-radius: 100%;
+    outline: none;
+    box-shadow: none;
+    border: none;
+  }
+}
+
+.rdp-day_button {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+/* Add horizontal gap between calendar dates */
+.rdp-grid {
+  gap: 0 10px !important; /* horizontal gap: 10px */
+}
+
+.rdp-cell {
+  padding: 0 5px !important; /* horizontal padding around each date */
+}
+
+.rdp-day {
+  margin: 0 2px !important; /* small margin around each date button */
+}
