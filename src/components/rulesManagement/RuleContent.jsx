@@ -12,6 +12,9 @@ import { UseOverTimeLateness } from "./UseOverTimeLateness";
 import { OvertImeCount } from "./OvertimeCount";
 import { WeekendOvertime } from "./WeekendOvertime";
 import { HolidayOvertime } from "./HolidayOvertime";
+import DocumentProofs from "./DocumentProofs";
+import { ReplacementDayForm } from "./ReplacementDayForm";
+import { AbsenceForm } from "./AbsenceForm";
 
 export const RuleContent = ({ selectedRule, onBack }) => {
   if (!selectedRule) {
@@ -42,6 +45,12 @@ export const RuleContent = ({ selectedRule, onBack }) => {
         return <HolidayOvertime />;
       case "leave":
         return <LeaveForm />;
+      case "specialTime":
+        return <DocumentProofs />;
+      case "replacement":
+        return <ReplacementDayForm />;
+      case "absence":
+        return <AbsenceForm />;
       default:
         return <DefaultForm />;
     }
