@@ -49,31 +49,26 @@ export const ReplacementDayForm = () => {
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="py-3 px-4 text-left text-sm font-semibold text-gray-900 border-r border-gray-200">
+            <tr>
+              <th className="py-3 px-4 text-left text-sm font-semibold text-gray-900 ">
                 SL
               </th>
-              <th className="py-3 px-4 text-left text-sm font-semibold text-gray-900 border-r border-gray-200">
+              <th className="py-3 px-4 text-right text-sm font-semibold text-gray-900 ">
                 Date
               </th>
-              <th className="py-3 px-4 text-left text-sm font-semibold text-gray-900">
+              <th className="py-3 px-4 text-right text-sm font-semibold text-gray-900">
                 Select Date
               </th>
             </tr>
           </thead>
           <tbody>
             {replacementDays.map((day) => (
-              <tr
-                key={day.id}
-                className="border-b border-gray-200 last:border-b-0"
-              >
-                <td className="py-3 px-4 text-sm text-gray-900 border-r border-gray-200">
-                  {day.id}
-                </td>
-                <td className="py-3 px-4 text-sm text-gray-900 border-r border-gray-200">
+              <tr key={day.id} className="border-b  last:border-b-0">
+                <td className="py-3 px-4 text-sm text-gray-900 ">{day.id}</td>
+                <td className="py-3 px-4 text-sm text-gray-900  text-right">
                   {day.date}
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-3 px-4 text-right">
                   <Popover
                     open={openPopovers[day.id]}
                     onOpenChange={(isOpen) => togglePopover(day.id, isOpen)}

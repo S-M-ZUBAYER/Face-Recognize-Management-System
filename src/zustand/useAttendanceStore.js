@@ -207,14 +207,54 @@ export const useAttendanceStore = create((set, get) => ({
 
         return dateRange.map((date) => {
           const checkIn = attendanceMap.get(date) || [];
+          const dateStr =
+            typeof date === "string" ? date : date.toISOString().split("T")[0];
+
+          const isPresent = checkIn.length > 0;
+          let leaveTypes = [];
+
+          // Check leaves only if not present
+          if (!isPresent && employee.salaryRules) {
+            const leaveArrays = [
+              "m_leaves", // Medical leaves
+              "mar_leaves", // Marriage leaves
+              "p_leaves", // Personal leaves
+              "s_leaves", // Sick leaves
+              "c_leaves", // Casual leaves
+              "e_leaves", // Earned leaves
+              "w_leaves", // Weekly leaves
+              "r_leaves", // Regular leaves
+              "o_leaves", // Other leaves
+            ];
+
+            leaveArrays.forEach((leaveType) => {
+              if (employee.salaryRules[leaveType]) {
+                const hasLeaveOnDate = employee.salaryRules[leaveType].some(
+                  (leave) => {
+                    const leaveDate = leave.date?.date || leave.date;
+                    const leaveDateStr =
+                      typeof leaveDate === "string"
+                        ? leaveDate.split("T")[0]
+                        : leaveDate.toISOString().split("T")[0];
+                    return leaveDateStr === dateStr;
+                  }
+                );
+
+                if (hasLeaveOnDate) {
+                  leaveTypes.push(leaveType);
+                }
+              }
+            });
+          }
+
           return {
             ...employee,
             employeeId,
             punch: {
               date,
-              checkIn,
+              checkIn: checkIn.length > 0 ? checkIn : leaveTypes,
             },
-            isPresent: checkIn.length > 0,
+            isPresent,
           };
         });
       });

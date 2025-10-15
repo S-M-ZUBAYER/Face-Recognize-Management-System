@@ -15,6 +15,16 @@ import { HolidayOvertime } from "./HolidayOvertime";
 import DocumentProofs from "./DocumentProofs";
 import { ReplacementDayForm } from "./ReplacementDayForm";
 import { AbsenceForm } from "./AbsenceForm";
+import { LateArrivalPenalty1 } from "./LateArrivalPenalty1";
+import { EarlyDepartureDeduction } from "./EarlyDepartureDeduction";
+import { LateArrivalPenalty2 } from "./LateArrivalPenalty2";
+import { LateArrivalPenalty3 } from "./LateArrivalPenalty3";
+import { LateArrivalFine4 } from "./LateArrivalFine4";
+import { LateArrivalFine5 } from "./LateArrivalFine5";
+import { LateArrivalPenalty6 } from "./LateArrivalPenalty6";
+import { MissedPunch } from "./MissedPunch";
+import { SelectOvertime } from "./SelectOvertime";
+import { SetTotalLeaveDays } from "./SetTotalLeaveDays";
 
 export const RuleContent = ({ selectedRule, onBack }) => {
   if (!selectedRule) {
@@ -51,6 +61,26 @@ export const RuleContent = ({ selectedRule, onBack }) => {
         return <ReplacementDayForm />;
       case "absence":
         return <AbsenceForm />;
+      case "lateArrival":
+        return <LateArrivalPenalty1 />;
+      case "earlyDeparture":
+        return <EarlyDepartureDeduction />;
+      case "lateArrival2":
+        return <LateArrivalPenalty2 />;
+      case "lateArrival3":
+        return <LateArrivalPenalty3 />;
+      case "lateArrival4":
+        return <LateArrivalFine4 />;
+      case "lateArrival5":
+        return <LateArrivalFine5 />;
+      case "lateArrival6":
+        return <LateArrivalPenalty6 />;
+      case "missedPunch":
+        return <MissedPunch />;
+      case "selectOvertime":
+        return <SelectOvertime />;
+      case "setTotalLeaveDays":
+        return <SetTotalLeaveDays />;
       default:
         return <DefaultForm />;
     }

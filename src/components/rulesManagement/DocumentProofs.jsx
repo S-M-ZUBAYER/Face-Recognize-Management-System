@@ -178,18 +178,26 @@ export default function DocumentProofs() {
 
             {/* Details Section */}
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Details</h3>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    You can upload the signature here
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>Example: </strong>
-                    If an employee forgets to punch in, they need to upload a
-                    document with authorized signatures as proof for that day.
-                  </p>
-                </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  Details
+                </h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li className="flex items-start">
+                    <span className="font-semibold mr-2">•</span>
+                    <span>
+                      <p>You can upload the signature here</p>
+                    </span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="font-semibold mr-2">•</span>
+                    <span>
+                      <strong>Example:</strong> If an employee forgets to punch
+                      in, they need to upload a document with authorized
+                      signatures as proof for that day.
+                    </span>
+                  </li>
+                </ul>
               </div>
 
               <button
@@ -359,18 +367,29 @@ export default function DocumentProofs() {
 
             {/* Details Section */}
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Details</h3>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    You can upload Late punch documents with start and end time
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>Example: </strong>
-                    if someone was late to the institution,you can specify the
-                    exact time priod and upload documentation.
-                  </p>
-                </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  Details
+                </h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li className="flex items-start">
+                    <span className="font-semibold mr-2">•</span>
+                    <span>
+                      <p>
+                        You can upload Late punch documents with start and end
+                        time
+                      </p>
+                    </span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="font-semibold mr-2">•</span>
+                    <span>
+                      <strong>Example:</strong> if someone was late to the
+                      institution,you can specify the exact time period and
+                      upload documentation.
+                    </span>
+                  </li>
+                </ul>
               </div>
 
               <button

@@ -284,24 +284,36 @@ export const LeaveForm = () => {
         </div>
       )}
 
-      <div>
-        <h3 className="text-sm font-semibold mb-2">Details</h3>
-        <div className="space-y-2.5">
-          <p className="text-sm text-gray-500">
-            you can select national or company-specific holidays (e.g,marriage
-            leave),check the corresponding holiday,and select the date.The
-            selected date will turn ble and be saved, allowing the employee to
-            enjoy the holiday without a salary deduction.
-          </p>
-          <p className="text-sm text-gray-500">
-            You can also set sick leave and other options, and you can set
-            either a fixed deduction amount or a proportional deduction of daily
-            salary.For example, if a fixed amount is checked and set to 200, the
-            deduction will be 200.if a proportional amount is checked and set to
-            0.5, 0.5 days of salary will be deducted. Based on company policy,
-            this can also be set to 0, indicating no deduction.
-          </p>
-        </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2">
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              <p>
+                {" "}
+                you can select national or company-specific holidays
+                (e.g,marriage leave),check the corresponding holiday,and select
+                the date.The selected date will turn ble and be saved, allowing
+                the employee to enjoy the holiday without a salary deduction.
+              </p>
+            </span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              <p>
+                You can also set sick leave and other options, and you can set
+                either a fixed deduction amount or a proportional deduction of
+                daily salary.For example, if a fixed amount is checked and set
+                to 200, the deduction will be 200.if a proportional amount is
+                checked and set to 0.5, 0.5 days of salary will be deducted.
+                Based on company policy, this can also be set to 0, indicating
+                no deduction.
+              </p>
+            </span>
+          </li>
+        </ul>
       </div>
 
       <button className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium">
