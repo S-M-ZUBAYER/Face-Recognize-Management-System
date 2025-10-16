@@ -19,11 +19,15 @@ const LeaveApplicationsList = ({ applications, selectedId, onSelect }) => {
             >
               <Avatar className="w-10 h-10 flex-shrink-0">
                 <AvatarImage
-                  src={`https://i.pravatar.cc/150?img=${app.id + 10}`}
+                  src={
+                    app.employeeImage ||
+                    `https://i.pravatar.cc/150?img=${app.id}`
+                  }
                   alt={app.name}
                 />
                 <AvatarFallback>
-                  {app.name
+                  {app.employeeName
+
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
@@ -33,11 +37,11 @@ const LeaveApplicationsList = ({ applications, selectedId, onSelect }) => {
               </Avatar>
               <div className="flex flex-col flex-1 min-w-0">
                 <p className="font-semibold text-sm text-gray-800 truncate">
-                  {app.name}
+                  {app.employeeName}
                 </p>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-gray-500 truncate">
-                    {app.category}
+                    {app.leaveCategory}
                   </p>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -51,9 +55,11 @@ const LeaveApplicationsList = ({ applications, selectedId, onSelect }) => {
                   </svg>
                   <span
                     className={`text-xs font-medium ${
-                      app.status.includes("Pending")
+                      app.status.includes("pending_leader") ||
+                      app.status.includes("pending_admin")
                         ? "text-yellow-600"
-                        : app.status.includes("Rejected")
+                        : app.status.includes("rejected_admin") ||
+                          app.status.includes("rejected_leader")
                         ? "text-red-600"
                         : "text-green-600"
                     }`}

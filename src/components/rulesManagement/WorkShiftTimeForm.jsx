@@ -288,27 +288,34 @@ export const WorkShiftTimeForm = () => {
       </div>
 
       {/* Details */}
-      <div>
-        <h3 className="text-sm font-semibold mb-2">Details</h3>
-        <div className="space-y-2.5">
-          <p className="text-sm text-gray-500">
-            1. You can set multiple shift.For example,setting it to 0 allows
-            flexible clock-in with no shift restrictions,but you must set a
-            cross-midnight time.Once set,the system will treat time after that
-            point as a new day.Clock-in records will automatically wrap to the
-            next line. For example,if the default new day starts at 00:00 and
-            you set it to 05:00,then clock-ins after 5 AM will be treated as a
-            new day and shown on the next line.
-          </p>
-          <p className="text-sm text-gray-500">
-            2. You can also set 1,2,3 etc.Which refers to several shift
-            groups.Once set, you need to configure the start and end times for
-            each group.
-          </p>
-          <p className="text-sm text-gray-500">
-            So set the shift according to your actual needs.
-          </p>
-        </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2">
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              You can set multiple shift.For example,setting it to 0 allows
+              flexible clock-in with no shift restrictions,but you must set a
+              cross-midnight time.Once set,the system will treat time after that
+              point as a new day.Clock-in records will automatically wrap to the
+              next line. For example,if the default new day starts at 00:00 and
+              you set it to 05:00,then clock-ins after 5 AM will be treated as a
+              new day and shown on the next line.
+            </span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              You can also set 1,2,3 etc.Which refers to several shift
+              groups.Once set, you need to configure the start and end times for
+              each group.
+            </span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span> So set the shift according to your actual needs.</span>
+          </li>
+        </ul>
       </div>
 
       {/* Save */}

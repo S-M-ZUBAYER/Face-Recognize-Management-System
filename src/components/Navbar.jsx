@@ -1,9 +1,7 @@
 import React, { memo } from "react";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useUserData } from "@/hook/useUserData";
 import SideDrawer from "./SideDrawer";
-import { SearchIcon } from "@/constants/icons";
 import { base64ToImage } from "@/lib/base64Toimage";
 
 const Navbar = () => {

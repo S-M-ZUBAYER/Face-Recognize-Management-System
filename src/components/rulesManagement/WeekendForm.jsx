@@ -45,16 +45,19 @@ export const WeekendForm = () => {
         Selected days: {selectedDays.join(", ") || "None"}
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold mb-2">Details</h3>
-        <div className="space-y-2.5">
-          <p className="text-sm text-gray-500">
-            Select weekends,click the day to choose it as a weekend.When it
-            shows as checked,it means the day is selected,and there will be no
-            attendance required on that weekend. The selection will be
-            automatically saved.
-          </p>
-        </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2">
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              Select weekends,click the day to choose it as a weekend.When it
+              shows as checked,it means the day is selected,and there will be no
+              attendance required on that weekend. The selection will be
+              automatically saved.
+            </span>
+          </li>
+        </ul>
       </div>
 
       <button className="w-full py-3 bg-[#004368] text-white rounded-lg  transition-colors font-medium">

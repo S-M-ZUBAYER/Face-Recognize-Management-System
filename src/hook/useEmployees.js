@@ -23,6 +23,7 @@ export const useEmployees = () => {
           companyEmployeeId: emp.email?.split("|")[1],
           department: emp.department,
           email: emp.email?.split("|")[0],
+          image: `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/media/${emp.imageFile}`,
           designation: emp.designation,
           deviceMAC: mac.deviceMAC,
           salaryRules: emp.salaryRules,

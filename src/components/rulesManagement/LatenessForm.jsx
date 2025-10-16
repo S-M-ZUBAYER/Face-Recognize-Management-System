@@ -10,16 +10,24 @@ export const LatenessForm = () => {
         />
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold mb-2">Details</h3>
-        <div className="space-y-3.5">
-          <p className="text-sm text-gray-500">Lateness Warning System</p>
-          <p className="text-sm text-gray-500">
-            <strong className="text-sm font-semibold mb-2">Example:</strong>
-            if set to 5, and the start time is 08:00,lateness starts from
-            08:05,providing a 5-minute grace period as a benefit to employees
-          </p>
-        </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2">
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              <strong>Lateness Warning System</strong>
+            </span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              <strong>Example:</strong> if set to 5, and the start time is
+              08:00,lateness starts from 08:05,providing a 5-minute grace period
+              as a benefit to employees
+            </span>
+          </li>
+        </ul>
       </div>
 
       <button className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium">
