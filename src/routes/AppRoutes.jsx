@@ -14,6 +14,7 @@ import LeaveApprovalPage from "@/pages/LeaveApprovalPage";
 import AttendancePage from "@/pages/AttendancePage";
 import RulesPage from "@/pages/RulesPage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
+import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
 
 const AppLayout = () => {
   return (
@@ -47,6 +48,10 @@ const AppRoutes = () => {
           <Route
             path="employee-management"
             element={<EmployeeManagementPage />}
+          />
+          <Route
+            path="employee-management/editEmployeeDetails/:id"
+            element={<EditEmployeeDetailsPage />}
           />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="task-management" element={<TaskManagementPage />} />
