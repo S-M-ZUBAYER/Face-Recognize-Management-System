@@ -3,21 +3,12 @@ import EmployeeManagementTable from "@/components/employeeManagement/EmployeeMan
 import React from "react";
 import { useEmployees } from "@/hook/useEmployees";
 import { useDesignation } from "@/hook/useDesignation";
+import FancyLoader from "@/components/FancyLoader";
 
 function EmployeeManagementPage() {
-  const { Employees } = useEmployees();
+  const { Employees, isLoading } = useEmployees();
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
   const { designation } = useDesignation();
-
-  // const filters = [
-  //   "All Employees",
-  //   "Information Technology",
-  //   "Marketing",
-  //   "Research and Development",
-  //   "E-commerce",
-  //   "Customer Support",
-  //   "Finance",
-  // ];
 
   // Filter Employees based on activeFilter
   const getFilteredEmployees = () => {
@@ -31,13 +22,19 @@ function EmployeeManagementPage() {
         <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
           Employee Management
         </p>
-        <EmployeeFilterTabs
-          filters={designation}
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-        />
+        {isLoading ? (
+          <FancyLoader />
+        ) : (
+          <>
+            <EmployeeFilterTabs
+              filters={designation}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+            />
 
-        <EmployeeManagementTable employees={getFilteredEmployees()} />
+            <EmployeeManagementTable employees={getFilteredEmployees()} />
+          </>
+        )}
       </div>
     </>
   );

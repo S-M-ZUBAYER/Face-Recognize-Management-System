@@ -1,22 +1,57 @@
-import React, { useState } from "react";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import FancyLoader from "../FancyLoader";
+import PayPeriodSettings from "./PayPeriodSettings";
+import EditRules from "./EditRules";
 
 const EditEmployeeDetails = () => {
+  const { id, deviceMac } = useParams();
+  const { data, isLoading, isError, error } = useSingleEmployeeDetails(
+    id,
+    deviceMac
+  );
+
   const [employeeData, setEmployeeData] = useState({
-    employeeId: "Tob842",
-    joiningDate: "01 February 2023",
-    monthlySalary: "000000",
-    designation: "Product Designer",
-    contactNumber: "+8900743830062",
-    shift: "Morning",
-    payPeriod: "Monthly",
-    employeeName: "Mid Goldam Rabbani Pina",
-    address: "Nilphamari",
-    department: "Research & Development",
-    email: "design.magphas@gmail.com",
-    deviceName: "IFDI-E33...",
-    addedBy: "Mid G R Pias",
-    employeeImage: "https://i.pravatar.cc/150?img=20",
+    employeeId: "",
+    joiningDate: "",
+    monthlySalary: "",
+    designation: "",
+    contactNumber: "",
+    shift: "",
+    payPeriod: "",
+    employeeName: "",
+    address: "",
+    department: "",
+    email: "",
+    deviceName: "",
+    addedBy: "",
+    employeeImage: "",
   });
+
+  // Initialize employee data when data is loaded
+  useEffect(() => {
+    if (data) {
+      setEmployeeData({
+        employeeId: data.employeeId || "",
+        joiningDate: data.startDate || "",
+        monthlySalary: data.payPeriod?.salary || "",
+        designation: data.designation || "",
+        contactNumber: data.contactNumber || "",
+        shift: data.payPeriod?.shift || "",
+        payPeriod: data.payPeriod?.payPeriod || "",
+        employeeName: data.name?.split("<")[0] || "",
+        address: data.address || "",
+        department: data.department || "",
+        email: data.email?.split("|")[0] || "",
+        deviceName: data.deviceName || "",
+        addedBy: data.addedBy || "",
+        employeeImage: data.imageFile
+          ? `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/media/${data.imageFile}`
+          : "",
+      });
+    }
+  }, [data]);
 
   const handleInputChange = (field, value) => {
     setEmployeeData((prev) => ({
@@ -44,34 +79,21 @@ const EditEmployeeDetails = () => {
     { key: "email", label: "Email", colSpan: 1 },
     { key: "contactNumber", label: "Contact Number", colSpan: 1 },
     { key: "deviceName", label: "Device Name", colSpan: 1 },
-    { key: "shift", label: "Shift", colSpan: 1 },
+    { key: "shift", label: "Shift", colSpan: 1, show: 1 },
     { key: "addedBy", label: "Added By", colSpan: 1 },
   ];
 
-  const DropdownField = ({ label, value }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white flex items-center justify-between">
-        <p className="text-gray-600">{value}</p>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 18 18"
-          fill="none"
-        >
-          <path
-            d="M6.75004 4.5C6.75004 4.5 11.25 7.81417 11.25 9C11.25 10.1859 6.75 13.5 6.75 13.5"
-            stroke="#004368"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+  if (isLoading) {
+    return <FancyLoader />;
+  }
+
+  if (isError) {
+    return (
+      <div className="w-full h-[75vh]">
+        <p className="text-red-500">{error}</p>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div>
@@ -109,17 +131,23 @@ const EditEmployeeDetails = () => {
                   </label>
                   <input
                     type="text"
-                    value={employeeData[field.key]}
+                    value={employeeData[field.key] || ""}
                     onChange={(e) =>
                       handleInputChange(field.key, e.target.value)
                     }
+                    disabled={field.show === 1}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   />
                 </div>
               ))}
 
-              <DropdownField label="Pay Period" value="monthly" />
-              <DropdownField label="Rules" value="rules" />
+              {/* <DropdownField
+                label="Pay Period"
+                value={employeeData.payPeriod || "monthly"}
+              /> */}
+
+              <PayPeriodSettings />
+              <EditRules />
 
               <div className="md:col-span-2 flex justify-end space-x-3 mt-5">
                 <button

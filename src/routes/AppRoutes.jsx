@@ -50,7 +50,7 @@ const AppRoutes = () => {
             element={<EmployeeManagementPage />}
           />
           <Route
-            path="employee-management/editEmployeeDetails/:id"
+            path="employee-management/editEmployeeDetails/:id/:deviceMac"
             element={<EditEmployeeDetailsPage />}
           />
           <Route path="attendance" element={<AttendancePage />} />

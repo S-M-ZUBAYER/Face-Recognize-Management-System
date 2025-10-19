@@ -21,8 +21,8 @@ const EmployeeManagementTable = ({ employees = [] }) => {
     setSearchQuery("");
   }, [employees]);
 
-  const handleNavigate = () => {
-    Navigate("editEmployeeDetails/4");
+  const handleNavigate = (employeeId, deviceMAC) => {
+    Navigate("editEmployeeDetails/" + employeeId + "/" + deviceMAC);
   };
 
   // Filter employees based on search query
@@ -262,7 +262,12 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                       </span>
                     </td>
                     <td className="p-2">
-                      <div className="cursor-pointer" onClick={handleNavigate}>
+                      <div
+                        className="cursor-pointer"
+                        onClick={() =>
+                          handleNavigate(emp.employeeId, emp.deviceMAC)
+                        }
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="18"
