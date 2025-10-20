@@ -24,7 +24,7 @@ function SalaryCalculationPage() {
   }
 
   return (
-    <div className=" space-y-4">
+    <div className=" space-y-4 px-6 ">
       <div className="flex justify-between items-center ">
         <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
           Salary calculation

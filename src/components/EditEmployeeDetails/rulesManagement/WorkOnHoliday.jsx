@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);

@@ -3,8 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import NormalMonthForm from "./NormalMonthForm";
+import NormalMonthForm from "./payPeriod/NormalMonthForm";
 import { X } from "lucide-react";
+import MonthlyForm from "./payPeriod/MonthlyForm";
+import SemiMonthlyForm from "./payPeriod/SemiMonthlyForm";
+import BiWeeklyForm from "./payPeriod/BiWeeklyForm";
+import WeeklyForm from "./payPeriod/WeeklyForm";
+import FlexibleWorkForm from "./payPeriod/FlexibleWorkForm";
 
 const PayPeriodSettings = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,21 +79,22 @@ const PayPeriodSettings = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-lg w-[65vw] max-h-[90vh] overflow-y-auto p-6 relative"
+              className="bg-white rounded-lg w-[65vw] h-[85vh] flex flex-col relative "
               onClick={(e) => e.stopPropagation()}
             >
-              {/* === Cancel Button === */}
+              {/* Header */}
               <button
                 onClick={() => setIsOpen(false)}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 absolute top-2 right-2"
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="flex justify-between items-start p-2 ">
-                {/* === Left Section: Pay Period List === */}
-                <Card>
+              {/* Main Content */}
+              <div className="flex flex-1 min-h-0 p-6">
+                {/* Left Section: Pay Period List */}
+                <Card className="w-1/3 h-full">
                   <CardHeader>
                     <CardTitle>Select Pay Period</CardTitle>
                   </CardHeader>
@@ -111,12 +117,12 @@ const PayPeriodSettings = () => {
                   </CardContent>
                 </Card>
 
-                {/* === Right Section: Pay Period Details === */}
-                <Card className="w-[49vw]">
+                {/* Right Section: Pay Period Details */}
+                <Card className="w-2/3 h-full ml-6">
                   <CardHeader>
                     <CardTitle>{getPeriodTitle()}</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="h-[calc(100%-80px)] overflow-y-auto p-0 custom-scrollbar ">
                     {selectedPeriod === "normal-month" && <NormalMonthForm />}
                     {selectedPeriod === "monthly" && <MonthlyForm />}
                     {selectedPeriod === "semi-monthly" && <SemiMonthlyForm />}
@@ -135,12 +141,3 @@ const PayPeriodSettings = () => {
 };
 
 export default PayPeriodSettings;
-
-// === Placeholder forms for future types ===
-const MonthlyForm = () => <p>Monthly Form (coming soon...)</p>;
-const SemiMonthlyForm = () => <p>Semi-Monthly Form (coming soon...)</p>;
-const BiWeeklyForm = () => <p>Bi-Weekly Form (coming soon...)</p>;
-const WeeklyForm = () => <p>Weekly Form (coming soon...)</p>;
-const FlexibleWorkForm = () => (
-  <p>Flexible Work Schedule Form (coming soon...)</p>
-);

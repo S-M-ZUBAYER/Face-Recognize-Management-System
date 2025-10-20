@@ -7,7 +7,7 @@ export const DefaultForm = ({ title }) => {
         </p>
       </div>
 
-      <button className="w-full py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-colors font-medium">
+      <button className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium">
         Save
       </button>
     </div>
