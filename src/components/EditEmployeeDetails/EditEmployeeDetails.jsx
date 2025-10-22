@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import FancyLoader from "../FancyLoader";
 import PayPeriodSettings from "./PayPeriodSettings";
 import EditRules from "./EditRules";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const EditEmployeeDetails = () => {
   const { id, deviceMac } = useParams();
@@ -11,6 +12,8 @@ const EditEmployeeDetails = () => {
     id,
     deviceMac
   );
+  console.log(data);
+  const { setSelectedEmployee } = useEmployeeStore();
 
   const [employeeData, setEmployeeData] = useState({
     employeeId: "",
@@ -41,7 +44,16 @@ const EditEmployeeDetails = () => {
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
         employeeName: data.name?.split("<")[0] || "",
-        address: data.address || "",
+        address:
+          typeof data.address === "string"
+            ? (() => {
+                try {
+                  return JSON.parse(data.address).des || data.address;
+                } catch {
+                  return data.address;
+                }
+              })()
+            : data.address?.des || "",
         department: data.department || "",
         email: data.email?.split("|")[0] || "",
         deviceName: data.deviceName || "",
@@ -50,8 +62,9 @@ const EditEmployeeDetails = () => {
           ? `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/media/${data.imageFile}`
           : "",
       });
+      setSelectedEmployee(data);
     }
-  }, [data]);
+  }, [data, setSelectedEmployee]);
 
   const handleInputChange = (field, value) => {
     setEmployeeData((prev) => ({

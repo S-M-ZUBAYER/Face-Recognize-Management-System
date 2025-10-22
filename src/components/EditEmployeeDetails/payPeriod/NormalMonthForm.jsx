@@ -1,14 +1,67 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
 
 function NormalMonthForm() {
   const [basic, setBasic] = useState("");
-  const [other, setOther] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
+  const [workingDay, setWorkingDay] = useState("");
+  const [workingHours, setWorkingHours] = useState("");
+  const [overtimeRate, setOvertimeRate] = useState("");
+  const [selectedOvertimeOption, setSelectedOvertimeOption] = useState("");
+  const { selectedEmployee } = useEmployeeStore();
+
+  // Calculate other salary total from additional salaries
+  const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
+    return total + (parseFloat(salary.amount) || 0);
+  }, 0);
+
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  // Calculate automatic overtime when basic, other salary total, or working day changes
+  useEffect(() => {
+    if (selectedOvertimeOption === "auto-calc" && basic && workingDay) {
+      const basicNum = parseFloat(basic) || 0;
+      const workingDayNum = parseFloat(workingDay) || 1; // Avoid division by zero
+      const calculatedOvertime = (basicNum + otherSalaryTotal) / workingDayNum;
+      setOvertimeRate(calculatedOvertime.toFixed(2));
+    }
+  }, [basic, otherSalaryTotal, workingDay, selectedOvertimeOption]);
+
+  useEffect(() => {
+    if (selectedEmployee?.payPeriod) {
+      const payPeriod = selectedEmployee.payPeriod;
+
+      setBasic(payPeriod.salary?.toString() || "");
+      setWorkingDay(payPeriod.hourlyRate?.toString() || "");
+      setWorkingHours(payPeriod.name?.toString() || "");
+      setOvertimeRate(payPeriod.overtimeSalary?.toString() || "");
+
+      // Set additional salaries from otherSalary array with unique IDs
+      const initialAdditionalSalaries = Array.isArray(payPeriod?.otherSalary)
+        ? payPeriod.otherSalary.map((salary, index) => ({
+            id: Date.now() + index, // unique ID
+            type: salary?.type || "",
+            amount: salary?.amount?.toString() || "",
+          }))
+        : [];
+      setAdditionalSalaries(initialAdditionalSalaries);
+
+      // Set overtime option based on selectedOvertimeOption
+      if (payPeriod.selectedOvertimeOption === 1) {
+        setSelectedOvertimeOption("auto-calc");
+      } else if (payPeriod.selectedOvertimeOption === 2) {
+        setSelectedOvertimeOption("fixed-input");
+      }
+    }
+  }, [selectedEmployee]);
 
   const salarySections = [
     {
@@ -17,13 +70,15 @@ function NormalMonthForm() {
       value: basic,
       setValue: setBasic,
       placeholder: "000000",
+      hasValue: !!basic,
     },
     {
       id: "other-salary",
       label: "Others Salary",
-      value: other,
-      setValue: setOther,
+      value: otherSalaryTotal.toFixed(2),
       placeholder: "000000",
+      hasValue: otherSalaryTotal > 0,
+      isReadOnly: true, // Make other salary read-only since it's calculated
     },
   ];
 
@@ -31,7 +86,7 @@ function NormalMonthForm() {
     setAdditionalSalaries([
       ...additionalSalaries,
       {
-        id: Date.now(),
+        id: Date.now() + Math.random(), // More unique ID
         type: "",
         amount: "",
       },
@@ -44,12 +99,80 @@ function NormalMonthForm() {
     );
   };
 
-  const updateSalarySection = (id, field, value) => {
+  const updateSalarySectionType = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
+        salary.id === id ? { ...salary, type: value } : salary
       )
     );
+  };
+
+  const updateSalarySectionAmount = (id, value) => {
+    setAdditionalSalaries(
+      additionalSalaries.map((salary) =>
+        salary.id === id ? { ...salary, amount: value } : salary
+      )
+    );
+  };
+
+  const handleOvertimeOptionChange = (optionId) => {
+    setSelectedOvertimeOption(optionId);
+
+    // If switching to fixed input, clear the auto-calculated value
+    if (optionId === "fixed-input") {
+      setOvertimeRate("");
+    }
+  };
+
+  const handleSave = async () => {
+    // Filter out empty additional salaries
+    const otherSalaryArray = additionalSalaries
+      .filter((salary) => salary.type && salary.amount)
+      .map((salary) => ({
+        type: salary.type,
+        amount: parseFloat(salary.amount) || 0,
+      }));
+
+    // Create the payPeriod object according to your structure
+    const employeePayPeriod = {
+      employeeId: selectedEmployee?.employeeId || 0,
+      hourlyRate: parseFloat(workingDay) || 26,
+      isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
+      leave: "",
+      name: parseInt(workingHours) || 8,
+      otherSalary: otherSalaryArray,
+      overtimeFixed:
+        selectedOvertimeOption === "fixed-input"
+          ? parseFloat(overtimeRate) || 0
+          : 0,
+      overtimeSalary:
+        selectedOvertimeOption === "auto-calc"
+          ? parseFloat(overtimeRate) || 0
+          : 0,
+      payPeriod: "normalMonthly",
+      salary: parseFloat(basic) || 0,
+      selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 1 : 2,
+      shift: selectedEmployee?.shift || "Morning",
+      startDay: 1,
+      startWeek: null,
+      status: null,
+    };
+
+    const stringifiedEmployeePayPeriod =
+      convertNumbersToStrings(employeePayPeriod);
+
+    const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
+
+    try {
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload: { payPeriod: payPeriodJSON },
+      });
+      toast.success("Employee updated successfully!");
+    } catch {
+      toast.error("Failed to update employee.");
+    }
   };
 
   const checkboxStyle =
@@ -59,32 +182,63 @@ function NormalMonthForm() {
     <div className="space-y-5 p-6 w-full">
       {/* === Salary Section === */}
       <div className="space-y-2">
-        {salarySections.map(({ id, label, value, setValue, placeholder }) => (
-          <div key={id} className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <Checkbox id={id} className={checkboxStyle} />
-              <Label htmlFor={id}>{label}</Label>
+        {salarySections.map(
+          ({
+            id,
+            label,
+            value,
+            setValue,
+            placeholder,
+            hasValue,
+            isReadOnly,
+          }) => (
+            <div key={id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <Checkbox
+                  id={id}
+                  className={checkboxStyle}
+                  checked={hasValue}
+                  onCheckedChange={(checked) => {
+                    if (!checked && id === "basic-salary") {
+                      setValue("");
+                    }
+                  }}
+                />
+                <Label htmlFor={id}>{label}</Label>
+              </div>
+              <Input
+                value={value}
+                onChange={
+                  isReadOnly ? undefined : (e) => setValue(e.target.value)
+                }
+                className="w-80"
+                placeholder={placeholder}
+                type={"number"}
+                readOnly={isReadOnly}
+              />
             </div>
-            <Input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              className="w-80"
-              placeholder={placeholder}
-              type={"number"}
-            />
-          </div>
-        ))}
+          )
+        )}
 
         {/* Additional Salary Sections */}
         {additionalSalaries.map((salary) => (
           <div key={salary.id} className="flex items-center justify-between">
             <div className="flex items-center gap-3.5">
-              <Checkbox className={checkboxStyle} />
+              <Checkbox
+                className={checkboxStyle}
+                checked={!!salary.type && !!salary.amount}
+                onCheckedChange={(checked) => {
+                  if (!checked) {
+                    updateSalarySectionType(salary.id, "");
+                    updateSalarySectionAmount(salary.id, "");
+                  }
+                }}
+              />
               <div className="flex gap-2">
                 <Input
                   value={salary.type}
                   onChange={(e) =>
-                    updateSalarySection(salary.id, "type", e.target.value)
+                    updateSalarySectionType(salary.id, e.target.value)
                   }
                   className="w-40"
                   placeholder="Salary Type"
@@ -92,7 +246,7 @@ function NormalMonthForm() {
                 <Input
                   value={salary.amount}
                   onChange={(e) =>
-                    updateSalarySection(salary.id, "amount", e.target.value)
+                    updateSalarySectionAmount(salary.id, e.target.value)
                   }
                   className="w-40"
                   placeholder="Amount"
@@ -130,7 +284,13 @@ function NormalMonthForm() {
         <Label className="font-semibold whitespace-nowrap">
           Add Working Day
         </Label>
-        <Input placeholder="26 Days" className="w-80" type={"number"} />
+        <Input
+          placeholder="26 Days"
+          className="w-80"
+          type={"number"}
+          value={workingDay}
+          onChange={(e) => setWorkingDay(e.target.value)}
+        />
       </div>
 
       {/* === Working Hours === */}
@@ -138,7 +298,13 @@ function NormalMonthForm() {
         <Label className="font-semibold whitespace-nowrap">
           Add Working Hours
         </Label>
-        <Input placeholder="8" className="w-80" type={"number"} />
+        <Input
+          placeholder="8"
+          className="w-80"
+          type={"number"}
+          value={workingHours}
+          onChange={(e) => setWorkingHours(e.target.value)}
+        />
       </div>
 
       {/* === Overtime Rate === */}
@@ -159,7 +325,16 @@ function NormalMonthForm() {
           ].map(({ id, label, placeholder }) => (
             <div key={id} className="flex items-center justify-between">
               <div className="flex items-center gap-3.5">
-                <Checkbox id={id} className={checkboxStyle} />
+                <Checkbox
+                  id={id}
+                  className={checkboxStyle}
+                  checked={selectedOvertimeOption === id}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      handleOvertimeOptionChange(id);
+                    }
+                  }}
+                />
                 <Label htmlFor={id} className="whitespace-nowrap">
                   {label}
                 </Label>
@@ -168,6 +343,9 @@ function NormalMonthForm() {
                 placeholder={placeholder}
                 className="w-80"
                 type={"number"}
+                value={selectedOvertimeOption === id ? overtimeRate : ""}
+                onChange={(e) => setOvertimeRate(e.target.value)}
+                disabled={id === "auto-calc"} // Disable input for auto-calc
               />
             </div>
           ))}
@@ -192,8 +370,11 @@ function NormalMonthForm() {
           </li>
         </ul>
       </div>
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium">
-        Save
+      <button
+        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
+        onClick={handleSave}
+      >
+        {updating ? "Saving..." : "Save"}
       </button>
     </div>
   );
