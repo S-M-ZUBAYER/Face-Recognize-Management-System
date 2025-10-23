@@ -1,35 +1,92 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
 
 function FlexibleWorkForm() {
-  const [basic, setBasic] = useState("");
-  const [other, setOther] = useState("");
+  const [hourlySalary, setHourlySalary] = useState("");
+  const [minimumMinutes, setMinimumMinutes] = useState("");
+  const { selectedEmployee } = useEmployeeStore();
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const salarySections = [
     {
-      id: "based hour",
+      id: "based-hour",
       label: "Based Hour",
-      value: basic,
-      setValue: setBasic,
-      placeholder: "000000",
+      value: "1", // Always 1, not stored in server
+      placeholder: "1",
+      isReadOnly: true,
+      hasValue: true,
     },
     {
-      id: "hourlyFlexible",
+      id: "hourly-flexible",
       label: "Hourly Flexible Work Schedule Salary",
-      value: other,
-      setValue: setOther,
+      value: hourlySalary,
+      setValue: setHourlySalary,
       placeholder: "000000",
+      hasValue: !!hourlySalary,
     },
     {
-      id: "minimumWorking",
+      id: "minimum-working",
       label: "Minimum working Minutes",
-      value: other,
-      setValue: setOther,
+      value: minimumMinutes,
+      setValue: setMinimumMinutes,
       placeholder: "000000",
+      hasValue: !!minimumMinutes,
     },
   ];
+
+  useEffect(() => {
+    if (selectedEmployee?.payPeriod) {
+      const payPeriod = selectedEmployee.payPeriod;
+
+      setHourlySalary(payPeriod.salary?.toString() || "");
+      setMinimumMinutes(payPeriod.hourlyRate?.toString() || "");
+    }
+  }, [selectedEmployee]);
+
+  const handleSave = async () => {
+    // Create the payPeriod object according to your structure
+    const employeePayPeriod = {
+      employeeId: selectedEmployee?.employeeId || 0,
+      hourlyRate: parseFloat(minimumMinutes) || 0, // Minimum working Minutes
+      isSelectedFixedHourlyRate: false, // Not used for flexible work
+      leave: "",
+      name: selectedEmployee.name || "", // Default value
+      otherSalary: null, // No other salary for flexible work
+      overtimeFixed: 0, // Not used for flexible work
+      overtimeSalary: 0, // Not used for flexible work
+      payPeriod: "hourly",
+      salary: parseFloat(hourlySalary) || 0, // Hourly Flexible Work Schedule Salary
+      selectedOvertimeOption: 0, // Not used for flexible work
+      shift: selectedEmployee?.shift || "Morning",
+      startDay: selectedEmployee.startDay, // Default value
+      startWeek: null, // Not used for flexible work
+      status: null,
+    };
+
+    // 🔹 Convert all numeric fields to strings
+    const stringifiedEmployeePayPeriod =
+      convertNumbersToStrings(employeePayPeriod);
+
+    // 🔹 Convert to JSON string
+    const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
+
+    try {
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload: { payPeriod: payPeriodJSON },
+      });
+      toast.success("Employee updated successfully!");
+    } catch {
+      toast.error("Failed to update employee.");
+    }
+  };
 
   const checkboxStyle =
     "data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white";
@@ -38,21 +95,43 @@ function FlexibleWorkForm() {
     <div className="space-y-5 p-6 w-full">
       {/* === Salary Section === */}
       <div className="space-y-2">
-        {salarySections.map(({ id, label, value, setValue, placeholder }) => (
-          <div key={id} className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <Checkbox id={id} className={checkboxStyle} />
-              <Label htmlFor={id}>{label}</Label>
+        {salarySections.map(
+          ({
+            id,
+            label,
+            value,
+            setValue,
+            placeholder,
+            hasValue,
+            isReadOnly,
+          }) => (
+            <div key={id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <Checkbox
+                  id={id}
+                  className={checkboxStyle}
+                  checked={hasValue}
+                  onCheckedChange={(checked) => {
+                    if (!checked && !isReadOnly) {
+                      setValue("");
+                    }
+                  }}
+                />
+                <Label htmlFor={id}>{label}</Label>
+              </div>
+              <Input
+                value={value}
+                onChange={
+                  isReadOnly ? undefined : (e) => setValue(e.target.value)
+                }
+                className="w-80"
+                placeholder={placeholder}
+                type={"number"}
+                readOnly={isReadOnly}
+              />
             </div>
-            <Input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              className="w-80"
-              placeholder={placeholder}
-              type={"number"}
-            />
-          </div>
-        ))}
+          )
+        )}
       </div>
 
       {/* === Details Section === */}
@@ -72,8 +151,11 @@ function FlexibleWorkForm() {
           </li>
         </ul>
       </div>
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium">
-        Save
+      <button
+        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
+        onClick={handleSave}
+      >
+        {updating ? "Saving..." : "Save"}
       </button>
     </div>
   );

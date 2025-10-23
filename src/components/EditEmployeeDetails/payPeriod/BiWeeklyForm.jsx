@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
 
 function BiWeeklyForm() {
+  const [basic, setBasic] = useState("");
   const [inputWeek, setInputWeek] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [workingHours, setWorkingHours] = useState("");
@@ -79,6 +80,7 @@ function BiWeeklyForm() {
     if (selectedEmployee?.payPeriod) {
       const payPeriod = selectedEmployee.payPeriod;
 
+      setBasic(payPeriod.salary?.toString() || "");
       setInputWeek(payPeriod.hourlyRate?.toString() || "");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeFixed?.toString() || "");
@@ -111,6 +113,14 @@ function BiWeeklyForm() {
   }, [selectedEmployee, weekdaysISO]);
 
   const salarySections = [
+    {
+      id: "basic-salary",
+      label: "Basic Salary",
+      value: basic,
+      setValue: setBasic,
+      placeholder: "000000",
+      hasValue: !!basic,
+    },
     {
       id: "input-week",
       label: "Input Week",
@@ -202,7 +212,7 @@ function BiWeeklyForm() {
       overtimeFixed: parseFloat(overtimeRate) || 0,
       overtimeSalary: 0, // Not used for BiWeekly
       payPeriod: "biWeekly",
-      salary: 0, // No basic salary for BiWeekly
+      salary: parseFloat(basic) || 0, // Basic salary field
       selectedOvertimeOption: 2, // Always fixed input for BiWeekly
       shift: selectedEmployee?.shift || "Morning",
       startDay: selectedWeekdayIndex, // Weekday index (Monday = 0, Tuesday = 1, ..., Sunday = 6)
@@ -332,7 +342,10 @@ function BiWeeklyForm() {
                   className={checkboxStyle}
                   checked={hasValue}
                   onCheckedChange={(checked) => {
-                    if (!checked && id === "input-week") {
+                    if (
+                      !checked &&
+                      (id === "basic-salary" || id === "input-week")
+                    ) {
                       setValue("");
                     }
                   }}
