@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { TimeRangePicker } from "./TimePicker";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -14,9 +14,11 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
   const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
+  // Default working times and overtime for normal shift and template for special dates
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
     { id: 2, label: "Working Time 2", startTime: "13:00", endTime: "17:00" },
@@ -25,6 +27,9 @@ export const WorkShiftTimeForm = () => {
   const [overtimes, setOvertimes] = useState([
     { id: 1, label: "Overtime 1", startTime: "18:00", endTime: "20:00" },
   ]);
+
+  // Store date-wise configurations
+  const [dateConfigs, setDateConfigs] = useState({});
 
   // Load data from selectedEmployee on component mount
   useEffect(() => {
@@ -80,16 +85,87 @@ export const WorkShiftTimeForm = () => {
           }
         }
 
-        // Load special dates for special shift type
+        // Load special dates and date-wise configurations
         if (
           ruleZero.param3 === "special" &&
           selectedEmployee.salaryRules.timeTables
         ) {
           try {
-            const timeTables = selectedEmployee.salaryRules.timeTables;
+            const timeTables =
+              typeof selectedEmployee.salaryRules.timeTables === "string"
+                ? JSON.parse(selectedEmployee.salaryRules.timeTables)
+                : selectedEmployee.salaryRules.timeTables;
+
             if (Array.isArray(timeTables)) {
+              const dateConfigsMap = {};
               const dates = timeTables.map((item) => item.date);
               setSpecialDates(dates.map((dateStr) => new Date(dateStr)));
+
+              timeTables.forEach((table) => {
+                if (table.ruleId === "0" && table.date) {
+                  // Parse working times for this date
+                  let workingTimesForDate = [];
+                  if (table.param1) {
+                    try {
+                      const parsedParam1 =
+                        typeof table.param1 === "string"
+                          ? JSON.parse(table.param1)
+                          : table.param1;
+                      if (Array.isArray(parsedParam1)) {
+                        workingTimesForDate = parsedParam1.map(
+                          (time, index) => ({
+                            id: index + 1,
+                            label: `Working Time ${index + 1}`,
+                            startTime: time.start || "08:00",
+                            endTime: time.end || "12:00",
+                          })
+                        );
+                      }
+                    } catch (error) {
+                      console.error("Error parsing date param1:", error);
+                    }
+                  }
+
+                  // Parse overtime for this date
+                  let overtimesForDate = [];
+                  if (table.param2) {
+                    try {
+                      const parsedParam2 =
+                        typeof table.param2 === "string"
+                          ? JSON.parse(table.param2)
+                          : table.param2;
+                      if (Array.isArray(parsedParam2)) {
+                        overtimesForDate = parsedParam2.map((time, index) => ({
+                          id: index + 1,
+                          label: `Overtime ${index + 1}`,
+                          startTime: time.start || "18:00",
+                          endTime: time.end || "20:00",
+                        }));
+                      }
+                    } catch (error) {
+                      console.error("Error parsing date param2:", error);
+                    }
+                  }
+
+                  dateConfigsMap[table.date] = {
+                    workingTimes:
+                      workingTimesForDate.length > 0
+                        ? workingTimesForDate
+                        : [...workingTimes],
+                    overtimes:
+                      overtimesForDate.length > 0
+                        ? overtimesForDate
+                        : [...overtimes],
+                  };
+                }
+              });
+
+              setDateConfigs(dateConfigsMap);
+
+              // Set first date as selected if available
+              if (dates.length > 0) {
+                setSelectedDate(dates[0]);
+              }
             }
           } catch (error) {
             console.error("Error parsing timeTables:", error);
@@ -98,6 +174,57 @@ export const WorkShiftTimeForm = () => {
       }
     }
   }, [selectedEmployee]);
+
+  // Update current working times and overtime when selected date changes
+  useEffect(() => {
+    if (shiftType === "special" && selectedDate && dateConfigs[selectedDate]) {
+      setWorkingTimes(dateConfigs[selectedDate].workingTimes);
+      setOvertimes(dateConfigs[selectedDate].overtimes);
+    } else if (shiftType === "special" && selectedDate) {
+      // Initialize with default values for new date
+      setWorkingTimes([
+        {
+          id: 1,
+          label: "Working Time 1",
+          startTime: "08:00",
+          endTime: "12:00",
+        },
+        {
+          id: 2,
+          label: "Working Time 2",
+          startTime: "13:00",
+          endTime: "17:00",
+        },
+      ]);
+      setOvertimes([
+        { id: 1, label: "Overtime 1", startTime: "18:00", endTime: "20:00" },
+      ]);
+    }
+  }, [selectedDate, shiftType, dateConfigs]);
+
+  // Save current configuration for the selected date
+  const saveDateConfig = () => {
+    if (shiftType === "special" && selectedDate) {
+      setDateConfigs((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          workingTimes: [...workingTimes],
+          overtimes: [...overtimes],
+        },
+      }));
+
+      // Add to special dates if not already present
+      // if (
+      //   !specialDates.some(
+      //     (date) => date.toISOString().split("T")[0] === selectedDate
+      //   )
+      // ) {
+      //   setSpecialDates((prev) => [...prev, new Date(selectedDate)]);
+      // }
+
+      toast.success(`Configuration saved for ${selectedDate}`);
+    }
+  };
 
   // ===== Add handlers =====
   const addWorkingTime = () => {
@@ -128,7 +255,11 @@ export const WorkShiftTimeForm = () => {
 
   // ===== Remove handlers =====
   const removeWorkingTime = (id) => {
-    setWorkingTimes(workingTimes.filter((salary) => salary.id !== id));
+    if (workingTimes.length > 1) {
+      setWorkingTimes(workingTimes.filter((salary) => salary.id !== id));
+    } else {
+      toast.error("At least one working time is required");
+    }
   };
 
   const removeOvertime = (id) => {
@@ -172,12 +303,11 @@ export const WorkShiftTimeForm = () => {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      // rows like: [["Type","Start","End"],["working","09:00","12:00"], ...]
-      const header = rows[0]?.map((h) => h.toLowerCase());
+      const header = rows[0]?.map((h) => h?.toString().toLowerCase());
       if (
-        !header.includes("type") ||
-        !header.includes("start") ||
-        !header.includes("end")
+        !header?.includes("type") ||
+        !header?.includes("start") ||
+        !header?.includes("end")
       ) {
         toast.error("Invalid Excel format! Please use the example format.");
         return;
@@ -193,6 +323,9 @@ export const WorkShiftTimeForm = () => {
       let overId = 1;
 
       rows.slice(1).forEach((row) => {
+        if (!row || row.length < Math.max(typeIndex, startIndex, endIndex) + 1)
+          return;
+
         const type = (row[typeIndex] || "").toString().toLowerCase();
         const start = excelTimeToString(row[startIndex]);
         const end = excelTimeToString(row[endIndex]);
@@ -219,17 +352,73 @@ export const WorkShiftTimeForm = () => {
         return;
       }
 
-      setWorkingTimes(newWorking.length ? newWorking : workingTimes);
-      setOvertimes(newOvertime.length ? newOvertime : overtimes);
+      if (newWorking.length > 0) {
+        setWorkingTimes(newWorking);
+      }
+      if (newOvertime.length > 0) {
+        setOvertimes(newOvertime);
+      }
 
       toast.success("Shift times imported successfully!");
     } catch (err) {
       console.error("Excel read error:", err);
-      alert("Failed to read Excel file. Please check the format.");
+      toast.error("Failed to read Excel file. Please check the format.");
     }
   };
 
-  // ===== Save handler =====
+  // Remove special date
+  const removeSpecialDate = (dateToRemove) => {
+    const dateStr = dateToRemove.toISOString().split("T")[0];
+    setSpecialDates((prev) =>
+      prev.filter((date) => date.toISOString().split("T")[0] !== dateStr)
+    );
+
+    setDateConfigs((prev) => {
+      const newConfigs = { ...prev };
+      delete newConfigs[dateStr];
+      return newConfigs;
+    });
+
+    if (selectedDate === dateStr) {
+      setSelectedDate(null);
+    }
+
+    toast.success(`Date ${dateStr} removed`);
+  };
+
+  // Handle calendar date selection - fix timezone issue
+  const handleCalendarSelect = (dates) => {
+    if (dates) {
+      // Fix timezone issue by creating dates with correct timezone
+      const fixedDates = dates.map((date) => {
+        // Create date without timezone offset issues
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        return new Date(year, month, day);
+      });
+      setSpecialDates(fixedDates);
+    } else {
+      setSpecialDates([]);
+    }
+  };
+
+  // Format date for display without timezone issues
+  const formatDateForDisplay = (date) => {
+    if (!date) return "";
+
+    if (typeof date === "string") {
+      // If it's already a string in YYYY-MM-DD format
+      return date;
+    }
+
+    // If it's a Date object, format it properly
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // ===== Save handler =====
   const handleSave = async () => {
     try {
@@ -438,85 +627,210 @@ export const WorkShiftTimeForm = () => {
       </div>
 
       {shiftType === "special" && (
-        <div className="mt-4 mx-[8vw]">
-          <Calendar
-            mode="multiple"
-            selected={specialDates}
-            onSelect={setSpecialDates}
-            className="rounded-md border w-[18vw] "
-            modifiersStyles={{
-              today: {
-                backgroundColor: "transparent",
-                color: "inherit",
-              },
-            }}
-          />
-        </div>
+        <>
+          {/* Date Selection */}
+          <div className="mt-4 mx-[8vw]">
+            <Calendar
+              mode="multiple"
+              selected={specialDates}
+              onSelect={handleCalendarSelect}
+              className="rounded-md border w-[18vw]"
+              modifiersStyles={{
+                today: {
+                  backgroundColor: "transparent",
+                  color: "inherit",
+                },
+              }}
+            />
+          </div>
+
+          {/* Date-wise Configuration */}
+          {specialDates.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold mb-3">Configure Dates</h3>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {specialDates.map((date) => {
+                  const dateStr = formatDateForDisplay(date);
+                  const isSelected = selectedDate === dateStr;
+                  return (
+                    <div key={dateStr} className="flex items-center gap-1">
+                      <button
+                        onClick={() => setSelectedDate(dateStr)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md border ${
+                          isSelected
+                            ? "bg-[#004368] text-white border-[#004368]"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <CalendarIcon className="w-4 h-4" />
+                        {dateStr}
+                      </button>
+                      <button
+                        onClick={() => removeSpecialDate(date)}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md"
+                        title="Remove date"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {selectedDate && (
+                <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold">
+                      Configuration for {selectedDate}
+                    </h4>
+                    <button
+                      onClick={saveDateConfig}
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                    >
+                      Save for this Date
+                    </button>
+                  </div>
+
+                  {/* Working Times for Selected Date */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Working Times</h5>
+                    <div className="space-y-1.5">
+                      {workingTimes.map((wt) => (
+                        <TimeRangePicker
+                          key={wt.id}
+                          label={wt.label}
+                          startTime={wt.startTime}
+                          endTime={wt.endTime}
+                          onStartChange={(value) =>
+                            updateWorkingTime(wt.id, "startTime", value)
+                          }
+                          onEndChange={(value) =>
+                            updateWorkingTime(wt.id, "endTime", value)
+                          }
+                          removeFn={() => removeWorkingTime(wt.id)}
+                        />
+                      ))}
+                      <div className="w-full flex justify-end">
+                        <button
+                          onClick={addWorkingTime}
+                          type="button"
+                          className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-4 py-2 rounded-sm"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Working Time
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Overtime for Selected Date */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Overtime</h5>
+                    <div className="space-y-1.5">
+                      {overtimes.map((ot) => (
+                        <TimeRangePicker
+                          key={ot.id}
+                          label={ot.label}
+                          startTime={ot.startTime}
+                          endTime={ot.endTime}
+                          onStartChange={(value) =>
+                            updateOvertime(ot.id, "startTime", value)
+                          }
+                          onEndChange={(value) =>
+                            updateOvertime(ot.id, "endTime", value)
+                          }
+                          removeFn={() => removeOvertime(ot.id)}
+                        />
+                      ))}
+                      <div className="w-full flex justify-end">
+                        <button
+                          onClick={addOvertime}
+                          type="button"
+                          className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-8 py-2 rounded-sm"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Overtime
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Working Times */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Select work shift time</h3>
-        <div className="space-y-1.5">
-          {workingTimes.map((wt) => (
-            <TimeRangePicker
-              key={wt.id}
-              label={wt.label}
-              startTime={wt.startTime}
-              endTime={wt.endTime}
-              onStartChange={(value) =>
-                updateWorkingTime(wt.id, "startTime", value)
-              }
-              onEndChange={(value) =>
-                updateWorkingTime(wt.id, "endTime", value)
-              }
-              removeFn={() => removeWorkingTime(wt.id)}
-            />
-          ))}
-
-          <div className="w-full flex justify-end">
-            <button
-              onClick={addWorkingTime}
-              type="button"
-              className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-4 py-2 rounded-sm "
-            >
-              <Plus className="w-4 h-4" />
-              Add Working Time
-            </button>
+      {/* Normal Shift Configuration */}
+      {shiftType === "normal" && (
+        <>
+          {/* Working Times */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">
+              Select work shift time
+            </h3>
+            <div className="space-y-1.5">
+              {workingTimes.map((wt) => (
+                <TimeRangePicker
+                  key={wt.id}
+                  label={wt.label}
+                  startTime={wt.startTime}
+                  endTime={wt.endTime}
+                  onStartChange={(value) =>
+                    updateWorkingTime(wt.id, "startTime", value)
+                  }
+                  onEndChange={(value) =>
+                    updateWorkingTime(wt.id, "endTime", value)
+                  }
+                  removeFn={() => removeWorkingTime(wt.id)}
+                />
+              ))}
+              <div className="w-full flex justify-end">
+                <button
+                  onClick={addWorkingTime}
+                  type="button"
+                  className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-4 py-2 rounded-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Working Time
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Overtime */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Select work Overtime</h3>
-        <div className="space-y-1.5">
-          {overtimes.map((ot) => (
-            <TimeRangePicker
-              key={ot.id}
-              label={ot.label}
-              startTime={ot.startTime}
-              endTime={ot.endTime}
-              onStartChange={(value) =>
-                updateOvertime(ot.id, "startTime", value)
-              }
-              onEndChange={(value) => updateOvertime(ot.id, "endTime", value)}
-              removeFn={() => removeOvertime(ot.id)}
-            />
-          ))}
-
-          <div className="w-full flex justify-end">
-            <button
-              onClick={addOvertime}
-              type="button"
-              className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-8 py-2 rounded-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Overtime
-            </button>
+          {/* Overtime */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Select work Overtime</h3>
+            <div className="space-y-1.5">
+              {overtimes.map((ot) => (
+                <TimeRangePicker
+                  key={ot.id}
+                  label={ot.label}
+                  startTime={ot.startTime}
+                  endTime={ot.endTime}
+                  onStartChange={(value) =>
+                    updateOvertime(ot.id, "startTime", value)
+                  }
+                  onEndChange={(value) =>
+                    updateOvertime(ot.id, "endTime", value)
+                  }
+                  removeFn={() => removeOvertime(ot.id)}
+                />
+              ))}
+              <div className="w-full flex justify-end">
+                <button
+                  onClick={addOvertime}
+                  type="button"
+                  className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-8 py-2 rounded-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Overtime
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Excel Import */}
       <div>
