@@ -158,8 +158,8 @@ function SemiMonthlyForm() {
       payPeriod: "semiMonthly",
       salary: parseFloat(basic) || 0,
       selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 1 : 2,
-      shift: selectedEmployee?.shift || "Morning",
-      startDay: parseInt(selectedDate) || 1, // End day stored in startDay
+      shift: selectedEmployee?.payPeriod?.shift || "Morning",
+      startDay: parseInt(selectedDate) || 1,
       startWeek: null,
       status: null,
     };

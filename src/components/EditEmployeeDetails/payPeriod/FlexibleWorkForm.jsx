@@ -17,7 +17,7 @@ function FlexibleWorkForm() {
     {
       id: "based-hour",
       label: "Based Hour",
-      value: "1", // Always 1, not stored in server
+      value: "1",
       placeholder: "1",
       isReadOnly: true,
       hasValue: true,
@@ -52,19 +52,19 @@ function FlexibleWorkForm() {
   const handleSave = async () => {
     // Create the payPeriod object according to your structure
     const employeePayPeriod = {
-      employeeId: selectedEmployee?.employeeId || 0,
+      employeeId: selectedEmployee?.payPeriod?.employeeId || 0,
       hourlyRate: parseFloat(minimumMinutes) || 0, // Minimum working Minutes
       isSelectedFixedHourlyRate: false, // Not used for flexible work
       leave: "",
-      name: selectedEmployee.name || "", // Default value
+      name: selectedEmployee?.payPeriod?.name || "", // Default value
       otherSalary: null, // No other salary for flexible work
       overtimeFixed: 0, // Not used for flexible work
       overtimeSalary: 0, // Not used for flexible work
       payPeriod: "hourly",
       salary: parseFloat(hourlySalary) || 0, // Hourly Flexible Work Schedule Salary
       selectedOvertimeOption: 0, // Not used for flexible work
-      shift: selectedEmployee?.shift || "Morning",
-      startDay: selectedEmployee.startDay, // Default value
+      shift: selectedEmployee?.payPeriod?.shift || "Morning",
+      startDay: selectedEmployee.payPeriod?.startDay, // Default value
       startWeek: null, // Not used for flexible work
       status: null,
     };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -11,29 +11,33 @@ import BiWeeklyForm from "./payPeriod/BiWeeklyForm";
 import WeeklyForm from "./payPeriod/WeeklyForm";
 import FlexibleWorkForm from "./payPeriod/FlexibleWorkForm";
 
-const PayPeriodSettings = () => {
+const PayPeriodSettings = ({ selectedPayPeriod }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState("normal-month");
+  const [selectedPeriod, setSelectedPeriod] = useState("normalMonthly");
+
+  useEffect(() => {
+    setSelectedPeriod(selectedPayPeriod);
+  }, [selectedPayPeriod]);
 
   const payPeriods = [
-    { value: "normal-month", label: "Normal Month" },
+    { value: "normalMonthly", label: "Normal Month" },
     { value: "monthly", label: "Monthly" },
-    { value: "semi-monthly", label: "Semi-Monthly" },
-    { value: "bi-weekly", label: "Bi-Weekly" },
+    { value: "semiMonthly", label: "Semi Monthly" },
+    { value: "biWeekly", label: "Bi Weekly" },
     { value: "weekly", label: "Weekly" },
-    { value: "flexible", label: "Flexible Work Schedule" },
+    { value: "hourly", label: "Flexible Work Schedule" },
   ];
 
   const getPeriodTitle = () => {
     switch (selectedPeriod) {
-      case "normal-month":
+      case "normalMonthly":
         return "Normal Monthly";
       case "monthly":
         return "Monthly";
-      case "semi-monthly":
-        return "Semi-Monthly";
-      case "bi-weekly":
-        return "Bi-Weekly";
+      case "semiMonthly":
+        return "Semi Monthly";
+      case "biWeekly":
+        return "Bi Weekly";
       case "weekly":
         return "Weekly";
       default:
@@ -123,12 +127,12 @@ const PayPeriodSettings = () => {
                     <CardTitle>{getPeriodTitle()}</CardTitle>
                   </CardHeader>
                   <CardContent className="h-[calc(100%-80px)] overflow-y-auto p-0 custom-scrollbar ">
-                    {selectedPeriod === "normal-month" && <NormalMonthForm />}
+                    {selectedPeriod === "normalMonthly" && <NormalMonthForm />}
                     {selectedPeriod === "monthly" && <MonthlyForm />}
-                    {selectedPeriod === "semi-monthly" && <SemiMonthlyForm />}
-                    {selectedPeriod === "bi-weekly" && <BiWeeklyForm />}
+                    {selectedPeriod === "semiMonthly" && <SemiMonthlyForm />}
+                    {selectedPeriod === "biWeekly" && <BiWeeklyForm />}
                     {selectedPeriod === "weekly" && <WeeklyForm />}
-                    {selectedPeriod === "flexible" && <FlexibleWorkForm />}
+                    {selectedPeriod === "hourly" && <FlexibleWorkForm />}
                   </CardContent>
                 </Card>
               </div>

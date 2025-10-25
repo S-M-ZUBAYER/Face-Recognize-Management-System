@@ -5,15 +5,16 @@ import FancyLoader from "../FancyLoader";
 import PayPeriodSettings from "./PayPeriodSettings";
 import EditRules from "./EditRules";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import toast from "react-hot-toast";
+import getUpdatedName from "@/lib/getUpdatedName";
 
 const EditEmployeeDetails = () => {
   const { id, deviceMac } = useParams();
-  const { data, isLoading, isError, error } = useSingleEmployeeDetails(
-    id,
-    deviceMac
-  );
-  console.log(data);
+  const { data, isLoading, isError, error, updateEmployee, updating } =
+    useSingleEmployeeDetails(id, deviceMac);
   const { setSelectedEmployee } = useEmployeeStore();
+
+  console.log(data);
 
   const [employeeData, setEmployeeData] = useState({
     employeeId: "",
@@ -32,11 +33,24 @@ const EditEmployeeDetails = () => {
     employeeImage: "",
   });
 
+  // Helper function to parse address
+  const parseAddress = (address) => {
+    if (typeof address === "string") {
+      try {
+        return JSON.parse(address).des || address;
+      } catch {
+        return address;
+      }
+    }
+    return address?.des || "";
+  };
+
   // Initialize employee data when data is loaded
   useEffect(() => {
     if (data) {
+      const emailParts = data.email?.split("|") || [];
       setEmployeeData({
-        employeeId: data.employeeId || "",
+        employeeId: emailParts[1] || "",
         joiningDate: data.startDate || "",
         monthlySalary: data.payPeriod?.salary || "",
         designation: data.designation || "",
@@ -44,18 +58,9 @@ const EditEmployeeDetails = () => {
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
         employeeName: data.name?.split("<")[0] || "",
-        address:
-          typeof data.address === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(data.address).des || data.address;
-                } catch {
-                  return data.address;
-                }
-              })()
-            : data.address?.des || "",
+        address: parseAddress(data.address),
         department: data.department || "",
-        email: data.email?.split("|")[0] || "",
+        email: emailParts[0] || "",
         deviceName: data.deviceName || "",
         addedBy: data.addedBy || "",
         employeeImage: data.imageFile
@@ -73,27 +78,95 @@ const EditEmployeeDetails = () => {
     }));
   };
 
-  const handleSave = () => {
-    console.log("Saving employee data:", employeeData);
+  const handleSave = async () => {
+    let addressPayload = "";
+
+    try {
+      const parsed = JSON.parse(data.address);
+      addressPayload = JSON.stringify({
+        ...parsed,
+        des: employeeData.address,
+      });
+    } catch {
+      addressPayload = employeeData.address;
+    }
+
+    try {
+      const payload = {
+        name: getUpdatedName(data.name, employeeData.employeeName),
+        startDate: employeeData.joiningDate,
+        address: addressPayload,
+        designation: employeeData.designation,
+        contactNumber: employeeData.contactNumber,
+        department: employeeData.department,
+        email: `${employeeData.email}|${employeeData.employeeId}`,
+      };
+
+      await updateEmployee({
+        mac: deviceMac || "",
+        id: id,
+        payload: payload,
+      });
+      toast.success("Employee details updated successfully!");
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      toast.error("Failed to update employee details.");
+    }
   };
 
   const handleCancel = () => {
-    console.log("Canceling edits");
+    if (data) {
+      const emailParts = data.email?.split("|") || [];
+      setEmployeeData({
+        employeeId: emailParts[0] || "",
+        joiningDate: data.startDate || "",
+        monthlySalary: data.payPeriod?.salary || "",
+        designation: data.designation || "",
+        contactNumber: data.contactNumber || "",
+        shift: data.payPeriod?.shift || "",
+        payPeriod: data.payPeriod?.payPeriod || "",
+        employeeName: data.name?.split("<")[0] || "",
+        address: parseAddress(data.address),
+        department: data.department || "",
+        email: emailParts[1] || "",
+        deviceName: data.deviceName || "",
+        addedBy: data.addedBy || "",
+        employeeImage: data.imageFile
+          ? `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/media/${data.imageFile}`
+          : "",
+      });
+    }
+    toast.success("Changes cancelled.");
   };
 
   const inputFields = [
-    { key: "employeeId", label: "Employee ID", colSpan: 1 },
-    { key: "employeeName", label: "Employee Name", colSpan: 1 },
-    { key: "joiningDate", label: "Joining Date", colSpan: 1 },
-    { key: "address", label: "Address", colSpan: 1 },
-    { key: "monthlySalary", label: "Monthly Salary", colSpan: 1 },
-    { key: "department", label: "Department", colSpan: 1 },
-    { key: "designation", label: "Designation", colSpan: 1 },
-    { key: "email", label: "Email", colSpan: 1 },
-    { key: "contactNumber", label: "Contact Number", colSpan: 1 },
-    { key: "deviceName", label: "Device Name", colSpan: 1 },
-    { key: "shift", label: "Shift", colSpan: 1, show: 1 },
-    { key: "addedBy", label: "Added By", colSpan: 1 },
+    { key: "employeeId", label: "Employee ID", colSpan: 1, disabled: false },
+    {
+      key: "employeeName",
+      label: "Employee Name",
+      colSpan: 1,
+      disabled: false,
+    },
+    { key: "joiningDate", label: "Joining Date", colSpan: 1, disabled: false },
+    { key: "address", label: "Address", colSpan: 1, disabled: false },
+    {
+      key: "monthlySalary",
+      label: "Monthly Salary",
+      colSpan: 1,
+      disabled: true,
+    },
+    { key: "department", label: "Department", colSpan: 1, disabled: false },
+    { key: "designation", label: "Designation", colSpan: 1, disabled: false },
+    { key: "email", label: "Email", colSpan: 1, disabled: false },
+    {
+      key: "contactNumber",
+      label: "Contact Number",
+      colSpan: 1,
+      disabled: false,
+    },
+    { key: "deviceName", label: "Device Name", colSpan: 1, disabled: true },
+    { key: "shift", label: "Shift", colSpan: 1, disabled: true },
+    { key: "addedBy", label: "Added By", colSpan: 1, disabled: true },
   ];
 
   if (isLoading) {
@@ -148,18 +221,15 @@ const EditEmployeeDetails = () => {
                     onChange={(e) =>
                       handleInputChange(field.key, e.target.value)
                     }
-                    disabled={field.show === 1}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    disabled={field.disabled}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      field.disabled ? "cursor-not-allowed" : "bg-white"
+                    }`}
                   />
                 </div>
               ))}
 
-              {/* <DropdownField
-                label="Pay Period"
-                value={employeeData.payPeriod || "monthly"}
-              /> */}
-
-              <PayPeriodSettings />
+              <PayPeriodSettings selectedPayPeriod={employeeData.payPeriod} />
               <EditRules />
 
               <div className="md:col-span-2 flex justify-end space-x-3 mt-5">
@@ -171,9 +241,10 @@ const EditEmployeeDetails = () => {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-15 py-2 bg-[#004368] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  disabled={updating}
+                  className="px-15 py-2 bg-[#004368] text-white rounded-md  focus:outline-none focus:ring-2 focus:ring-offset-2  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save
+                  {updating ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>

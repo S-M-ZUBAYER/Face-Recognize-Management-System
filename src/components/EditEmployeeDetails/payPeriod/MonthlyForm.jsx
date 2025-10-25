@@ -161,7 +161,7 @@ function MonthlyForm() {
       payPeriod: "monthly",
       salary: parseFloat(basic) || 0,
       selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 1 : 2,
-      shift: selectedEmployee?.shift || "Morning",
+      shift: selectedEmployee?.payPeriod?.shift || "Morning",
       startDay: parseInt(selectedDate) || 1,
       startWeek: null,
       status: null,

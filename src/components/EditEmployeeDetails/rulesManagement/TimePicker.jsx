@@ -5,6 +5,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 // ============================================
 // TIME PICKER COMPONENT
@@ -92,6 +94,7 @@ export const TimeRangePicker = ({
   onStartChange,
   onEndChange,
   label,
+  removeFn,
 }) => {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -99,16 +102,27 @@ export const TimeRangePicker = ({
   return (
     <div className="flex items-center justify-between">
       <span className="text-sm font-medium">{label}</span>
+
       <div className="flex items-center gap-2">
         {/* Start Time Picker */}
-        <Popover open={showStartPicker} onOpenChange={setShowStartPicker}>
+        <Popover
+          open={showStartPicker}
+          onOpenChange={(v) => setShowStartPicker(v)}
+        >
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]">
+            <button
+              type="button"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]"
+            >
               <Clock className="w-4 h-4 text-gray-400" />
               <span className="text-sm">{startTime}</span>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent
+            className="w-auto p-0 z-50"
+            align="start"
+            side="bottom"
+          >
             <TimePicker
               value={startTime}
               onChange={onStartChange}
@@ -120,14 +134,17 @@ export const TimeRangePicker = ({
         <span className="text-gray-400">-</span>
 
         {/* End Time Picker */}
-        <Popover open={showEndPicker} onOpenChange={setShowEndPicker}>
+        <Popover open={showEndPicker} onOpenChange={(v) => setShowEndPicker(v)}>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]">
+            <button
+              type="button"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-w-[100px]"
+            >
               <Clock className="w-4 h-4 text-gray-400" />
               <span className="text-sm">{endTime}</span>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
+          <PopoverContent className="w-auto p-0 z-50" align="end" side="bottom">
             <TimePicker
               value={endTime}
               onChange={onEndChange}
@@ -136,6 +153,14 @@ export const TimeRangePicker = ({
           </PopoverContent>
         </Popover>
       </div>
+
+      <button
+        type="button"
+        onClick={removeFn}
+        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </div>
   );
 };

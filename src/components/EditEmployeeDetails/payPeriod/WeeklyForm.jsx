@@ -179,7 +179,7 @@ function WeeklyForm() {
       payPeriod: "weekly",
       salary: parseFloat(basic) || 0, // Basic salary field
       selectedOvertimeOption: 2, // Always fixed input for Weekly
-      shift: selectedEmployee?.shift || "Morning",
+      shift: selectedEmployee?.payPeriod?.shift || "Morning",
       startDay: selectedWeekdayIndex, // Weekday index (Monday = 0, Tuesday = 1, ..., Sunday = 6)
       startWeek: null, // Weekly doesn't use startWeek
       status: null,
