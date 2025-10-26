@@ -55,10 +55,16 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
       console.log(matchedPayPeriod, matchedRule);
 
       // 2️⃣ Replace "999" with global data
-      if (emp.salaryRules === "999" && matchedRule) {
+      if (
+        (emp.salaryRules === 999 || emp.salaryRules === "999") &&
+        matchedRule
+      ) {
         emp.salaryRules = matchedRule.salaryRules || {};
       }
-      if (emp.payPeriod === "999" && matchedPayPeriod) {
+      if (
+        (emp.payPeriod === 999 || emp.payPeriod === "999") &&
+        matchedPayPeriod
+      ) {
         emp.payPeriod = matchedPayPeriod.payPeriod || {};
       }
 

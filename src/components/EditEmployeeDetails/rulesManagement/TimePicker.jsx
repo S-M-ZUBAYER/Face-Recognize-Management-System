@@ -152,15 +152,14 @@ export const TimeRangePicker = ({
             />
           </PopoverContent>
         </Popover>
+        <button
+          type="button"
+          onClick={removeFn}
+          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
-
-      <button
-        type="button"
-        onClick={removeFn}
-        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
     </div>
   );
 };

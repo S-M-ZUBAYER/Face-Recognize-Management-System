@@ -7,9 +7,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ExcelFormatExample from "./ExcelFormatExample";
 import toast from "react-hot-toast";
 import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 
 export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
@@ -35,7 +35,7 @@ export const WorkShiftTimeForm = () => {
   useEffect(() => {
     if (selectedEmployee?.salaryRules?.rules) {
       const ruleZero = selectedEmployee.salaryRules.rules.find(
-        (rule) => rule.ruleId === 0
+        (rule) => rule.ruleId === 0 || rule.ruleId === "0"
       );
 
       if (ruleZero) {
@@ -98,19 +98,39 @@ export const WorkShiftTimeForm = () => {
 
             if (Array.isArray(timeTables)) {
               const dateConfigsMap = {};
-              const dates = timeTables.map((item) => item.date);
-              setSpecialDates(dates.map((dateStr) => new Date(dateStr)));
+              const dates = timeTables.map((item) => {
+                if (typeof item === "string") {
+                  const parsedItem = JSON.parse(item);
+                  return parsedItem.date;
+                }
+                return item.date;
+              });
+
+              // Fix timezone issue when loading dates
+              const fixedDates = dates.map((dateStr) => {
+                const [year, month, day] = dateStr.split("-");
+                return new Date(
+                  parseInt(year),
+                  parseInt(month) - 1,
+                  parseInt(day)
+                );
+              });
+
+              setSpecialDates(fixedDates);
 
               timeTables.forEach((table) => {
-                if (table.ruleId === "0" && table.date) {
+                const tableData =
+                  typeof table === "string" ? JSON.parse(table) : table;
+
+                if (tableData.ruleId === "0" && tableData.date) {
                   // Parse working times for this date
                   let workingTimesForDate = [];
-                  if (table.param1) {
+                  if (tableData.param1) {
                     try {
                       const parsedParam1 =
-                        typeof table.param1 === "string"
-                          ? JSON.parse(table.param1)
-                          : table.param1;
+                        typeof tableData.param1 === "string"
+                          ? JSON.parse(tableData.param1)
+                          : tableData.param1;
                       if (Array.isArray(parsedParam1)) {
                         workingTimesForDate = parsedParam1.map(
                           (time, index) => ({
@@ -128,12 +148,12 @@ export const WorkShiftTimeForm = () => {
 
                   // Parse overtime for this date
                   let overtimesForDate = [];
-                  if (table.param2) {
+                  if (tableData.param2) {
                     try {
                       const parsedParam2 =
-                        typeof table.param2 === "string"
-                          ? JSON.parse(table.param2)
-                          : table.param2;
+                        typeof tableData.param2 === "string"
+                          ? JSON.parse(tableData.param2)
+                          : tableData.param2;
                       if (Array.isArray(parsedParam2)) {
                         overtimesForDate = parsedParam2.map((time, index) => ({
                           id: index + 1,
@@ -147,7 +167,7 @@ export const WorkShiftTimeForm = () => {
                     }
                   }
 
-                  dateConfigsMap[table.date] = {
+                  dateConfigsMap[tableData.date] = {
                     workingTimes:
                       workingTimesForDate.length > 0
                         ? workingTimesForDate
@@ -212,15 +232,6 @@ export const WorkShiftTimeForm = () => {
           overtimes: [...overtimes],
         },
       }));
-
-      // Add to special dates if not already present
-      // if (
-      //   !specialDates.some(
-      //     (date) => date.toISOString().split("T")[0] === selectedDate
-      //   )
-      // ) {
-      //   setSpecialDates((prev) => [...prev, new Date(selectedDate)]);
-      // }
 
       toast.success(`Configuration saved for ${selectedDate}`);
     }
@@ -368,9 +379,9 @@ export const WorkShiftTimeForm = () => {
 
   // Remove special date
   const removeSpecialDate = (dateToRemove) => {
-    const dateStr = dateToRemove.toISOString().split("T")[0];
+    const dateStr = formatDateForDisplay(dateToRemove);
     setSpecialDates((prev) =>
-      prev.filter((date) => date.toISOString().split("T")[0] !== dateStr)
+      prev.filter((date) => formatDateForDisplay(date) !== dateStr)
     );
 
     setDateConfigs((prev) => {
@@ -422,168 +433,93 @@ export const WorkShiftTimeForm = () => {
   // ===== Save handler =====
   const handleSave = async () => {
     try {
-      // base fallback
-      const existingSalaryRules = selectedEmployee?.salaryRules || {
-        empId: selectedEmployee?.employeeId || 0,
-        rules: "[]",
-        holidays: "[]",
-        generalDays: "[]",
-        replaceDays: "[]",
-        punchDocuments: "[]",
-        timeTables: "[]",
-        m_leaves: "[]",
-        mar_leaves: "[]",
-        p_leaves: "[]",
-        s_leaves: "[]",
-        c_leaves: "[]",
-        e_leaves: "[]",
-        w_leaves: "[]",
-        r_leaves: "[]",
-        o_leaves: "[]",
-      };
+      if (!selectedEmployee?.employeeId) {
+        toast.error("No employee selected");
+        return;
+      }
 
-      // parse existing rules if needed
-      const parsedRules =
-        typeof existingSalaryRules.rules === "string"
-          ? JSON.parse(existingSalaryRules.rules)
-          : existingSalaryRules.rules || [];
+      const employeeId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
 
-      // prepare ruleZero
-      let ruleZero;
+      // Find rule with ruleId === "0" (always string)
+      const existingRuleZero = existingRules.find((r) => r.ruleId === 0);
+      console.log(existingRuleZero);
 
-      if (shiftType === "normal") {
+      // Build ruleZero based on shiftType
+      const workingTimesData = JSON.stringify(
+        workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
+      );
+
+      const overtimeData = JSON.stringify(
+        overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime }))
+      );
+
+      const ruleZero =
+        shiftType === "normal"
+          ? {
+              id: existingRuleZero?.id || Date.now(),
+              empId: employeeId,
+              ruleId: "0",
+              ruleStatus: 1,
+              param1: workingTimesData,
+              param2: overtimeData,
+              param3: "normal",
+              param4: "",
+              param5: "",
+              param6: "",
+            }
+          : {
+              id: existingRuleZero?.id || Date.now(),
+              empId: employeeId,
+              ruleId: "0",
+              ruleStatus: 1,
+              param1: "[]",
+              param2: "[]",
+              param3: "special",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+
+      // Create timeTables array (empId + ruleId as strings)
+      const timeTablesObjects = specialDates.map((date, index) => {
         const workingTimesData = JSON.stringify(
           workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
-        ); // e.g. "[{...},{...}]"
+        );
 
         const overtimeData = JSON.stringify(
           overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime }))
         );
 
-        ruleZero = {
-          id: parsedRules.find((r) => r.ruleId === 0)?.id || Date.now(),
-          empId: selectedEmployee?.employeeId?.toString() || "",
+        return {
+          id: index + 1,
+          empId: employeeId,
           ruleId: "0",
-          ruleStatus: 1,
-          param1: workingTimesData, // string of array
-          param2: overtimeData, // string of array
-          param3: "normal",
-          param4: null,
-          param5: null,
-          param6: null,
-        };
-
-        // ensure timeTables is empty array encoded as string-of-array-of-strings
-        existingSalaryRules.timeTables = JSON.stringify([]); // "[]"
-      } else {
-        // special
-        ruleZero = {
-          id: parsedRules.find((r) => r.ruleId === 0)?.id || Date.now(),
-          empId: selectedEmployee?.employeeId?.toString() || "",
-          ruleId: "0",
-          ruleStatus: 1,
-          param1: "[]",
-          param2: "[]",
-          param3: "special",
+          date: date.toISOString().split("T")[0],
+          param1: workingTimesData,
+          param2: overtimeData,
+          param3: "",
           param4: "",
           param5: "",
           param6: "",
         };
-
-        // create timeTables entries - IMPORTANT: each timeTable object must be stringified, then the array of those strings must be stringified
-        const timeTablesObjects = specialDates.map((date, index) => {
-          const workingTimesData = JSON.stringify(
-            workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
-          );
-          const overtimeData = JSON.stringify(
-            overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime }))
-          );
-
-          return {
-            id: index + 1,
-            empId: selectedEmployee?.employeeId?.toString() || "",
-            ruleId: "0",
-            date: date.toISOString().split("T")[0],
-            param1: workingTimesData, // JSON string
-            param2: overtimeData, // JSON string
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        });
-
-        // HERE'S THE IMPORTANT PART:
-        // Make an array of stringified objects, then stringify that array.
-        // Result -> "\"[\\\"{...}\\\",\\\"{...}\\\"]\""
-        const timeTablesAsArrayOfStrings = timeTablesObjects.map((tt) =>
-          JSON.stringify(tt)
-        ); // e.g. ['{"id":1,...}', '{"id":2,...}']
-        existingSalaryRules.timeTables = JSON.stringify(
-          timeTablesAsArrayOfStrings
-        );
-        // So existingSalaryRules.timeTables becomes a string like:
-        // "[\"{...}\",\"{...}\"]"
-      }
-
-      // update rules: replace ruleId===0 and keep others
-      const otherRules = parsedRules.filter((rule) => rule.ruleId !== 0);
-      const updatedRules = [ruleZero, ...otherRules];
-
-      // ensure each rule in updatedRules has param1/param2 as JSON strings (we already ensured for ruleZero)
-      // If other rules may have arrays, you might want to stringify their param1/param2 as well:
-      const normalizedUpdatedRules = updatedRules.map((r) => {
-        const copy = { ...r };
-        // If param1 is array/object, stringify it; if already string leave it
-        if (copy.param1 && typeof copy.param1 !== "string") {
-          copy.param1 = JSON.stringify(copy.param1);
-        }
-        if (copy.param2 && typeof copy.param2 !== "string") {
-          copy.param2 = JSON.stringify(copy.param2);
-        }
-        return copy;
       });
 
-      existingSalaryRules.rules = JSON.stringify(normalizedUpdatedRules);
-
-      // make sure all other fields are stringified arrays
-      const stringFields = [
-        "holidays",
-        "generalDays",
-        "replaceDays",
-        "punchDocuments",
-        "m_leaves",
-        "mar_leaves",
-        "p_leaves",
-        "s_leaves",
-        "c_leaves",
-        "e_leaves",
-        "w_leaves",
-        "r_leaves",
-        "o_leaves",
-      ];
-
-      stringFields.forEach((field) => {
-        if (Array.isArray(existingSalaryRules[field])) {
-          existingSalaryRules[field] = JSON.stringify(
-            existingSalaryRules[field]
-          );
-        } else if (typeof existingSalaryRules[field] !== "string") {
-          existingSalaryRules[field] = "[]";
-        }
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        timeTables: timeTablesObjects, // replace full array
+        rules: {
+          filter: (r) => r.ruleId === 0,
+          newValue: ruleZero, // update ruleId=0 object
+        },
       });
 
-      // FINAL double encoding (outer object stringified)
-      const salaryRulesString = JSON.stringify(existingSalaryRules);
+      console.log("🧩 Final Generated JSON:", updatedJSON);
 
-      const payload = { salaryRules: salaryRulesString };
+      // Example payload (optional)
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      console.log(
-        "Final payload (double-encoded, timeTables as array-of-strings):",
-        payload
-      );
-
-      // call API
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
         id: selectedEmployee?.employeeId,
@@ -592,7 +528,7 @@ export const WorkShiftTimeForm = () => {
 
       toast.success("Shift rules updated successfully!");
     } catch (error) {
-      console.error("Error saving shift rules:", error);
+      console.error("❌ Error saving shift rules:", error);
       toast.error("Failed to update shift rules.");
     }
   };

@@ -1,16 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
-
-  const handleDayChange = (day, checked) => {
-    if (checked) {
-      setSelectedDays((prev) => [...prev, day]);
-    } else {
-      setSelectedDays((prev) => prev.filter((d) => d !== day));
-    }
-  };
+  const { selectedEmployee } = useEmployeeStore();
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const daysOfWeek = [
     "Sunday",
@@ -22,6 +19,152 @@ export const WeekendForm = () => {
     "Saturday",
   ];
 
+  // Load existing weekend days from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const parsedRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleTwo = parsedRules.find(
+          (rule) => rule.ruleId === 2 || rule.ruleId === "2"
+        );
+
+        if (ruleTwo && ruleTwo.param1) {
+          // Parse the comma-separated string of days
+          const daysString =
+            typeof ruleTwo.param1 === "string"
+              ? ruleTwo.param1
+              : String(ruleTwo.param1);
+          const existingDays = daysString
+            .split(",")
+            .map((day) => day.trim())
+            .filter((day) => day);
+
+          setSelectedDays(existingDays);
+        }
+      } catch (error) {
+        console.error("Error parsing weekend days:", error);
+      }
+    }
+  }, [selectedEmployee]);
+
+  const handleDayChange = (day, checked) => {
+    if (checked) {
+      // Check if already reached maximum of 5 days
+      if (selectedDays.length >= 5) {
+        toast.error("Maximum 5 weekend days allowed");
+        return;
+      }
+      setSelectedDays((prev) => [...prev, day]);
+    } else {
+      setSelectedDays((prev) => prev.filter((d) => d !== day));
+    }
+  };
+
+  // Save weekend configuration
+  const handleSave = async () => {
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
+      return;
+    }
+
+    try {
+      const existingSalaryRules = selectedEmployee?.salaryRules || {
+        empId: selectedEmployee?.employeeId || 0,
+        rules: "[]",
+        holidays: "[]",
+        generalDays: "[]",
+        replaceDays: "[]",
+        punchDocuments: "[]",
+        timeTables: "[]",
+        m_leaves: "[]",
+        mar_leaves: "[]",
+        p_leaves: "[]",
+        s_leaves: "[]",
+        c_leaves: "[]",
+        e_leaves: "[]",
+        w_leaves: "[]",
+        r_leaves: "[]",
+        o_leaves: "[]",
+      };
+
+      // Parse existing rules - preserve ALL existing rules
+      const parsedRules =
+        typeof existingSalaryRules.rules === "string"
+          ? JSON.parse(existingSalaryRules.rules)
+          : existingSalaryRules.rules || [];
+
+      // Find or create rule with ruleId = 2
+      let ruleTwo = parsedRules.find(
+        (rule) => rule.ruleId === 2 || rule.ruleId === "2"
+      );
+
+      if (!ruleTwo) {
+        // Create new rule with ruleId = 2 if it doesn't exist
+        ruleTwo = {
+          id: Date.now(), // number
+          empId: selectedEmployee.employeeId.toString(), // string
+          ruleId: "2", // string
+          ruleStatus: 1, // number
+          param1: selectedDays.join(","), // string of comma-separated days
+          param2: "",
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+
+        // Add the new rule to existing rules (don't modify other rules)
+        parsedRules.push(ruleTwo);
+      } else {
+        // Update ONLY the ruleTwo object - preserve all other properties
+        ruleTwo.param1 = selectedDays.join(",");
+        // Keep all other properties as they are
+      }
+
+      // Update salary rules with ALL existing rules preserved
+      const updatedSalaryRules = {
+        empId:
+          typeof existingSalaryRules.empId === "string"
+            ? parseInt(existingSalaryRules.empId)
+            : existingSalaryRules.empId, // number (not string!)
+        rules: JSON.stringify(parsedRules), // stringified array with ALL rules preserved
+        holidays: existingSalaryRules.holidays || "[]",
+        generalDays: existingSalaryRules.generalDays || "[]",
+        replaceDays: existingSalaryRules.replaceDays || "[]",
+        punchDocuments: existingSalaryRules.punchDocuments || "[]",
+        timeTables: existingSalaryRules.timeTables || "[]",
+        m_leaves: existingSalaryRules.m_leaves || "[]",
+        mar_leaves: existingSalaryRules.mar_leaves || "[]",
+        p_leaves: existingSalaryRules.p_leaves || "[]",
+        s_leaves: existingSalaryRules.s_leaves || "[]",
+        c_leaves: existingSalaryRules.c_leaves || "[]",
+        e_leaves: existingSalaryRules.e_leaves || "[]",
+        w_leaves: existingSalaryRules.w_leaves || "[]",
+        r_leaves: existingSalaryRules.r_leaves || "[]",
+        o_leaves: existingSalaryRules.o_leaves || "[]",
+      };
+
+      const salaryRulesString = JSON.stringify(updatedSalaryRules);
+      const payload = { salaryRules: salaryRulesString };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      console.log("Weekend days updated successfully:", selectedDays.join(","));
+      toast.success("Weekend days updated successfully!");
+    } catch (error) {
+      console.error("Error saving weekend days:", error);
+      toast.error("Failed to update weekend days.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -32,11 +175,27 @@ export const WeekendForm = () => {
               <Checkbox
                 checked={selectedDays.includes(day)}
                 onCheckedChange={(checked) => handleDayChange(day, checked)}
+                disabled={
+                  !selectedDays.includes(day) && selectedDays.length >= 5
+                }
                 className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
               />
-              <span className="text-sm">{day}</span>
+              <span
+                className={`text-sm ${
+                  !selectedDays.includes(day) && selectedDays.length >= 5
+                    ? "text-gray-400"
+                    : ""
+                }`}
+              >
+                {day}
+              </span>
             </label>
           ))}
+        </div>
+
+        {/* Show selected days count */}
+        <div className="mt-2 text-xs text-gray-500">
+          {selectedDays.length}/5 days selected
         </div>
       </div>
 
@@ -57,11 +216,21 @@ export const WeekendForm = () => {
               automatically saved.
             </span>
           </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span className="text-red-500">
+              Maximum 5 weekend days allowed. You can select up to 5 days.
+            </span>
+          </li>
         </ul>
       </div>
 
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg  transition-colors font-medium">
-        Save
+      <button
+        onClick={handleSave}
+        disabled={updating}
+        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {updating ? "Saving..." : "Save"}
       </button>
     </div>
   );
