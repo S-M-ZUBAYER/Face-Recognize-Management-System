@@ -1,7 +1,7 @@
 function generateEmployeeDataJSON(input) {
   const normalizeRule = (rule) => ({
     id: Number(rule.id),
-    empId: String(rule.empId),
+    empId: String(input.empId),
     ruleId: String(rule.ruleId),
     ruleStatus: Number(rule.ruleStatus),
     param1:
@@ -54,11 +54,7 @@ function generateEmployeeDataJSON(input) {
   return {
     empId: Number(input.empId),
     rules: safeStringify(input.rules.map(normalizeRule)),
-    holidays: safeStringify(
-      (input.holidays || []).map(
-        (d) => new Date(d).toISOString().split("T")[0] + "T00:00:00.000"
-      )
-    ),
+    holidays: safeStringify(input.holidays || []),
     generalDays: safeStringify(input.generalDays || []),
     replaceDays: safeStringify(input.replaceDays || []),
     punchDocuments: safeStringify(input.punchDocuments || []),
@@ -97,6 +93,9 @@ function finalJsonForUpdate(input, replacements = {}) {
           replacement.filter(obj) ? { ...obj, ...replacement.newValue } : obj
         );
       }
+    } else {
+      // Handle scalar value replacements (like empId, strings, numbers, etc.)
+      dataCopy[key] = replacement;
     }
   }
 

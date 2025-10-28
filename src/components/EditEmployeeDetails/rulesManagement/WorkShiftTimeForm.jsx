@@ -508,6 +508,7 @@ export const WorkShiftTimeForm = () => {
 
       // Generate final JSON using your helper
       const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: employeeId,
         timeTables: timeTablesObjects, // replace full array
         rules: {
           filter: (r) => r.ruleId === 0,

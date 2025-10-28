@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
@@ -72,41 +73,22 @@ export const WeekendForm = () => {
     }
 
     try {
-      const existingSalaryRules = selectedEmployee?.salaryRules || {
-        empId: selectedEmployee?.employeeId || 0,
-        rules: "[]",
-        holidays: "[]",
-        generalDays: "[]",
-        replaceDays: "[]",
-        punchDocuments: "[]",
-        timeTables: "[]",
-        m_leaves: "[]",
-        mar_leaves: "[]",
-        p_leaves: "[]",
-        s_leaves: "[]",
-        c_leaves: "[]",
-        e_leaves: "[]",
-        w_leaves: "[]",
-        r_leaves: "[]",
-        o_leaves: "[]",
-      };
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
       // Parse existing rules - preserve ALL existing rules
-      const parsedRules =
-        typeof existingSalaryRules.rules === "string"
-          ? JSON.parse(existingSalaryRules.rules)
-          : existingSalaryRules.rules || [];
 
       // Find or create rule with ruleId = 2
-      let ruleTwo = parsedRules.find(
+      let ruleThree = existingRules.find(
         (rule) => rule.ruleId === 2 || rule.ruleId === "2"
       );
 
-      if (!ruleTwo) {
+      if (!ruleThree) {
         // Create new rule with ruleId = 2 if it doesn't exist
-        ruleTwo = {
+        ruleThree = {
           id: Date.now(), // number
-          empId: selectedEmployee.employeeId.toString(), // string
+          empId: empId, // string
           ruleId: "2", // string
           ruleStatus: 1, // number
           param1: selectedDays.join(","), // string of comma-separated days
@@ -116,40 +98,23 @@ export const WeekendForm = () => {
           param5: "",
           param6: "",
         };
-
-        // Add the new rule to existing rules (don't modify other rules)
-        parsedRules.push(ruleTwo);
       } else {
-        // Update ONLY the ruleTwo object - preserve all other properties
-        ruleTwo.param1 = selectedDays.join(",");
+        // Update ONLY the ruleThree object - preserve all other properties
+        (ruleThree.empId = empId), // string
+          (ruleThree.param1 = selectedDays.join(","));
         // Keep all other properties as they are
       }
 
-      // Update salary rules with ALL existing rules preserved
-      const updatedSalaryRules = {
-        empId:
-          typeof existingSalaryRules.empId === "string"
-            ? parseInt(existingSalaryRules.empId)
-            : existingSalaryRules.empId, // number (not string!)
-        rules: JSON.stringify(parsedRules), // stringified array with ALL rules preserved
-        holidays: existingSalaryRules.holidays || "[]",
-        generalDays: existingSalaryRules.generalDays || "[]",
-        replaceDays: existingSalaryRules.replaceDays || "[]",
-        punchDocuments: existingSalaryRules.punchDocuments || "[]",
-        timeTables: existingSalaryRules.timeTables || "[]",
-        m_leaves: existingSalaryRules.m_leaves || "[]",
-        mar_leaves: existingSalaryRules.mar_leaves || "[]",
-        p_leaves: existingSalaryRules.p_leaves || "[]",
-        s_leaves: existingSalaryRules.s_leaves || "[]",
-        c_leaves: existingSalaryRules.c_leaves || "[]",
-        e_leaves: existingSalaryRules.e_leaves || "[]",
-        w_leaves: existingSalaryRules.w_leaves || "[]",
-        r_leaves: existingSalaryRules.r_leaves || "[]",
-        o_leaves: existingSalaryRules.o_leaves || "[]",
-      };
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 2,
+          newValue: ruleThree, // update ruleId=0 object
+        },
+      });
 
-      const salaryRulesString = JSON.stringify(updatedSalaryRules);
-      const payload = { salaryRules: salaryRulesString };
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",

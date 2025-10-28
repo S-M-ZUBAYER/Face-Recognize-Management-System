@@ -3,81 +3,68 @@ import { Calendar } from "@/components/ui/calendar";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
   const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing holidays from selectedEmployee
+  // 🟦 Parse stored holiday strings → Date objects (local, no offset)
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.holidays) {
-      try {
-        const holidays =
-          typeof selectedEmployee.salaryRules.holidays === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.holidays)
-            : selectedEmployee.salaryRules.holidays;
+    if (!selectedEmployee?.salaryRules?.holidays) {
+      setSpecialDates([]);
+      return;
+    }
 
-        if (Array.isArray(holidays)) {
-          // Convert holiday strings to Date objects without timezone issues
-          const holidayDates = holidays
-            .map((holiday) => {
-              if (typeof holiday === "string") {
-                // Parse the date string without timezone offset
-                const dateStr = holiday
-                  .replace("T00:00:00.000", "")
-                  .replace("T18:00:00.000Z", "");
-                const [year, month, day] = dateStr.split("-");
-                return new Date(
-                  parseInt(year),
-                  parseInt(month) - 1,
-                  parseInt(day)
-                );
-              }
-              return holiday;
-            })
-            .filter((date) => !isNaN(date.getTime())); // Filter out invalid dates
+    try {
+      const raw = selectedEmployee.salaryRules.holidays;
+      const parsed =
+        typeof raw === "string"
+          ? JSON.parse(raw)
+          : Array.isArray(raw)
+          ? raw
+          : [];
 
-          setSpecialDates(holidayDates);
-        }
-      } catch (error) {
-        console.error("Error parsing holidays:", error);
-        setSpecialDates([]);
-      }
+      const dates = parsed
+        .map((str) => {
+          if (typeof str !== "string") return null;
+          const [y, m, d] = str.split("T")[0].split("-");
+          // 🟢 Create a date using local time only (no UTC conversion)
+          return new Date(Number(y), Number(m) - 1, Number(d), 12);
+        })
+        .filter(Boolean);
+
+      setSpecialDates(dates);
+    } catch (err) {
+      console.error("Error parsing holidays:", err);
+      setSpecialDates([]);
     }
   }, [selectedEmployee]);
 
-  // Handle calendar date selection - fix timezone issue
+  // 🟦 Handle selection — keep dates in local time, normalized
   const handleCalendarSelect = (dates) => {
-    if (dates) {
-      // Fix timezone issue by creating dates with correct timezone
-      const fixedDates = dates.map((date) => {
-        // Create date without timezone offset issues
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const day = date.getDate();
-        return new Date(year, month, day);
-      });
-      setSpecialDates(fixedDates);
-    } else {
+    if (!dates || dates.length === 0) {
       setSpecialDates([]);
+      return;
     }
+
+    // Store dates in "local noon" to prevent timezone shifts
+    const normalized = dates.map(
+      (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12)
+    );
+    setSpecialDates(normalized);
   };
 
-  // Format date for storage (YYYY-MM-DDTHH:mm:ss.sss format without Z)
+  // 🟦 Format for backend (always YYYY-MM-DDT00:00:00.000)
   const formatDateForStorage = (date) => {
-    if (!date) return "";
-
-    // Create date without timezone issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    // Return in format: 2025-10-30T00:00:00.000 (without Z)
-    return `${year}-${month}-${day}T00:00:00.000`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}T00:00:00.000`;
   };
 
-  // Save holidays
+  // 🟦 Save handler
   const handleSave = async () => {
     if (!selectedEmployee?.employeeId) {
       toast.error("No employee selected");
@@ -85,42 +72,22 @@ export const HolidayForm = () => {
     }
 
     try {
-      const existingSalaryRules = selectedEmployee?.salaryRules || {
-        empId: selectedEmployee?.employeeId || 0, // number
-        rules: "[]",
-        holidays: "[]",
-        generalDays: "[]",
-        replaceDays: "[]",
-        punchDocuments: "[]",
-        timeTables: "[]",
-        m_leaves: "[]",
-        mar_leaves: "[]",
-        p_leaves: "[]",
-        s_leaves: "[]",
-        c_leaves: "[]",
-        e_leaves: "[]",
-        w_leaves: "[]",
-        r_leaves: "[]",
-        o_leaves: "[]",
-      };
+      const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules || {};
+      const existingRules = Array.isArray(salaryRules.rules)
+        ? salaryRules.rules
+        : [];
 
-      // Parse existing rules
-      const parsedRules =
-        typeof existingSalaryRules.rules === "string"
-          ? JSON.parse(existingSalaryRules.rules)
-          : existingSalaryRules.rules || [];
-
-      // Find or create rule with ruleId = 1
-      let ruleOne = parsedRules.find(
-        (rule) => rule.ruleId === 1 || rule.ruleId === "1"
+      // Find or create ruleId "1"
+      let ruleOne = existingRules.find(
+        (r) => r.ruleId === "1" || r.ruleId === 1
       );
-
       if (!ruleOne) {
-        // Create new rule with ruleId = 1 if it doesn't exist
         ruleOne = {
-          empId: selectedEmployee.employeeId.toString(), // string
-          ruleId: "1", // string
-          ruleStatus: 1, // number
+          id: Date.now(),
+          empId,
+          ruleId: "1",
+          ruleStatus: 1,
           param1: null,
           param2: null,
           param3: null,
@@ -129,127 +96,33 @@ export const HolidayForm = () => {
           param6: null,
         };
       } else {
-        // Update the existing rule - ensure correct data types
-        ruleOne = {
-          ...ruleOne,
-          id:
-            typeof ruleOne.id === "string" ? parseInt(ruleOne.id) : ruleOne.id, // ensure number
-          empId: ruleOne.empId.toString(), // ensure string
-          ruleId: "1", // ensure string
-          ruleStatus:
-            typeof ruleOne.ruleStatus === "string"
-              ? parseInt(ruleOne.ruleStatus)
-              : ruleOne.ruleStatus, // ensure number
-          // Ensure all params are properly formatted
-          param1:
-            ruleOne.param1 !== null && typeof ruleOne.param1 !== "string"
-              ? JSON.stringify(ruleOne.param1)
-              : ruleOne.param1,
-          param2:
-            ruleOne.param2 !== null && typeof ruleOne.param2 !== "string"
-              ? JSON.stringify(ruleOne.param2)
-              : ruleOne.param2,
-          param3:
-            ruleOne.param3 !== null && typeof ruleOne.param3 !== "string"
-              ? String(ruleOne.param3)
-              : ruleOne.param3,
-          param4:
-            ruleOne.param4 !== null && typeof ruleOne.param4 !== "string"
-              ? String(ruleOne.param4)
-              : ruleOne.param4,
-          param5:
-            ruleOne.param5 !== null && typeof ruleOne.param5 !== "string"
-              ? String(ruleOne.param5)
-              : ruleOne.param5,
-          param6:
-            ruleOne.param6 !== null && typeof ruleOne.param6 !== "string"
-              ? String(ruleOne.param6)
-              : ruleOne.param6,
-        };
+        ruleOne.empId = empId.toString();
       }
 
-      // Fix other rules to ensure consistent data types
-      const fixedOtherRules = parsedRules
-        .filter((rule) => rule.ruleId !== 1 && rule.ruleId !== "1")
-        .map((rule) => ({
-          ...rule,
-          id: typeof rule.id === "string" ? parseInt(rule.id) : rule.id, // number
-          empId: rule.empId.toString(), // string
-          ruleId:
-            typeof rule.ruleId === "number"
-              ? rule.ruleId.toString()
-              : rule.ruleId, // string
-          ruleStatus:
-            typeof rule.ruleStatus === "string"
-              ? parseInt(rule.ruleStatus)
-              : rule.ruleStatus, // number
-          // Ensure all params are strings or null
-          param1:
-            rule.param1 !== null && typeof rule.param1 !== "string"
-              ? JSON.stringify(rule.param1)
-              : rule.param1,
-          param2:
-            rule.param2 !== null && typeof rule.param2 !== "string"
-              ? JSON.stringify(rule.param2)
-              : rule.param2,
-          param3:
-            rule.param3 !== null && typeof rule.param3 !== "string"
-              ? String(rule.param3)
-              : rule.param3,
-          param4:
-            rule.param4 !== null && typeof rule.param4 !== "string"
-              ? String(rule.param4)
-              : rule.param4,
-          param5:
-            rule.param5 !== null && typeof rule.param5 !== "string"
-              ? String(rule.param5)
-              : rule.param5,
-          param6:
-            rule.param6 !== null && typeof rule.param6 !== "string"
-              ? String(rule.param6)
-              : rule.param6,
-        }));
+      const formattedHolidays = specialDates.map(formatDateForStorage);
 
-      const updatedRules = [ruleOne, ...fixedOtherRules];
+      console.log(formattedHolidays);
 
-      // Format holidays for storage - without timezone (Z)
-      const holidayArray = specialDates.map((date) =>
-        formatDateForStorage(date)
-      );
+      // 🧩 Build final JSON
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        holidays: formattedHolidays, // raw array, helper stringifies
+        rules: {
+          filter: (r) => r.ruleId === "1" || r.ruleId === 1,
+          newValue: ruleOne,
+        },
+      });
 
-      // Update salary rules with correct data types
-      const updatedSalaryRules = {
-        empId:
-          typeof existingSalaryRules.empId === "string"
-            ? parseInt(existingSalaryRules.empId)
-            : existingSalaryRules.empId, // number (not string!)
-        rules: JSON.stringify(updatedRules), // stringified array
-        holidays: JSON.stringify(holidayArray), // stringified array
-        generalDays: existingSalaryRules.generalDays || "[]",
-        replaceDays: existingSalaryRules.replaceDays || "[]",
-        punchDocuments: existingSalaryRules.punchDocuments || "[]",
-        timeTables: existingSalaryRules.timeTables || "[]",
-        m_leaves: existingSalaryRules.m_leaves || "[]",
-        mar_leaves: existingSalaryRules.mar_leaves || "[]",
-        p_leaves: existingSalaryRules.p_leaves || "[]",
-        s_leaves: existingSalaryRules.s_leaves || "[]",
-        c_leaves: existingSalaryRules.c_leaves || "[]",
-        e_leaves: existingSalaryRules.e_leaves || "[]",
-        w_leaves: existingSalaryRules.w_leaves || "[]",
-        r_leaves: existingSalaryRules.r_leaves || "[]",
-        o_leaves: existingSalaryRules.o_leaves || "[]",
-      };
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      const salaryRulesString = JSON.stringify(updatedSalaryRules);
-      const payload = { salaryRules: salaryRulesString };
+      console.log(payload);
 
       await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
+        mac: selectedEmployee.deviceMAC || "",
+        id: selectedEmployee.employeeId,
         payload,
       });
 
-      console.log(payload);
       toast.success("Holidays updated successfully!");
     } catch (error) {
       console.error("Error saving holidays:", error);
@@ -266,10 +139,7 @@ export const HolidayForm = () => {
           onSelect={handleCalendarSelect}
           className="w-[25vw]"
           modifiersStyles={{
-            today: {
-              backgroundColor: "transparent",
-              color: "inherit",
-            },
+            today: { backgroundColor: "transparent", color: "inherit" },
           }}
         />
       </div>
@@ -280,10 +150,8 @@ export const HolidayForm = () => {
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              Select national holiday, click the date to choose.When the
-              selected date turns blue,it indicates that it is a holiday and no
-              attendance is required.the selection will be automatically saved
-              (set according to your company's actual situation)
+              Select national holidays. When a date turns blue, it’s marked as a
+              holiday (no attendance required). Click "Save" to confirm.
             </span>
           </li>
         </ul>
