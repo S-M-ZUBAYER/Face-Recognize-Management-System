@@ -84,7 +84,7 @@ export const HolidayForm = () => {
       );
       if (!ruleOne) {
         ruleOne = {
-          id: Date.now(),
+          id: Math.floor(10 + Math.random() * 90),
           empId,
           ruleId: "1",
           ruleStatus: 1,
@@ -101,21 +101,26 @@ export const HolidayForm = () => {
 
       const formattedHolidays = specialDates.map(formatDateForStorage);
 
-      console.log(formattedHolidays);
+      // console.log(formattedHolidays);
 
       // 🧩 Build final JSON
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         empId: empId,
         holidays: formattedHolidays, // raw array, helper stringifies
         rules: {
-          filter: (r) => r.ruleId === "1" || r.ruleId === 1,
+          filter: (r) => r.ruleId === 1 || r.ruleId === "1",
           newValue: ruleOne,
         },
       });
 
+      // console.log("rules:", {
+      //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
+      //   newValue: ruleOne,
+      // });
+
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      console.log(payload);
+      // console.log(payload);
 
       await updateEmployee({
         mac: selectedEmployee.deviceMAC || "",

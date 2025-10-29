@@ -18,7 +18,6 @@ export const WorkShiftTimeForm = () => {
   const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Default working times and overtime for normal shift and template for special dates
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
     { id: 2, label: "Working Time 2", startTime: "13:00", endTime: "17:00" },
@@ -28,8 +27,39 @@ export const WorkShiftTimeForm = () => {
     { id: 1, label: "Overtime 1", startTime: "18:00", endTime: "20:00" },
   ]);
 
-  // Store date-wise configurations
   const [dateConfigs, setDateConfigs] = useState({});
+
+  // Parse timeTables from API response
+  const parseTimeTables = (timeTables) => {
+    if (!timeTables) return [];
+
+    if (typeof timeTables === "string") {
+      try {
+        return JSON.parse(timeTables);
+      } catch (e) {
+        console.error("Error parsing timeTables string:", e);
+        return [];
+      }
+    }
+
+    if (Array.isArray(timeTables)) {
+      return timeTables
+        .map((item) => {
+          if (typeof item === "string") {
+            try {
+              return JSON.parse(item);
+            } catch (e) {
+              console.error("Error parsing timeTable item:", e);
+              return null;
+            }
+          }
+          return item;
+        })
+        .filter(Boolean);
+    }
+
+    return [];
+  };
 
   // Load data from selectedEmployee on component mount
   useEffect(() => {
@@ -39,10 +69,8 @@ export const WorkShiftTimeForm = () => {
       );
 
       if (ruleZero) {
-        // Set shift type
         setShiftType(ruleZero.param3 || "normal");
 
-        // Load working times and overtime for normal shift type
         if (ruleZero.param3 === "normal" && ruleZero.param1) {
           try {
             const parsedParam1 =
@@ -91,46 +119,36 @@ export const WorkShiftTimeForm = () => {
           selectedEmployee.salaryRules.timeTables
         ) {
           try {
-            const timeTables =
-              typeof selectedEmployee.salaryRules.timeTables === "string"
-                ? JSON.parse(selectedEmployee.salaryRules.timeTables)
-                : selectedEmployee.salaryRules.timeTables;
+            const parsedTimeTables = parseTimeTables(
+              selectedEmployee.salaryRules.timeTables
+            );
 
-            if (Array.isArray(timeTables)) {
+            if (
+              Array.isArray(parsedTimeTables) &&
+              parsedTimeTables.length > 0
+            ) {
               const dateConfigsMap = {};
-              const dates = timeTables.map((item) => {
-                if (typeof item === "string") {
-                  const parsedItem = JSON.parse(item);
-                  return parsedItem.date;
-                }
-                return item.date;
-              });
+              const dates = [];
 
-              // Fix timezone issue when loading dates
-              const fixedDates = dates.map((dateStr) => {
-                const [year, month, day] = dateStr.split("-");
-                return new Date(
-                  parseInt(year),
-                  parseInt(month) - 1,
-                  parseInt(day)
-                );
-              });
+              parsedTimeTables.forEach((table) => {
+                if (table.date) {
+                  const [year, month, day] = table.date.split("-");
+                  const dateObj = new Date(
+                    parseInt(year),
+                    parseInt(month) - 1,
+                    parseInt(day)
+                  );
+                  dates.push(dateObj);
 
-              setSpecialDates(fixedDates);
-
-              timeTables.forEach((table) => {
-                const tableData =
-                  typeof table === "string" ? JSON.parse(table) : table;
-
-                if (tableData.ruleId === "0" && tableData.date) {
                   // Parse working times for this date
                   let workingTimesForDate = [];
-                  if (tableData.param1) {
+                  if (table.param1) {
                     try {
                       const parsedParam1 =
-                        typeof tableData.param1 === "string"
-                          ? JSON.parse(tableData.param1)
-                          : tableData.param1;
+                        typeof table.param1 === "string"
+                          ? JSON.parse(table.param1)
+                          : table.param1;
+
                       if (Array.isArray(parsedParam1)) {
                         workingTimesForDate = parsedParam1.map(
                           (time, index) => ({
@@ -148,12 +166,13 @@ export const WorkShiftTimeForm = () => {
 
                   // Parse overtime for this date
                   let overtimesForDate = [];
-                  if (tableData.param2) {
+                  if (table.param2) {
                     try {
                       const parsedParam2 =
-                        typeof tableData.param2 === "string"
-                          ? JSON.parse(tableData.param2)
-                          : tableData.param2;
+                        typeof table.param2 === "string"
+                          ? JSON.parse(table.param2)
+                          : table.param2;
+
                       if (Array.isArray(parsedParam2)) {
                         overtimesForDate = parsedParam2.map((time, index) => ({
                           id: index + 1,
@@ -167,24 +186,19 @@ export const WorkShiftTimeForm = () => {
                     }
                   }
 
-                  dateConfigsMap[tableData.date] = {
-                    workingTimes:
-                      workingTimesForDate.length > 0
-                        ? workingTimesForDate
-                        : [...workingTimes],
-                    overtimes:
-                      overtimesForDate.length > 0
-                        ? overtimesForDate
-                        : [...overtimes],
+                  dateConfigsMap[table.date] = {
+                    workingTimes: workingTimesForDate,
+                    overtimes: overtimesForDate,
                   };
                 }
               });
 
+              setSpecialDates(dates);
               setDateConfigs(dateConfigsMap);
 
-              // Set first date as selected if available
               if (dates.length > 0) {
-                setSelectedDate(dates[0]);
+                const firstDateStr = formatDateForDisplay(dates[0]);
+                setSelectedDate(firstDateStr);
               }
             }
           } catch (error) {
@@ -200,25 +214,6 @@ export const WorkShiftTimeForm = () => {
     if (shiftType === "special" && selectedDate && dateConfigs[selectedDate]) {
       setWorkingTimes(dateConfigs[selectedDate].workingTimes);
       setOvertimes(dateConfigs[selectedDate].overtimes);
-    } else if (shiftType === "special" && selectedDate) {
-      // Initialize with default values for new date
-      setWorkingTimes([
-        {
-          id: 1,
-          label: "Working Time 1",
-          startTime: "08:00",
-          endTime: "12:00",
-        },
-        {
-          id: 2,
-          label: "Working Time 2",
-          startTime: "13:00",
-          endTime: "17:00",
-        },
-      ]);
-      setOvertimes([
-        { id: 1, label: "Overtime 1", startTime: "18:00", endTime: "20:00" },
-      ]);
     }
   }, [selectedDate, shiftType, dateConfigs]);
 
@@ -237,7 +232,6 @@ export const WorkShiftTimeForm = () => {
     }
   };
 
-  // ===== Add handlers =====
   const addWorkingTime = () => {
     const newId = Math.max(...workingTimes.map((w) => w.id), 0) + 1;
     setWorkingTimes([
@@ -264,17 +258,16 @@ export const WorkShiftTimeForm = () => {
     ]);
   };
 
-  // ===== Remove handlers =====
   const removeWorkingTime = (id) => {
     if (workingTimes.length > 1) {
-      setWorkingTimes(workingTimes.filter((salary) => salary.id !== id));
+      setWorkingTimes(workingTimes.filter((wt) => wt.id !== id));
     } else {
       toast.error("At least one working time is required");
     }
   };
 
   const removeOvertime = (id) => {
-    setOvertimes(overtimes.filter((salary) => salary.id !== id));
+    setOvertimes(overtimes.filter((ot) => ot.id !== id));
   };
 
   const updateWorkingTime = (id, field, value) => {
@@ -289,7 +282,6 @@ export const WorkShiftTimeForm = () => {
     );
   };
 
-  // Convert Excel time (fraction of a day) to HH:mm string
   const excelTimeToString = (excelTime) => {
     if (typeof excelTime === "number") {
       const totalMinutes = Math.round(excelTime * 24 * 60);
@@ -299,10 +291,9 @@ export const WorkShiftTimeForm = () => {
       const minutes = (totalMinutes % 60).toString().padStart(2, "0");
       return `${hours}:${minutes}`;
     }
-    return excelTime; // already string
+    return excelTime;
   };
 
-  // ===== 📂 Excel Upload Handler =====
   const handleExcelUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -377,7 +368,6 @@ export const WorkShiftTimeForm = () => {
     }
   };
 
-  // Remove special date
   const removeSpecialDate = (dateToRemove) => {
     const dateStr = formatDateForDisplay(dateToRemove);
     setSpecialDates((prev) =>
@@ -397,12 +387,9 @@ export const WorkShiftTimeForm = () => {
     toast.success(`Date ${dateStr} removed`);
   };
 
-  // Handle calendar date selection - fix timezone issue
   const handleCalendarSelect = (dates) => {
     if (dates) {
-      // Fix timezone issue by creating dates with correct timezone
       const fixedDates = dates.map((date) => {
-        // Create date without timezone offset issues
         const year = date.getFullYear();
         const month = date.getMonth();
         const day = date.getDate();
@@ -414,23 +401,19 @@ export const WorkShiftTimeForm = () => {
     }
   };
 
-  // Format date for display without timezone issues
   const formatDateForDisplay = (date) => {
     if (!date) return "";
 
     if (typeof date === "string") {
-      // If it's already a string in YYYY-MM-DD format
       return date;
     }
 
-    // If it's a Date object, format it properly
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
-  // ===== Save handler =====
   const handleSave = async () => {
     try {
       if (!selectedEmployee?.employeeId) {
@@ -442,11 +425,10 @@ export const WorkShiftTimeForm = () => {
       const salaryRules = selectedEmployee.salaryRules;
       const existingRules = salaryRules.rules || [];
 
-      // Find rule with ruleId === "0" (always string)
-      const existingRuleZero = existingRules.find((r) => r.ruleId === 0);
-      console.log(existingRuleZero);
+      const existingRuleZero = existingRules.find(
+        (r) => r.ruleId === 0 || r.ruleId === "0"
+      );
 
-      // Build ruleZero based on shiftType
       const workingTimesData = JSON.stringify(
         workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
       );
@@ -458,7 +440,7 @@ export const WorkShiftTimeForm = () => {
       const ruleZero =
         shiftType === "normal"
           ? {
-              id: existingRuleZero?.id || Date.now(),
+              id: existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
               empId: employeeId,
               ruleId: "0",
               ruleStatus: 1,
@@ -470,7 +452,7 @@ export const WorkShiftTimeForm = () => {
               param6: "",
             }
           : {
-              id: existingRuleZero?.id || Date.now(),
+              id: existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
               empId: employeeId,
               ruleId: "0",
               ruleStatus: 1,
@@ -482,21 +464,33 @@ export const WorkShiftTimeForm = () => {
               param6: "",
             };
 
-      // Create timeTables array (empId + ruleId as strings)
+      // Build timeTables with proper date-wise configs
       const timeTablesObjects = specialDates.map((date, index) => {
+        const dateStr = formatDateForDisplay(date);
+        const config = dateConfigs[dateStr] || {
+          workingTimes: [],
+          overtimes: [],
+        };
+
         const workingTimesData = JSON.stringify(
-          workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
+          config.workingTimes.map((wt) => ({
+            start: wt.startTime,
+            end: wt.endTime,
+          }))
         );
 
         const overtimeData = JSON.stringify(
-          overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime }))
+          config.overtimes.map((ot) => ({
+            start: ot.startTime,
+            end: ot.endTime,
+          }))
         );
 
         return {
           id: index + 1,
           empId: employeeId,
           ruleId: "0",
-          date: date.toISOString().split("T")[0],
+          date: dateStr,
           param1: workingTimesData,
           param2: overtimeData,
           param3: "",
@@ -506,19 +500,17 @@ export const WorkShiftTimeForm = () => {
         };
       });
 
-      // Generate final JSON using your helper
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         empId: employeeId,
-        timeTables: timeTablesObjects, // replace full array
+        timeTables: timeTablesObjects,
         rules: {
-          filter: (r) => r.ruleId === 0,
-          newValue: ruleZero, // update ruleId=0 object
+          filter: (r) => r.ruleId === 0 || r.ruleId === "0",
+          newValue: ruleZero,
         },
       });
 
       console.log("🧩 Final Generated JSON:", updatedJSON);
 
-      // Example payload (optional)
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
       await updateEmployee({
@@ -647,6 +639,7 @@ export const WorkShiftTimeForm = () => {
                           removeFn={() => removeWorkingTime(wt.id)}
                         />
                       ))}
+
                       <div className="w-full flex justify-end">
                         <button
                           onClick={addWorkingTime}
@@ -679,6 +672,7 @@ export const WorkShiftTimeForm = () => {
                           removeFn={() => removeOvertime(ot.id)}
                         />
                       ))}
+
                       <div className="w-full flex justify-end">
                         <button
                           onClick={addOvertime}
@@ -838,3 +832,5 @@ export const WorkShiftTimeForm = () => {
     </div>
   );
 };
+
+export default WorkShiftTimeForm;

@@ -87,7 +87,7 @@ export const WeekendForm = () => {
       if (!ruleThree) {
         // Create new rule with ruleId = 2 if it doesn't exist
         ruleThree = {
-          id: Date.now(), // number
+          id: Math.floor(10 + Math.random() * 90), // number
           empId: empId, // string
           ruleId: "2", // string
           ruleStatus: 1, // number

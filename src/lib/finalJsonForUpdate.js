@@ -76,7 +76,7 @@ function generateEmployeeDataJSON(input) {
 }
 
 function finalJsonForUpdate(input, replacements = {}) {
-  // deep copy to avoid mutation
+  // Deep copy to avoid mutation
   const dataCopy = JSON.parse(JSON.stringify(input));
 
   // Replace objects in arrays or full array
@@ -85,13 +85,20 @@ function finalJsonForUpdate(input, replacements = {}) {
 
     if (Array.isArray(dataCopy[key])) {
       if (Array.isArray(replacement)) {
-        // full array replacement
+        // Full array replacement
         dataCopy[key] = replacement;
       } else if (replacement.filter && replacement.newValue) {
-        // replace individual objects based on filter
-        dataCopy[key] = dataCopy[key].map((obj) =>
-          replacement.filter(obj) ? { ...obj, ...replacement.newValue } : obj
-        );
+        // Replace individual objects based on filter
+        const existingMatches = dataCopy[key].some(replacement.filter);
+
+        if (existingMatches) {
+          dataCopy[key] = dataCopy[key].map((obj) =>
+            replacement.filter(obj) ? { ...obj, ...replacement.newValue } : obj
+          );
+        } else {
+          // ✅ Add new rule if not found
+          dataCopy[key].push(replacement.newValue);
+        }
       }
     } else {
       // Handle scalar value replacements (like empId, strings, numbers, etc.)
@@ -99,7 +106,7 @@ function finalJsonForUpdate(input, replacements = {}) {
     }
   }
 
-  // Now generate final JSON using previous function
+  // Generate final JSON
   return generateEmployeeDataJSON(dataCopy);
 }
 
