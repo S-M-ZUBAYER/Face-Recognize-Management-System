@@ -1008,6 +1008,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     (monthlySalary / workingDaysConfigured) *
     weekendNormalShiftMultiplier *
     weekendPresent;
+  if (id === "2109058929") {
+    console.log(
+      monthlySalary,
+      workingDaysConfigured,
+      weekendNormalShiftMultiplier,
+      weekendPresent
+    );
+  }
   const holidayNormalShiftPay =
     (monthlySalary / workingDaysConfigured) *
     holidayNormalShiftMultiplier *
@@ -1026,6 +1034,19 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     totalLeaveDeductions +
     overtimePay
   ).toFixed(2);
+
+  if (id === "2109058929") {
+    console.log(
+      earnedSalary,
+      deductions,
+      otherLeaveDeduction,
+      sickLeaveDeduction,
+      totalLeaveDeductions,
+      overtimePay,
+      weekendNormalShiftPay,
+      holidayNormalShiftPay
+    );
+  }
 
   return {
     attendanceStats: {

@@ -5,4 +5,8 @@ export const useDateStore = create((set) => ({
   selectedYear: new Date().getFullYear(),
   setMonth: (month) => set({ selectedMonth: month }),
   setYear: (year) => set({ selectedYear: year }),
+  TaskSelectedMonth: new Date().getMonth(),
+  TaskSelectedYear: new Date().getFullYear(),
+  TaskSetMonth: (month) => set({ selectedMonth: month }),
+  TaskSetYear: (year) => set({ selectedYear: year }),
 }));

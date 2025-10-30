@@ -164,9 +164,13 @@ const AttendanceTable = ({ employees = [] }) => {
   );
 
   // Filter employees based on search query
+  // In AttendanceTable.jsx - ADD these useMemo hooks
+
+  // Optimize filtered data calculation
   const filteredData = useMemo(() => {
     if (!searchQuery) return employees;
     const q = searchQuery.toLowerCase();
+
     return employees.filter((emp) => {
       const date = (emp?.punch?.date ?? "").toLowerCase();
       const name = (emp?.name ?? "").split("<")[0].toLowerCase();
@@ -174,6 +178,7 @@ const AttendanceTable = ({ employees = [] }) => {
         .toString()
         .toLowerCase();
       const department = (emp?.department ?? "").toLowerCase();
+
       return (
         date.includes(q) ||
         name.includes(q) ||
@@ -183,17 +188,30 @@ const AttendanceTable = ({ employees = [] }) => {
     });
   }, [employees, searchQuery]);
 
-  // Determine max punch count
+  // Optimize max punch count calculation
   const maxPunchCount = useMemo(() => {
-    return (
-      employees.reduce((max, emp) => {
-        const checkIn = emp?.punch?.checkIn;
-        if (Array.isArray(checkIn)) return Math.max(max, checkIn.length);
-        if (checkIn) return Math.max(max, 1);
-        return max;
-      }, 0) || 1
-    );
+    if (!employees.length) return 1;
+
+    let max = 1;
+    for (let i = 0; i < employees.length; i++) {
+      const checkIn = employees[i]?.punch?.checkIn;
+      if (Array.isArray(checkIn)) {
+        max = Math.max(max, checkIn.length);
+      } else if (checkIn) {
+        max = Math.max(max, 1);
+      }
+    }
+    return max;
   }, [employees]);
+
+  // // Optimize selected employee data
+  // const selectedEmployeeData = useMemo(() => {
+  //   const selectedSet = new Set(selectedEmployees);
+  //   return employees.filter((emp) => {
+  //     const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+  //     return selectedSet.has(id);
+  //   });
+  // }, [employees, selectedEmployees]);
 
   // Column definitions
   const columns = useMemo(() => {
