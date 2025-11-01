@@ -56,8 +56,15 @@ function generateEmployeeDataJSON(input) {
     rules: safeStringify(input.rules.map(normalizeRule)),
     holidays: safeStringify(input.holidays || []),
     generalDays: safeStringify(input.generalDays || []),
-    replaceDays: safeStringify(input.replaceDays || []),
-    punchDocuments: safeStringify(input.punchDocuments || []),
+    replaceDays: safeStringify(
+      input.replaceDays.map((l) => JSON.stringify(l)) || []
+    ),
+    punchDocuments: safeStringify(
+      input.punchDocuments.map((l) => JSON.stringify(l)) || []
+    ),
+    latePunchDocuments: safeStringify(
+      input.latePunchDocuments.map((l) => JSON.stringify(l)) || []
+    ),
     timeTables: safeStringify(
       input.timeTables.map((tt) => JSON.stringify(normalizeTimeTable(tt)))
     ),

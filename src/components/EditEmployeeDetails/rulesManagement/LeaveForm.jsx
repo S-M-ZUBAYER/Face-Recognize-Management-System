@@ -447,7 +447,7 @@ export const LeaveForm = () => {
 
       if (!ruleTen) {
         ruleTen = {
-          id: Date.now(),
+          id: Math.floor(10 + Math.random() * 90),
           empId: empId,
           ruleId: "10",
           ruleStatus: 1,
@@ -474,7 +474,6 @@ export const LeaveForm = () => {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log(payload);
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
@@ -482,7 +481,6 @@ export const LeaveForm = () => {
         payload,
       });
 
-      console.log("Leave configuration updated successfully");
       toast.success("Leave configuration updated successfully!");
     } catch (error) {
       console.error("Error saving leave configuration:", error);
