@@ -62,9 +62,11 @@ function generateEmployeeDataJSON(input) {
     punchDocuments: safeStringify(
       input.punchDocuments.map((l) => JSON.stringify(l)) || []
     ),
-    latePunchDocuments: safeStringify(
-      input.latePunchDocuments.map((l) => JSON.stringify(l)) || []
-    ),
+    ...(input.latePunchDocuments && {
+      latePunchDocuments: safeStringify(
+        input.latePunchDocuments.map((l) => JSON.stringify(l)) || []
+      ),
+    }),
     timeTables: safeStringify(
       input.timeTables.map((tt) => JSON.stringify(normalizeTimeTable(tt)))
     ),

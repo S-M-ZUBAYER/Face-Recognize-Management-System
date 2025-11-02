@@ -3,6 +3,7 @@ import RulesSidebar from "./rulesManagement/RulesSidebar";
 import { RuleContent } from "./rulesManagement/RuleContent";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import AlertDialog from "../AlertDialog";
 
 const EditRules = () => {
   const [selectedRule, setSelectedRule] = useState(null);
@@ -112,6 +113,7 @@ const EditRules = () => {
                   onRuleSelect={handleRuleSelect}
                 />
                 <RuleContent selectedRule={selectedRule} onBack={handleBack} />
+                <AlertDialog />
               </div>
             </motion.div>
           </motion.div>

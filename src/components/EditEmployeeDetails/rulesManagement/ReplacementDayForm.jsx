@@ -135,7 +135,7 @@ export const ReplacementDayForm = () => {
 
       if (!ruleTwelve) {
         ruleTwelve = {
-          id: Date.now(),
+          id: Math.floor(10 + Math.random() * 90),
           empId: empId,
           ruleId: "12",
           ruleStatus: 1,
@@ -191,8 +191,6 @@ export const ReplacementDayForm = () => {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      console.log(payload);
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",

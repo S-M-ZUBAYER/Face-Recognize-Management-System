@@ -1,22 +1,79 @@
 import { Checkbox } from "@/components/ui/checkbox";
+import useAlertDialog from "@/zustand/useAlertDialog";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   const { selectedEmployee } = useEmployeeStore();
+  const { openDialog } = useAlertDialog();
 
-  // ✅ Safely extract all rule IDs as numbers from employee data
   const getAllRuleIds = (rulesArray) => {
     if (!Array.isArray(rulesArray)) return [];
-    return rulesArray.map((rule) => Number(rule.ruleId)); // normalize to number
+    return rulesArray.map((rule) => Number(rule.ruleId));
   };
 
-  // ✅ Get array of rule IDs from employee's existing salary rules
   const existingRuleIds = getAllRuleIds(selectedEmployee?.salaryRules?.rules);
 
-  // ✅ Utility: check if a specific rule ID exists in that list
   const hasRuleId = (ruleIdsArray, id) => {
     if (!Array.isArray(ruleIdsArray)) return false;
-    return ruleIdsArray.includes(Number(id)); // type-safe match
+    return ruleIdsArray.includes(Number(id));
+  };
+
+  // Check if rule ID is in dependency group (6-9)
+  const isDependencyRule = (ruleId) => {
+    return [6, 7, 8, 9].includes(ruleId);
+  };
+
+  // Check if rule ID is in exclusive group (18-23)
+  const isExclusiveRule = (ruleId) => {
+    return ruleId > 16 && ruleId < 23;
+  };
+
+  // Get selected exclusive rules (18-23)
+  const getSelectedExclusiveRules = () => {
+    return existingRuleIds.filter((id) => isExclusiveRule(id));
+  };
+
+  const handleRuleSelect = (rule) => {
+    // Condition 0: Rule 1 is mandatory for all other rules
+    if (rule.id !== 0 && !hasRuleId(existingRuleIds, 0)) {
+      openDialog(
+        `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`
+      );
+      return;
+    }
+
+    // Condition 1: Rules 6-9 require rule 24 to be set
+    if (isDependencyRule(rule.id)) {
+      if (!hasRuleId(existingRuleIds, 24)) {
+        openDialog(
+          `Rule ${
+            rule.id + 1
+          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
+        );
+        return;
+      }
+    }
+
+    // Condition 2: Rules 18-23 are mutually exclusive
+    if (isExclusiveRule(rule.id)) {
+      const selectedExclusive = getSelectedExclusiveRules();
+      if (
+        selectedExclusive.length > 0 &&
+        !hasRuleId(selectedExclusive, rule.id)
+      ) {
+        openDialog(
+          `You can only select one rule from the group (18-22). You already have Rule ${
+            selectedExclusive[0]
+          } selected. Please deselect it first if you want to select Rule ${
+            rule.id + 1
+          }.`
+        );
+        return;
+      }
+    }
+
+    // If all validations pass, select the rule
+    onRuleSelect(rule);
   };
 
   return (
@@ -41,7 +98,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
                 >
                   <Checkbox
                     checked={isChecked}
-                    onCheckedChange={() => onRuleSelect(rule)}
+                    onCheckedChange={() => handleRuleSelect(rule)}
                     className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                   />
                   <span className="text-sm text-gray-700">
