@@ -85,37 +85,53 @@ function generateEmployeeDataJSON(input) {
 }
 
 function finalJsonForUpdate(input, replacements = {}) {
-  // Deep copy to avoid mutation
+  // deep copy to avoid mutation
   const dataCopy = JSON.parse(JSON.stringify(input));
 
-  // Replace objects in arrays or full array
+  // ✅ Handle rule deletion if deleteRuleId is provided
+  if (
+    replacements.deleteRuleId !== undefined &&
+    Array.isArray(dataCopy.rules)
+  ) {
+    const deleteId = String(replacements.deleteRuleId);
+    dataCopy.rules = dataCopy.rules.filter(
+      (r) => String(r.ruleId) !== deleteId
+    );
+  }
+
+  // ✅ Handle replacements and updates
   for (const key of Object.keys(replacements)) {
+    if (key === "deleteRuleId") continue; // skip our special key
+
     const replacement = replacements[key];
 
     if (Array.isArray(dataCopy[key])) {
       if (Array.isArray(replacement)) {
-        // Full array replacement
+        // full array replacement
         dataCopy[key] = replacement;
       } else if (replacement.filter && replacement.newValue) {
-        // Replace individual objects based on filter
-        const existingMatches = dataCopy[key].some(replacement.filter);
+        // replace individual objects based on filter
+        let replaced = false;
+        dataCopy[key] = dataCopy[key].map((obj) => {
+          if (replacement.filter(obj)) {
+            replaced = true;
+            return { ...obj, ...replacement.newValue };
+          }
+          return obj;
+        });
 
-        if (existingMatches) {
-          dataCopy[key] = dataCopy[key].map((obj) =>
-            replacement.filter(obj) ? { ...obj, ...replacement.newValue } : obj
-          );
-        } else {
-          // ✅ Add new rule if not found
+        // ✅ If rule not found, add it
+        if (!replaced && key === "rules") {
           dataCopy[key].push(replacement.newValue);
         }
       }
     } else {
-      // Handle scalar value replacements (like empId, strings, numbers, etc.)
+      // scalar replacement (like empId, holidays, etc.)
       dataCopy[key] = replacement;
     }
   }
 
-  // Generate final JSON
+  // Generate final formatted JSON
   return generateEmployeeDataJSON(dataCopy);
 }
 

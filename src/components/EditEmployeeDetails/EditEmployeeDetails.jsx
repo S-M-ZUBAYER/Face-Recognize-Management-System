@@ -125,10 +125,10 @@ const EditEmployeeDetails = () => {
         contactNumber: data.contactNumber || "",
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
-        employeeName: data.name?.split("<")[0] || "",
+        employeeName: data.name?.split("<")[1] || "",
         address: parseAddress(data.address),
         department: data.department || "",
-        email: emailParts[1] || "",
+        email: emailParts[0] || "",
         deviceName: data.deviceName || "",
         addedBy: data.addedBy || "",
         employeeImage: data.imageFile

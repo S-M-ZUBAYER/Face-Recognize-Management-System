@@ -1,10 +1,16 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import useAlertDialog from "@/zustand/useAlertDialog";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEffect } from "react";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   const { selectedEmployee } = useEmployeeStore();
   const { openDialog } = useAlertDialog();
+
+  // Force re-render when selectedEmployee changes
+  useEffect(() => {
+    // This will trigger a re-render whenever selectedEmployee updates
+  }, [selectedEmployee]);
 
   const getAllRuleIds = (rulesArray) => {
     if (!Array.isArray(rulesArray)) return [];

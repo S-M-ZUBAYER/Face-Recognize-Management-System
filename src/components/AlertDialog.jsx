@@ -2,6 +2,7 @@ import useAlertDialog from "@/zustand/useAlertDialog";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import image from "@/constants/image";
 
 function AlertDialog() {
   const { isOpen, dialogMessage, closeDialog } = useAlertDialog();
@@ -35,9 +36,10 @@ function AlertDialog() {
             </button>
 
             {/* Message Content */}
-            <div className="pr-6">
+            <div className="pr-6 flex flex-col items-center text-center space-y-2.5">
+              <img src={image.alert} alt="alert" />
               <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                Alert
+                Notice
               </h2>
               <p className="text-gray-700 text-sm leading-6">{dialogMessage}</p>
             </div>
@@ -46,7 +48,7 @@ function AlertDialog() {
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => closeDialog()}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="w-full px-4 py-2 bg-[#004368] hover:bg-[#004368] text-white text-sm font-medium rounded-lg transition-colors"
               >
                 OK
               </button>

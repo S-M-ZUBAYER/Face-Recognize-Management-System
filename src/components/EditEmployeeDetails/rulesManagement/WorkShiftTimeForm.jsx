@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
-import { TimeRangePicker } from "./TimePicker";
+import { TimeRangePicker } from "../../TimePicker";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ExcelFormatExample from "./ExcelFormatExample";
@@ -29,33 +29,60 @@ export const WorkShiftTimeForm = () => {
 
   const [dateConfigs, setDateConfigs] = useState({});
 
-  // Parse timeTables from API response
+  // Parse timeTables from API response with proper error handling
   const parseTimeTables = (timeTables) => {
     if (!timeTables) return [];
 
-    if (typeof timeTables === "string") {
-      try {
-        return JSON.parse(timeTables);
-      } catch (e) {
-        console.error("Error parsing timeTables string:", e);
-        return [];
+    try {
+      if (typeof timeTables === "string") {
+        const parsed = JSON.parse(timeTables);
+        return Array.isArray(parsed) ? parsed : [];
       }
+
+      if (Array.isArray(timeTables)) {
+        return timeTables
+          .map((item) => {
+            if (!item) return null;
+            if (typeof item === "string") {
+              try {
+                return JSON.parse(item);
+              } catch (e) {
+                console.error("Error parsing timeTable item:", e);
+                return null;
+              }
+            }
+            return item;
+          })
+          .filter(Boolean);
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error parsing timeTables:", error);
+      return [];
+    }
+  };
+
+  // Safe data access helper functions
+  const getSalaryRules = () => {
+    return selectedEmployee?.salaryRules || {};
+  };
+
+  const getRulesArray = () => {
+    const salaryRules = getSalaryRules();
+    if (!salaryRules.rules) return [];
+
+    if (Array.isArray(salaryRules.rules)) {
+      return salaryRules.rules;
     }
 
-    if (Array.isArray(timeTables)) {
-      return timeTables
-        .map((item) => {
-          if (typeof item === "string") {
-            try {
-              return JSON.parse(item);
-            } catch (e) {
-              console.error("Error parsing timeTable item:", e);
-              return null;
-            }
-          }
-          return item;
-        })
-        .filter(Boolean);
+    if (typeof salaryRules.rules === "string") {
+      try {
+        return JSON.parse(salaryRules.rules) || [];
+      } catch (error) {
+        console.error("Error parsing rules:", error);
+        return [];
+      }
     }
 
     return [];
@@ -63,22 +90,27 @@ export const WorkShiftTimeForm = () => {
 
   // Load data from selectedEmployee on component mount
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      const ruleZero = selectedEmployee.salaryRules.rules.find(
-        (rule) => rule.ruleId === 0 || rule.ruleId === "0"
-      );
+    if (!selectedEmployee) return;
 
-      if (ruleZero) {
-        setShiftType(ruleZero.param3 || "normal");
+    const rules = getRulesArray();
+    const ruleZero = rules.find(
+      (rule) => rule && (rule.ruleId === 0 || rule.ruleId === "0")
+    );
 
-        if (ruleZero.param3 === "normal" && ruleZero.param1) {
+    if (ruleZero) {
+      setShiftType(ruleZero.param3 || "normal");
+
+      // Load normal shift configuration
+      if (ruleZero.param3 === "normal") {
+        // Load working times
+        if (ruleZero.param1) {
           try {
             const parsedParam1 =
               typeof ruleZero.param1 === "string"
                 ? JSON.parse(ruleZero.param1)
                 : ruleZero.param1;
 
-            if (Array.isArray(parsedParam1)) {
+            if (Array.isArray(parsedParam1) && parsedParam1.length > 0) {
               const newWorkingTimes = parsedParam1.map((time, index) => ({
                 id: index + 1,
                 label: `Working Time ${index + 1}`,
@@ -92,14 +124,15 @@ export const WorkShiftTimeForm = () => {
           }
         }
 
-        if (ruleZero.param3 === "normal" && ruleZero.param2) {
+        // Load overtimes
+        if (ruleZero.param2) {
           try {
             const parsedParam2 =
               typeof ruleZero.param2 === "string"
                 ? JSON.parse(ruleZero.param2)
                 : ruleZero.param2;
 
-            if (Array.isArray(parsedParam2)) {
+            if (Array.isArray(parsedParam2) && parsedParam2.length > 0) {
               const newOvertimes = parsedParam2.map((time, index) => ({
                 id: index + 1,
                 label: `Overtime ${index + 1}`,
@@ -112,16 +145,14 @@ export const WorkShiftTimeForm = () => {
             console.error("Error parsing param2:", error);
           }
         }
+      }
 
-        // Load special dates and date-wise configurations
-        if (
-          ruleZero.param3 === "special" &&
-          selectedEmployee.salaryRules.timeTables
-        ) {
+      // Load special dates and date-wise configurations
+      if (ruleZero.param3 === "special") {
+        const salaryRules = getSalaryRules();
+        if (salaryRules.timeTables) {
           try {
-            const parsedTimeTables = parseTimeTables(
-              selectedEmployee.salaryRules.timeTables
-            );
+            const parsedTimeTables = parseTimeTables(salaryRules.timeTables);
 
             if (
               Array.isArray(parsedTimeTables) &&
@@ -131,19 +162,19 @@ export const WorkShiftTimeForm = () => {
               const dates = [];
 
               parsedTimeTables.forEach((table) => {
-                if (table.date) {
-                  const [year, month, day] = table.date.split("-");
-                  const dateObj = new Date(
-                    parseInt(year),
-                    parseInt(month) - 1,
-                    parseInt(day)
-                  );
-                  dates.push(dateObj);
+                if (table && table.date) {
+                  try {
+                    const [year, month, day] = table.date.split("-");
+                    const dateObj = new Date(
+                      parseInt(year),
+                      parseInt(month) - 1,
+                      parseInt(day)
+                    );
+                    dates.push(dateObj);
 
-                  // Parse working times for this date
-                  let workingTimesForDate = [];
-                  if (table.param1) {
-                    try {
+                    // Parse working times for this date
+                    let workingTimesForDate = [];
+                    if (table.param1) {
                       const parsedParam1 =
                         typeof table.param1 === "string"
                           ? JSON.parse(table.param1)
@@ -154,20 +185,16 @@ export const WorkShiftTimeForm = () => {
                           (time, index) => ({
                             id: index + 1,
                             label: `Working Time ${index + 1}`,
-                            startTime: time.start || "08:00",
-                            endTime: time.end || "12:00",
+                            startTime: time?.start || "08:00",
+                            endTime: time?.end || "12:00",
                           })
                         );
                       }
-                    } catch (error) {
-                      console.error("Error parsing date param1:", error);
                     }
-                  }
 
-                  // Parse overtime for this date
-                  let overtimesForDate = [];
-                  if (table.param2) {
-                    try {
+                    // Parse overtime for this date
+                    let overtimesForDate = [];
+                    if (table.param2) {
                       const parsedParam2 =
                         typeof table.param2 === "string"
                           ? JSON.parse(table.param2)
@@ -177,19 +204,19 @@ export const WorkShiftTimeForm = () => {
                         overtimesForDate = parsedParam2.map((time, index) => ({
                           id: index + 1,
                           label: `Overtime ${index + 1}`,
-                          startTime: time.start || "18:00",
-                          endTime: time.end || "20:00",
+                          startTime: time?.start || "18:00",
+                          endTime: time?.end || "20:00",
                         }));
                       }
-                    } catch (error) {
-                      console.error("Error parsing date param2:", error);
                     }
-                  }
 
-                  dateConfigsMap[table.date] = {
-                    workingTimes: workingTimesForDate,
-                    overtimes: overtimesForDate,
-                  };
+                    dateConfigsMap[table.date] = {
+                      workingTimes: workingTimesForDate,
+                      overtimes: overtimesForDate,
+                    };
+                  } catch (error) {
+                    console.error("Error processing table:", table, error);
+                  }
                 }
               });
 
@@ -211,30 +238,31 @@ export const WorkShiftTimeForm = () => {
 
   // Update current working times and overtime when selected date changes
   useEffect(() => {
-    if (shiftType === "special" && selectedDate && dateConfigs[selectedDate]) {
-      setWorkingTimes(dateConfigs[selectedDate].workingTimes);
-      setOvertimes(dateConfigs[selectedDate].overtimes);
+    if (shiftType === "special" && selectedDate) {
+      const config = dateConfigs[selectedDate];
+      if (config) {
+        setWorkingTimes(config.workingTimes || []);
+        setOvertimes(config.overtimes || []);
+      } else {
+        // Initialize with default values if no config exists
+        setWorkingTimes([
+          {
+            id: 1,
+            label: "Working Time 1",
+            startTime: "08:00",
+            endTime: "12:00",
+          },
+        ]);
+        setOvertimes([
+          { id: 1, label: "Overtime 1", startTime: "18:00", endTime: "20:00" },
+        ]);
+      }
     }
   }, [selectedDate, shiftType, dateConfigs]);
 
-  // Save current configuration for the selected date
-  const saveDateConfig = () => {
-    if (shiftType === "special" && selectedDate) {
-      setDateConfigs((prev) => ({
-        ...prev,
-        [selectedDate]: {
-          workingTimes: [...workingTimes],
-          overtimes: [...overtimes],
-        },
-      }));
-
-      toast.success(`Configuration saved for ${selectedDate}`);
-    }
-  };
-
   const addWorkingTime = () => {
-    const newId = Math.max(...workingTimes.map((w) => w.id), 0) + 1;
-    setWorkingTimes([
+    const newId = Math.max(0, ...workingTimes.map((w) => w.id)) + 1;
+    const newWorkingTimes = [
       ...workingTimes,
       {
         id: newId,
@@ -242,12 +270,23 @@ export const WorkShiftTimeForm = () => {
         startTime: "09:00",
         endTime: "18:00",
       },
-    ]);
+    ];
+    setWorkingTimes(newWorkingTimes);
+
+    if (shiftType === "special" && selectedDate) {
+      setDateConfigs((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          ...prev[selectedDate],
+          workingTimes: newWorkingTimes,
+        },
+      }));
+    }
   };
 
   const addOvertime = () => {
-    const newId = Math.max(...overtimes.map((o) => o.id), 0) + 1;
-    setOvertimes([
+    const newId = Math.max(0, ...overtimes.map((o) => o.id)) + 1;
+    const newOvertimes = [
       ...overtimes,
       {
         id: newId,
@@ -255,31 +294,86 @@ export const WorkShiftTimeForm = () => {
         startTime: "18:00",
         endTime: "22:00",
       },
-    ]);
+    ];
+    setOvertimes(newOvertimes);
+
+    if (shiftType === "special" && selectedDate) {
+      setDateConfigs((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          ...prev[selectedDate],
+          overtimes: newOvertimes,
+        },
+      }));
+    }
   };
 
   const removeWorkingTime = (id) => {
     if (workingTimes.length > 1) {
-      setWorkingTimes(workingTimes.filter((wt) => wt.id !== id));
+      const newWorkingTimes = workingTimes.filter((wt) => wt.id !== id);
+      setWorkingTimes(newWorkingTimes);
+
+      if (shiftType === "special" && selectedDate) {
+        setDateConfigs((prev) => ({
+          ...prev,
+          [selectedDate]: {
+            ...prev[selectedDate],
+            workingTimes: newWorkingTimes,
+          },
+        }));
+      }
     } else {
       toast.error("At least one working time is required");
     }
   };
 
   const removeOvertime = (id) => {
-    setOvertimes(overtimes.filter((ot) => ot.id !== id));
+    const newOvertimes = overtimes.filter((ot) => ot.id !== id);
+    setOvertimes(newOvertimes);
+
+    if (shiftType === "special" && selectedDate) {
+      setDateConfigs((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          ...prev[selectedDate],
+          overtimes: newOvertimes,
+        },
+      }));
+    }
   };
 
   const updateWorkingTime = (id, field, value) => {
-    setWorkingTimes((prev) =>
-      prev.map((wt) => (wt.id === id ? { ...wt, [field]: value } : wt))
+    const newWorkingTimes = workingTimes.map((wt) =>
+      wt.id === id ? { ...wt, [field]: value } : wt
     );
+    setWorkingTimes(newWorkingTimes);
+
+    if (shiftType === "special" && selectedDate) {
+      setDateConfigs((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          ...prev[selectedDate],
+          workingTimes: newWorkingTimes,
+        },
+      }));
+    }
   };
 
   const updateOvertime = (id, field, value) => {
-    setOvertimes((prev) =>
-      prev.map((ot) => (ot.id === id ? { ...ot, [field]: value } : ot))
+    const newOvertimes = overtimes.map((ot) =>
+      ot.id === id ? { ...ot, [field]: value } : ot
     );
+    setOvertimes(newOvertimes);
+
+    if (shiftType === "special" && selectedDate) {
+      setDateConfigs((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          ...prev[selectedDate],
+          overtimes: newOvertimes,
+        },
+      }));
+    }
   };
 
   const excelTimeToString = (excelTime) => {
@@ -291,7 +385,7 @@ export const WorkShiftTimeForm = () => {
       const minutes = (totalMinutes % 60).toString().padStart(2, "0");
       return `${hours}:${minutes}`;
     }
-    return excelTime;
+    return excelTime || "00:00";
   };
 
   const handleExcelUpload = async (e) => {
@@ -305,7 +399,7 @@ export const WorkShiftTimeForm = () => {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      const header = rows[0]?.map((h) => h?.toString().toLowerCase());
+      const header = rows[0]?.map((h) => h?.toString().toLowerCase()) || [];
       if (
         !header?.includes("type") ||
         !header?.includes("start") ||
@@ -356,9 +450,27 @@ export const WorkShiftTimeForm = () => {
 
       if (newWorking.length > 0) {
         setWorkingTimes(newWorking);
+        if (shiftType === "special" && selectedDate) {
+          setDateConfigs((prev) => ({
+            ...prev,
+            [selectedDate]: {
+              ...prev[selectedDate],
+              workingTimes: newWorking,
+            },
+          }));
+        }
       }
       if (newOvertime.length > 0) {
         setOvertimes(newOvertime);
+        if (shiftType === "special" && selectedDate) {
+          setDateConfigs((prev) => ({
+            ...prev,
+            [selectedDate]: {
+              ...prev[selectedDate],
+              overtimes: newOvertime,
+            },
+          }));
+        }
       }
 
       toast.success("Shift times imported successfully!");
@@ -421,12 +533,52 @@ export const WorkShiftTimeForm = () => {
         return;
       }
 
+      // Validation for special dates
+      if (shiftType === "special") {
+        if (specialDates.length === 0) {
+          toast.error("Please select at least one special date!");
+          return;
+        }
+
+        // Check each special date has at least one working time and overtime
+        for (const date of specialDates) {
+          const dateStr = formatDateForDisplay(date);
+          const config = dateConfigs[dateStr];
+
+          if (
+            !config ||
+            !config.workingTimes ||
+            config.workingTimes.length === 0
+          ) {
+            toast.error(`Please add at least one working time for ${dateStr}!`);
+            return;
+          }
+
+          if (!config || !config.overtimes || config.overtimes.length === 0) {
+            toast.error(`Please add at least one overtime for ${dateStr}!`);
+            return;
+          }
+        }
+      }
+
+      // Validation for normal shift type
+      if (shiftType === "normal") {
+        if (workingTimes.length === 0) {
+          toast.error("Please add at least one working time before saving!");
+          return;
+        }
+        if (overtimes.length === 0) {
+          toast.error("Please add at least one overtime before saving!");
+          return;
+        }
+      }
+
       const employeeId = selectedEmployee.employeeId.toString();
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
+      const salaryRules = getSalaryRules();
+      const existingRules = getRulesArray();
 
       const existingRuleZero = existingRules.find(
-        (r) => r.ruleId === 0 || r.ruleId === "0"
+        (r) => r && (r.ruleId === 0 || r.ruleId === "0")
       );
 
       const workingTimesData = JSON.stringify(
@@ -473,14 +625,14 @@ export const WorkShiftTimeForm = () => {
         };
 
         const workingTimesData = JSON.stringify(
-          config.workingTimes.map((wt) => ({
+          (config.workingTimes || []).map((wt) => ({
             start: wt.startTime,
             end: wt.endTime,
           }))
         );
 
         const overtimeData = JSON.stringify(
-          config.overtimes.map((ot) => ({
+          (config.overtimes || []).map((ot) => ({
             start: ot.startTime,
             end: ot.endTime,
           }))
@@ -504,12 +656,10 @@ export const WorkShiftTimeForm = () => {
         empId: employeeId,
         timeTables: timeTablesObjects,
         rules: {
-          filter: (r) => r.ruleId === 0 || r.ruleId === "0",
+          filter: (r) => r && (r.ruleId === 0 || r.ruleId === "0"),
           newValue: ruleZero,
         },
       });
-
-      console.log("🧩 Final Generated JSON:", updatedJSON);
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
@@ -523,6 +673,31 @@ export const WorkShiftTimeForm = () => {
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
       toast.error("Failed to update shift rules.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (!selectedEmployee) {
+        toast.error("No employee selected");
+        return;
+      }
+
+      const salaryRules = getSalaryRules();
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 0,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -608,17 +783,9 @@ export const WorkShiftTimeForm = () => {
 
               {selectedDate && (
                 <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold">
-                      Configuration for {selectedDate}
-                    </h4>
-                    <button
-                      onClick={saveDateConfig}
-                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
-                    >
-                      Save for this Date
-                    </button>
-                  </div>
+                  <h4 className="text-sm font-semibold">
+                    Configuration for {selectedDate}
+                  </h4>
 
                   {/* Working Times for Selected Date */}
                   <div>
@@ -821,14 +988,25 @@ export const WorkShiftTimeForm = () => {
         </ul>
       </div>
 
-      {/* Save */}
-      <button
-        onClick={handleSave}
-        disabled={updating}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+      </div>
     </div>
   );
 };

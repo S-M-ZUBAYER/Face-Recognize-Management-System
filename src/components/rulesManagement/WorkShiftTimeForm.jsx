@@ -1,16 +1,23 @@
-import React, { useState } from "react";
-import * as XLSX from "xlsx"; // 👈 import XLSX here
-import { Plus } from "lucide-react";
-import { TimeRangePicker } from "./TimePicker";
+import React, { useState, useCallback } from "react";
+import * as XLSX from "xlsx";
+import { Plus, Trash2, Calendar } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ExcelFormatExample from "./ExcelFormatExample";
 import toast from "react-hot-toast";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { TimeRangePicker } from "../TimePicker";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 
 export const WorkShiftTimeForm = () => {
+  const { selectedEmployees } = useSelectedEmployeeStore();
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
+  const [selectedDateForConfig, setSelectedDateForConfig] = useState(null);
+
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
@@ -20,6 +27,43 @@ export const WorkShiftTimeForm = () => {
   const [overtimes, setOvertimes] = useState([
     { id: 1, label: "Overtime 1", startTime: "18:00", endTime: "20:00" },
   ]);
+
+  // Date-wise configuration storage
+  const [dateConfigs, setDateConfigs] = useState({});
+
+  const formatDateForDisplay = (date) => {
+    return date instanceof Date
+      ? date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+  };
+
+  // Get current config for selected date
+  const getCurrentDateConfig = () => {
+    if (!selectedDateForConfig) return null;
+    const dateStr = selectedDateForConfig;
+    return (
+      dateConfigs[dateStr] || {
+        workingTimes: [],
+        overtimes: [],
+      }
+    );
+  };
+
+  // Update date config
+  const updateDateConfig = useCallback((dateStr, config) => {
+    setDateConfigs((prev) => ({
+      ...prev,
+      [dateStr]: config,
+    }));
+  }, []);
 
   // ===== Add handlers =====
   const addWorkingTime = () => {
@@ -48,6 +92,44 @@ export const WorkShiftTimeForm = () => {
     ]);
   };
 
+  const addWorkingTimeToDate = () => {
+    if (!selectedDateForConfig) return;
+    const dateStr = selectedDateForConfig;
+    const config = getCurrentDateConfig();
+    const newId = Math.max(...config.workingTimes.map((w) => w.id || 0), 0) + 1;
+    updateDateConfig(dateStr, {
+      ...config,
+      workingTimes: [
+        ...config.workingTimes,
+        {
+          id: newId,
+          label: `Working Time ${newId}`,
+          startTime: "09:00",
+          endTime: "18:00",
+        },
+      ],
+    });
+  };
+
+  const addOvertimeToDate = () => {
+    if (!selectedDateForConfig) return;
+    const dateStr = selectedDateForConfig;
+    const config = getCurrentDateConfig();
+    const newId = Math.max(...config.overtimes.map((o) => o.id || 0), 0) + 1;
+    updateDateConfig(dateStr, {
+      ...config,
+      overtimes: [
+        ...config.overtimes,
+        {
+          id: newId,
+          label: `Overtime ${newId}`,
+          startTime: "18:00",
+          endTime: "22:00",
+        },
+      ],
+    });
+  };
+
   const updateWorkingTime = (id, field, value) => {
     setWorkingTimes((prev) =>
       prev.map((wt) => (wt.id === id ? { ...wt, [field]: value } : wt))
@@ -60,7 +142,51 @@ export const WorkShiftTimeForm = () => {
     );
   };
 
-  // Convert Excel time (fraction of a day) to HH:mm string
+  const updateWorkingTimeToDate = (id, field, value) => {
+    if (!selectedDateForConfig) return;
+    const dateStr = selectedDateForConfig;
+    const config = getCurrentDateConfig();
+    updateDateConfig(dateStr, {
+      ...config,
+      workingTimes: config.workingTimes.map((wt) =>
+        wt.id === id ? { ...wt, [field]: value } : wt
+      ),
+    });
+  };
+
+  const updateOvertimeToDate = (id, field, value) => {
+    if (!selectedDateForConfig) return;
+    const dateStr = selectedDateForConfig;
+    const config = getCurrentDateConfig();
+    updateDateConfig(dateStr, {
+      ...config,
+      overtimes: config.overtimes.map((ot) =>
+        ot.id === id ? { ...ot, [field]: value } : ot
+      ),
+    });
+  };
+
+  const deleteWorkingTimeFromDate = (id) => {
+    if (!selectedDateForConfig) return;
+    const dateStr = selectedDateForConfig;
+    const config = getCurrentDateConfig();
+    updateDateConfig(dateStr, {
+      ...config,
+      workingTimes: config.workingTimes.filter((wt) => wt.id !== id),
+    });
+  };
+
+  const deleteOvertimeFromDate = (id) => {
+    if (!selectedDateForConfig) return;
+    const dateStr = selectedDateForConfig;
+    const config = getCurrentDateConfig();
+    updateDateConfig(dateStr, {
+      ...config,
+      overtimes: config.overtimes.filter((ot) => ot.id !== id),
+    });
+  };
+
+  // Convert Excel time to HH:mm string
   const excelTimeToString = (excelTime) => {
     if (typeof excelTime === "number") {
       const totalMinutes = Math.round(excelTime * 24 * 60);
@@ -70,7 +196,21 @@ export const WorkShiftTimeForm = () => {
       const minutes = (totalMinutes % 60).toString().padStart(2, "0");
       return `${hours}:${minutes}`;
     }
-    return excelTime; // already string
+    return excelTime;
+  };
+
+  const handleCalendarSelect = (dates) => {
+    if (dates) {
+      const fixedDates = dates.map((date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      });
+      setSpecialDates(fixedDates);
+    } else {
+      setSpecialDates([]);
+    }
   };
 
   // ===== 📂 Excel Upload Handler =====
@@ -85,7 +225,6 @@ export const WorkShiftTimeForm = () => {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      // rows like: [["Type","Start","End"],["working","09:00","12:00"], ...]
       const header = rows[0]?.map((h) => h.toLowerCase());
       if (
         !header.includes("type") ||
@@ -138,19 +277,173 @@ export const WorkShiftTimeForm = () => {
       toast.success("Shift times imported successfully!");
     } catch (err) {
       console.error("Excel read error:", err);
-      alert("Failed to read Excel file. Please check the format.");
+      toast.error("Failed to read Excel file. Please check the format.");
     }
   };
 
   // ===== Save handler =====
-  const handleSave = () => {
-    const formData = {
-      shiftType,
-      workingTimes,
-      overtimes,
-    };
-    console.log("Saved Shift:", formData);
+  const handleSave = async () => {
+    try {
+      if (shiftType === "normal") {
+        if (workingTimes.length === 0) {
+          toast.error("Please add at least one working time before saving!");
+          return;
+        }
+        if (overtimes.length === 0) {
+          toast.error("Please add at least one overtime before saving!");
+          return;
+        }
+      }
+
+      if (shiftType === "special") {
+        if (specialDates.length === 0) {
+          toast.error("Please select at least one special date!");
+          return;
+        }
+
+        // Check for each selected date
+        for (const date of specialDates) {
+          const dateStr = date;
+          const config = dateConfigs[dateStr];
+          if (!config || config.workingTimes.length === 0) {
+            toast.error(
+              `Please add at least one working time for ${formatDateForDisplay(
+                date
+              )}!`
+            );
+            return;
+          }
+          if (!config || config.overtimes.length === 0) {
+            toast.error(
+              `Please add at least one overtime for ${formatDateForDisplay(
+                date
+              )}!`
+            );
+            return;
+          }
+        }
+      }
+
+      // Check if any employees are selected
+      if (selectedEmployees.length === 0) {
+        toast.error("Please select at least one employee!");
+        return;
+      }
+
+      // ✅ Continue with saving for selected employees
+      for (const emp of selectedEmployees) {
+        if (!emp?.employeeId) {
+          toast.error("Invalid employee data");
+          continue;
+        }
+
+        const employeeId = emp.employeeId.toString();
+        const salaryRules = emp.salaryRules || {};
+        const existingRules = Array.isArray(salaryRules.rules)
+          ? salaryRules.rules
+          : JSON.parse(salaryRules.rules || "[]");
+
+        const existingRuleZero = existingRules.find(
+          (r) => r.ruleId === 0 || r.ruleId === "0"
+        );
+
+        const workingTimesData = JSON.stringify(
+          workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
+        );
+        const overtimeData = JSON.stringify(
+          overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime }))
+        );
+
+        const normalizeParam = (v) =>
+          Array.isArray(v) ? JSON.stringify(v) : v ?? "";
+
+        const ruleZero =
+          shiftType === "normal"
+            ? {
+                id: existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
+                empId: employeeId,
+                ruleId: "0",
+                ruleStatus: 1,
+                param1: normalizeParam(workingTimesData),
+                param2: normalizeParam(overtimeData),
+                param3: "normal",
+                param4: "",
+                param5: "",
+                param6: "",
+              }
+            : {
+                id: existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
+                empId: employeeId,
+                ruleId: "0",
+                ruleStatus: 1,
+                param1: "[]",
+                param2: "[]",
+                param3: "special",
+                param4: "",
+                param5: "",
+                param6: "",
+              };
+
+        const timeTablesObjects = specialDates.map((date, index) => {
+          const dateStr = date;
+          const config = dateConfigs[dateStr] || {
+            workingTimes: [],
+            overtimes: [],
+          };
+
+          return {
+            id: index + 1,
+            empId: employeeId,
+            ruleId: "0",
+            date: dateStr,
+            param1: normalizeParam(
+              config.workingTimes.map((wt) => ({
+                start: wt.startTime,
+                end: wt.endTime,
+              }))
+            ),
+            param2: normalizeParam(
+              config.overtimes.map((ot) => ({
+                start: ot.startTime,
+                end: ot.endTime,
+              }))
+            ),
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        });
+
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: employeeId,
+          timeTables: timeTablesObjects,
+          rules: {
+            filter: (r) => r.ruleId === 0 || r.ruleId === "0",
+            newValue: ruleZero,
+          },
+        });
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        console.log("Saving payload for employee:", employeeId, payload);
+
+        // ✅ Use the mutation function instead of calling the hook directly
+        await updateEmployee({
+          mac: emp?.deviceMAC || "",
+          id: employeeId,
+          payload,
+        });
+
+        toast.success(`Shift configuration saved for employee ${employeeId}!`);
+      }
+    } catch (error) {
+      console.error("❌ Error saving shift rules:", error);
+      toast.error("Failed to save shift configuration.");
+    }
   };
+
+  const currentDateConfig = getCurrentDateConfig();
 
   return (
     <div className="space-y-3">
@@ -181,13 +474,15 @@ export const WorkShiftTimeForm = () => {
         </RadioGroup>
       </div>
 
+      {/* Special Dates Calendar */}
       {shiftType === "special" && (
         <div className="mt-4 mx-[8vw]">
-          <Calendar
+          <h3 className="text-sm font-semibold mb-3">Select Special Dates</h3>
+          <CalendarComponent
             mode="multiple"
-            selected={specialDates}
-            onSelect={setSpecialDates}
-            className="rounded-md border w-[18vw] "
+            selected={specialDates.map((date) => new Date(date))}
+            onSelect={handleCalendarSelect}
+            className="rounded-md border w-[18vw]"
             modifiersStyles={{
               today: {
                 backgroundColor: "transparent",
@@ -198,67 +493,178 @@ export const WorkShiftTimeForm = () => {
         </div>
       )}
 
-      {/* Working Times */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Select work shift time</h3>
-        <div className="space-y-1.5">
-          {workingTimes.map((wt) => (
-            <TimeRangePicker
-              key={wt.id}
-              label={wt.label}
-              startTime={wt.startTime}
-              endTime={wt.endTime}
-              onStartChange={(value) =>
-                updateWorkingTime(wt.id, "startTime", value)
-              }
-              onEndChange={(value) =>
-                updateWorkingTime(wt.id, "endTime", value)
-              }
-            />
-          ))}
+      {/* Date-wise Configuration for Special Type */}
+      {shiftType === "special" && specialDates.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Configure Shift for Selected Dates
+          </h3>
 
-          <div className="w-full flex justify-end">
-            <button
-              onClick={addWorkingTime}
-              type="button"
-              className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-4 py-2 rounded-sm "
-            >
-              <Plus className="w-4 h-4" />
-              Add Working Time
-            </button>
+          {/* Date Selector */}
+          <div className="flex gap-2 flex-wrap">
+            {specialDates.map((date) => (
+              <button
+                key={date}
+                onClick={() => setSelectedDateForConfig(date)}
+                className={`px-3 py-2 rounded-md text-sm transition-all ${
+                  selectedDateForConfig && selectedDateForConfig === date
+                    ? "bg-[#004368] text-white"
+                    : "bg-white border border-gray-300 text-gray-700 hover:border-[#004368]"
+                }`}
+              >
+                <Calendar className="w-3 h-3 inline mr-1" />
+                {formatDateForDisplay(date)}
+              </button>
+            ))}
           </div>
+
+          {/* Working Times for Selected Date */}
+          {selectedDateForConfig && (
+            <div className="space-y-2">
+              <div className="space-y-1.5">
+                {currentDateConfig?.workingTimes.map((wt) => (
+                  <TimeRangePicker
+                    key={wt.id}
+                    label={wt.label}
+                    startTime={wt.startTime}
+                    endTime={wt.endTime}
+                    onStartChange={(value) =>
+                      updateWorkingTimeToDate(wt.id, "startTime", value)
+                    }
+                    onEndChange={(value) =>
+                      updateWorkingTimeToDate(wt.id, "endTime", value)
+                    }
+                    removeFn={() => deleteWorkingTimeFromDate(wt.id)}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={addWorkingTimeToDate}
+                className="flex items-center gap-2 text-xs text-white font-medium bg-[#004368] px-3 py-1.5 rounded"
+              >
+                <Plus className="w-3 h-3" />
+                Add Working Time
+              </button>
+            </div>
+          )}
+
+          {/* Overtimes for Selected Date */}
+          {selectedDateForConfig && (
+            <div className="space-y-2">
+              <div className="space-y-1.5">
+                {currentDateConfig?.overtimes.map((ot) => (
+                  <TimeRangePicker
+                    key={ot.id}
+                    label={ot.label}
+                    startTime={ot.startTime}
+                    endTime={ot.endTime}
+                    onStartChange={(value) =>
+                      updateOvertimeToDate(ot.id, "startTime", value)
+                    }
+                    onEndChange={(value) =>
+                      updateOvertimeToDate(ot.id, "endTime", value)
+                    }
+                    removeFn={() => deleteOvertimeFromDate(ot.id)}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={addOvertimeToDate}
+                className="flex items-center gap-2 text-xs text-white font-medium bg-[#004368] px-3 py-1.5 rounded"
+              >
+                <Plus className="w-3 h-3" />
+                Add Overtime
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Overtime */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Select work Overtime</h3>
-        <div className="space-y-1.5">
-          {overtimes.map((ot) => (
-            <TimeRangePicker
-              key={ot.id}
-              label={ot.label}
-              startTime={ot.startTime}
-              endTime={ot.endTime}
-              onStartChange={(value) =>
-                updateOvertime(ot.id, "startTime", value)
-              }
-              onEndChange={(value) => updateOvertime(ot.id, "endTime", value)}
-            />
-          ))}
+      {/* Normal Type - Working Times */}
+      {shiftType === "normal" && (
+        <>
+          <div>
+            <h3 className="text-sm font-semibold mb-3">
+              Select work shift time
+            </h3>
+            <div className="space-y-1.5">
+              {workingTimes.map((wt) => (
+                <TimeRangePicker
+                  key={wt.id}
+                  label={wt.label}
+                  startTime={wt.startTime}
+                  endTime={wt.endTime}
+                  onStartChange={(value) =>
+                    updateWorkingTime(wt.id, "startTime", value)
+                  }
+                  onEndChange={(value) =>
+                    updateWorkingTime(wt.id, "endTime", value)
+                  }
+                  removeFn={() => {
+                    if (workingTimes.length > 1) {
+                      setWorkingTimes(
+                        workingTimes.filter((w) => w.id !== wt.id)
+                      );
+                    } else {
+                      toast.error("At least one working time is required");
+                    }
+                  }}
+                />
+              ))}
 
-          <div className="w-full flex justify-end">
-            <button
-              onClick={addOvertime}
-              type="button"
-              className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-8 py-2 rounded-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Overtime
-            </button>
+              <div className="w-full flex justify-end">
+                <button
+                  onClick={addWorkingTime}
+                  type="button"
+                  className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-4 py-2 rounded-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Working Time
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* Normal Type - Overtime */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Select work Overtime</h3>
+            <div className="space-y-1.5">
+              {overtimes.map((ot) => (
+                <TimeRangePicker
+                  key={ot.id}
+                  label={ot.label}
+                  startTime={ot.startTime}
+                  endTime={ot.endTime}
+                  onStartChange={(value) =>
+                    updateOvertime(ot.id, "startTime", value)
+                  }
+                  onEndChange={(value) =>
+                    updateOvertime(ot.id, "endTime", value)
+                  }
+                  removeFn={() => {
+                    if (overtimes.length > 1) {
+                      setOvertimes(overtimes.filter((o) => o.id !== ot.id));
+                    } else {
+                      toast.error("At least one overtime is required");
+                    }
+                  }}
+                />
+              ))}
+
+              <div className="w-full flex justify-end">
+                <button
+                  onClick={addOvertime}
+                  type="button"
+                  className="flex items-center gap-2 text-sm text-white font-medium bg-[#004368] px-8 py-2 rounded-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Overtime
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Excel Import */}
       <div>
@@ -270,7 +676,7 @@ export const WorkShiftTimeForm = () => {
             <input
               type="file"
               accept=".xls,.xlsx"
-              onChange={handleExcelUpload} // 👈 added here
+              onChange={handleExcelUpload}
               className="hidden"
             />
             <div className="flex items-center gap-1.5">
@@ -294,26 +700,21 @@ export const WorkShiftTimeForm = () => {
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              You can set multiple shift.For example,setting it to 0 allows
-              flexible clock-in with no shift restrictions,but you must set a
-              cross-midnight time.Once set,the system will treat time after that
-              point as a new day.Clock-in records will automatically wrap to the
-              next line. For example,if the default new day starts at 00:00 and
-              you set it to 05:00,then clock-ins after 5 AM will be treated as a
-              new day and shown on the next line.
+              You can set multiple shift. For example, setting it to 0 allows
+              flexible clock-in with no shift restrictions, but you must set a
+              cross-midnight time.
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              You can also set 1,2,3 etc.Which refers to several shift
-              groups.Once set, you need to configure the start and end times for
-              each group.
+              For special dates, you can configure different shift times for
+              each date independently.
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
-            <span> So set the shift according to your actual needs.</span>
+            <span> Set the shift according to your actual needs.</span>
           </li>
         </ul>
       </div>
@@ -321,9 +722,10 @@ export const WorkShiftTimeForm = () => {
       {/* Save */}
       <button
         onClick={handleSave}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
+        disabled={updating}
+        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Save
+        {updating ? "Saving..." : "Save"}
       </button>
     </div>
   );

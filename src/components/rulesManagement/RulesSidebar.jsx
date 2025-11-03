@@ -2,7 +2,7 @@ import { Checkbox } from "../ui/checkbox";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   return (
-    <div className="w-[30%] bg-white border rounded-md border-gray-200 ">
+    <div className="w-[25%] bg-white border rounded-md border-gray-200 ">
       <div className="p-6">
         <h1 className="text-xl font-bold mb-6">Salary Rules</h1>
         <div className=" overflow-y-auto h-[70vh] custom-scrollbar ">
