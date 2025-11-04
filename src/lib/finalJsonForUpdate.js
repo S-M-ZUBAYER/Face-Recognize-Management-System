@@ -34,6 +34,8 @@ function generateEmployeeDataJSON(input) {
     ...tt,
     empId: String(tt.empId),
     ruleId: String(tt.ruleId),
+    param1: JSON.stringify(tt.param1),
+    param2: JSON.stringify(tt.param2),
   });
 
   const safeStringify = (value) => {

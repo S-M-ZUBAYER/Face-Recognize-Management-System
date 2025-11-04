@@ -4,7 +4,7 @@ import { Checkbox } from "../ui/checkbox";
 import EmployeeModal from "./EmployeeModal";
 import { useOverTimeData } from "@/hook/useOverTimeData";
 import { useNavigate } from "react-router-dom";
-import image from "@/constants/image";
+import SetModal from "./modal/SetModal";
 
 const EmployeeManagementTable = ({ employees = [] }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
@@ -165,11 +165,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
             Select All ({selectedEmployees.length} selected)
           </p>
           {selectedEmployees.length > 1 && (
-            <img
-              src={image.settingIcon}
-              alt="Settings"
-              className="w-5 h-5 cursor-pointer"
-            />
+            <SetModal selectedEmployees={selectedEmployeeData} />
           )}
         </div>
 

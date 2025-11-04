@@ -16,6 +16,7 @@ import {
   LeaveManagementIcon,
   RulesIcon,
   LogoutIcon,
+  PayPeriodIcon,
 } from "@/constants/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { base64ToImage } from "@/lib/base64Toimage";
@@ -44,17 +45,18 @@ const links = [
     icon: AdminManagementIcon,
     path: "/admin-management",
   },
-  {
-    label: "Task management",
-    icon: TaskManagementIcon,
-    path: "/task-management",
-  },
+  // {
+  //   label: "Task management",
+  //   icon: TaskManagementIcon,
+  //   path: "/task-management",
+  // },
   {
     label: "Leave approval",
     icon: LeaveManagementIcon,
     path: "/leave-approval",
   },
   { label: "Rules", icon: RulesIcon, path: "/rules" },
+  { label: "PayPeriod", icon: PayPeriodIcon, path: "/pay-period" },
 ];
 
 const Sidebar = () => {
