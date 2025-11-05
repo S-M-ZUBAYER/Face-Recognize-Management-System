@@ -213,7 +213,7 @@ function BiWeeklyForm() {
       overtimeSalary: 0, // Not used for BiWeekly
       payPeriod: "biWeekly",
       salary: parseFloat(basic) || 0, // Basic salary field
-      selectedOvertimeOption: 2, // Always fixed input for BiWeekly
+      selectedOvertimeOption: 1, // Always fixed input for BiWeekly
       shift: selectedEmployee?.payPeriod?.shift || "Morning",
       startDay: selectedWeekdayIndex, // Weekday index (Monday = 0, Tuesday = 1, ..., Sunday = 6)
       startWeek: parseInt(selectedDate) || 1, // Selected date

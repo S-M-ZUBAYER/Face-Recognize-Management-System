@@ -107,9 +107,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
                       <Calendar className="w-5 h-5 text-[#004368]" />
                     </div>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">
-                        Pay Period Settings
-                      </p>
+                      <p className="font-semibold text-gray-900">Pay Period</p>
                       <p className="text-xs text-gray-500">
                         Configure payment cycles
                       </p>
@@ -129,9 +127,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
                       <BookOpen className="w-5 h-5 text-amber-600" />
                     </div>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">
-                        Rules & Guidelines
-                      </p>
+                      <p className="font-semibold text-gray-900">Rules</p>
                       <p className="text-xs text-gray-500">
                         Set salary rules and shifts
                       </p>
@@ -143,7 +139,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
               {/* Footer */}
               <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center">
-                  Changes apply to selected employees
+                  Changes PayPeriod & Rules to selected employees
                 </p>
               </div>
             </motion.div>

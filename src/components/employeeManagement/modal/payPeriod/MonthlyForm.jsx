@@ -1,186 +1,217 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import image from "@/constants/image";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
-import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+
+const OVERTIME_OPTIONS = [
+  {
+    id: "auto-calc",
+    label: "Automatic Calculation (Day)",
+    placeholder: "000",
+    disabled: true,
+  },
+  {
+    id: "fixed-input",
+    label: "Fixed Input (Hour)",
+    placeholder: "Enter Overtime Rate",
+    disabled: false,
+  },
+];
+
+const SALARY_SECTION_TYPES = {
+  BASIC: "basic-salary",
+  OTHER: "other-salary",
+};
 
 function MonthlyForm() {
-  const [basic, setBasic] = useState("");
+  const [formData, setFormData] = useState({
+    basic: "",
+    workingDay: "",
+    workingHours: "",
+    overtimeRate: "",
+    selectedOvertimeOption: "",
+    selectedDate: "",
+  });
+
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
-  const [workingDay, setWorkingDay] = useState("");
-  const [workingHours, setWorkingHours] = useState("");
-  const [overtimeRate, setOvertimeRate] = useState("");
-  const [selectedOvertimeOption, setSelectedOvertimeOption] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
-
-  // Calculate other salary total from additional salaries
-  const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
-    return total + (parseFloat(salary.amount) || 0);
-  }, 0);
-
+  const { selectedEmployees, updateEmployeeSalaryInfo } =
+    useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Calculate automatic overtime when basic, other salary total, or working day changes
-  useEffect(() => {
-    if (selectedOvertimeOption === "auto-calc" && basic && workingDay) {
-      const basicNum = parseFloat(basic) || 0;
-      const workingDayNum = parseFloat(workingDay) || 1; // Avoid division by zero
-      const calculatedOvertime = (basicNum + otherSalaryTotal) / workingDayNum;
-      setOvertimeRate(calculatedOvertime.toFixed(2));
-    }
-  }, [basic, otherSalaryTotal, workingDay, selectedOvertimeOption]);
+  // Calculate other salary total
+  const otherSalaryTotal = useMemo(
+    () =>
+      additionalSalaries.reduce(
+        (total, salary) => total + (parseFloat(salary.amount) || 0),
+        0
+      ),
+    [additionalSalaries]
+  );
 
-  useEffect(() => {
-    if (selectedEmployee?.payPeriod) {
-      const payPeriod = selectedEmployee.payPeriod;
-
-      setBasic(payPeriod.salary?.toString() || "");
-      setWorkingDay(payPeriod.hourlyRate?.toString() || "");
-      setWorkingHours(payPeriod.name?.toString() || "");
-      setOvertimeRate(payPeriod.overtimeSalary?.toString() || "");
-      setSelectedDate(payPeriod.startDay?.toString() || "");
-
-      // Set additional salaries from otherSalary array with unique IDs
-      const initialAdditionalSalaries = Array.isArray(payPeriod?.otherSalary)
-        ? payPeriod.otherSalary.map((salary, index) => ({
-            id: Date.now() + index, // unique ID
-            type: salary?.type || "",
-            amount: salary?.amount?.toString() || "",
-          }))
-        : [];
-      setAdditionalSalaries(initialAdditionalSalaries);
-
-      // Set overtime option based on selectedOvertimeOption
-      if (payPeriod.selectedOvertimeOption === 1) {
-        setSelectedOvertimeOption("auto-calc");
-      } else if (payPeriod.selectedOvertimeOption === 2) {
-        setSelectedOvertimeOption("fixed-input");
-      }
-    }
-  }, [selectedEmployee]);
-
-  const salarySections = [
-    {
-      id: "basic-salary",
-      label: "Basic Salary",
-      value: basic,
-      setValue: setBasic,
-      placeholder: "000000",
-      hasValue: !!basic,
-    },
-    {
-      id: "other-salary",
-      label: "Others Salary",
-      value: otherSalaryTotal.toFixed(2),
-      placeholder: "000000",
-      hasValue: otherSalaryTotal > 0,
-      isReadOnly: true, // Make other salary read-only since it's calculated
-    },
-  ];
-
-  const addSalarySection = () => {
-    setAdditionalSalaries([
-      ...additionalSalaries,
+  const salarySections = useMemo(
+    () => [
       {
-        id: Date.now() + Math.random(), // More unique ID
+        id: SALARY_SECTION_TYPES.BASIC,
+        label: "Basic Salary",
+        value: formData.basic,
+        placeholder: "000000",
+        hasValue: !!formData.basic,
+        readOnly: false,
+      },
+      {
+        id: SALARY_SECTION_TYPES.OTHER,
+        label: "Others Salary",
+        value: otherSalaryTotal.toFixed(2),
+        placeholder: "000000",
+        hasValue: otherSalaryTotal > 0,
+        readOnly: true,
+      },
+    ],
+    [formData.basic, otherSalaryTotal]
+  );
+
+  // Handle form input changes
+  const handleInputChange = useCallback((field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleDateSelect = useCallback((date) => {
+    setFormData((prev) => ({ ...prev, selectedDate: date.toString() }));
+    setShowDatePicker(false);
+  }, []);
+
+  const handleOvertimeOptionChange = useCallback((optionId) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedOvertimeOption: optionId,
+      // Clear overtime rate when switching to fixed input
+      ...(optionId === "fixed-input" && { overtimeRate: "" }),
+    }));
+  }, []);
+
+  // Additional salary management
+  const addSalarySection = useCallback(() => {
+    setAdditionalSalaries((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random()}`,
         type: "",
         amount: "",
+        isChecked: true, // Default to checked when adding new
       },
     ]);
-  };
+  }, []);
 
-  const removeSalarySection = (id) => {
-    setAdditionalSalaries(
-      additionalSalaries.filter((salary) => salary.id !== id)
-    );
-  };
+  const removeSalarySection = useCallback((id) => {
+    setAdditionalSalaries((prev) => prev.filter((salary) => salary.id !== id));
+  }, []);
 
-  const updateSalarySectionType = (id, value) => {
-    setAdditionalSalaries(
-      additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, type: value } : salary
+  const updateSalarySection = useCallback((id, field, value) => {
+    setAdditionalSalaries((prev) =>
+      prev.map((salary) =>
+        salary.id === id ? { ...salary, [field]: value } : salary
       )
     );
-  };
+  }, []);
 
-  const updateSalarySectionAmount = (id, value) => {
-    setAdditionalSalaries(
-      additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, amount: value } : salary
+  // Toggle checkbox for additional salary
+  const toggleSalaryCheckbox = useCallback((id, checked) => {
+    setAdditionalSalaries((prev) =>
+      prev.map((salary) =>
+        salary.id === id ? { ...salary, isChecked: checked } : salary
       )
     );
-  };
+  }, []);
 
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    setShowDatePicker(false);
-  };
+  // Prepare other salary array with isChecked status
+  const getOtherSalaryArray = useCallback(
+    () =>
+      additionalSalaries
+        .filter((salary) => salary.type.trim() && salary.amount)
+        .map((salary) => ({
+          isChecked: salary.isChecked !== false, // Default to true if not specified
+          type: salary.type.trim(),
+          amount: parseFloat(salary.amount) || 0,
+        })),
+    [additionalSalaries]
+  );
 
-  const handleOvertimeOptionChange = (optionId) => {
-    setSelectedOvertimeOption(optionId);
-
-    // If switching to fixed input, clear the auto-calculated value
-    if (optionId === "fixed-input") {
-      setOvertimeRate("");
-    }
-  };
-
+  // Save handler - following NormalMonthForm pattern
   const handleSave = async () => {
-    // Filter out empty additional salaries
-    const otherSalaryArray = additionalSalaries
-      .filter((salary) => salary.type && salary.amount)
-      .map((salary) => ({
-        type: salary.type,
-        amount: parseFloat(salary.amount) || 0,
-      }));
+    if (selectedEmployees.length === 0) {
+      toast.error("No employees selected");
+      return;
+    }
 
-    // Create the payPeriod object according to your structure
-    const employeePayPeriod = {
-      employeeId: selectedEmployee?.employeeId || 0,
-      hourlyRate: parseFloat(workingDay) || 26,
-      isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
-      leave: "",
-      name: parseInt(workingHours) || 8,
-      otherSalary: otherSalaryArray,
-      overtimeFixed:
-        selectedOvertimeOption === "fixed-input"
-          ? parseFloat(overtimeRate) || 0
-          : 0,
-      overtimeSalary:
-        selectedOvertimeOption === "auto-calc"
-          ? parseFloat(overtimeRate) || 0
-          : 0,
-      payPeriod: "monthly",
-      salary: parseFloat(basic) || 0,
-      selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 1 : 2,
-      shift: selectedEmployee?.payPeriod?.shift || "Morning",
-      startDay: parseInt(selectedDate) || 1,
-      startWeek: null,
-      status: null,
-    };
-
-    const stringifiedEmployeePayPeriod =
-      convertNumbersToStrings(employeePayPeriod);
-
-    const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
+    const otherSalaryArray = getOtherSalaryArray();
 
     try {
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload: { payPeriod: payPeriodJSON },
+      const updatePromises = selectedEmployees.map(async (employee) => {
+        const payPeriodJSON = convertJsonForPayPeriod(
+          employee?.salaryInfo || {},
+          {
+            employeeId: employee?.employeeId || 0,
+            hourlyRate: formData.workingDay || employee?.salaryInfo?.hourlyRate,
+            isSelectedFixedHourlyRate: formData.selectedOvertimeOption
+              ? formData.selectedOvertimeOption === "fixed-input"
+              : employee?.salaryInfo?.isSelectedFixedHourlyRate,
+            name: formData.workingHours || employee?.salaryInfo?.name,
+            otherSalary:
+              otherSalaryArray.length > 0
+                ? otherSalaryArray
+                : employee?.salaryInfo?.otherSalary,
+            overtimeFixed:
+              formData.selectedOvertimeOption === "fixed-input"
+                ? formData.overtimeRate
+                : employee?.salaryInfo?.overtimeFixed,
+            overtimeSalary:
+              formData.selectedOvertimeOption === "auto-calc"
+                ? parseFloat(formData.overtimeRate) || 0
+                : employee?.salaryInfo?.overtimeSalary,
+            payPeriod: "monthly",
+            salary: formData.basic || employee?.salaryInfo?.salary,
+            selectedOvertimeOption:
+              formData.selectedOvertimeOption === "auto-calc"
+                ? 0
+                : formData.selectedOvertimeOption === "fixed-input"
+                ? 1
+                : employee?.salaryInfo?.selectedOvertimeOption,
+            shift: employee?.salaryInfo?.shift || "Morning",
+            startDay: formData.selectedDate
+              ? parseInt(formData.selectedDate)
+              : employee?.salaryInfo?.startDay || 1,
+            startWeek: employee?.salaryInfo?.startWeek || null,
+            status: employee?.salaryInfo?.status || null,
+          }
+        );
+
+        const parsed = JSON.parse(payPeriodJSON);
+        parsed.otherSalary = JSON.parse(parsed.otherSalary);
+        updateEmployeeSalaryInfo(employee.employeeId, parsed);
+
+        return updateEmployee({
+          mac: employee?.deviceMAC || "",
+          id: employee?.employeeId,
+          payload: { payPeriod: payPeriodJSON },
+        });
       });
-      toast.success("Employee updated successfully!");
-    } catch {
-      toast.error("Failed to update employee.");
+
+      await Promise.all(updatePromises);
+
+      toast.success(
+        `Successfully updated ${selectedEmployees.length} employee(s)`
+      );
+    } catch (error) {
+      console.error("Update error:", error);
+      toast.error("Failed to update employees");
     }
   };
 
@@ -189,243 +220,297 @@ function MonthlyForm() {
 
   return (
     <div className="space-y-5 p-6 w-full">
-      {/* === Monthly Start Day === */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
-          <Label>Start Day</Label>
-        </div>
-        <div className="w-80 relative">
-          <div
-            className="w-full border border-gray-300 h-9 rounded-md flex items-center justify-between px-3 cursor-pointer bg-white"
-            onClick={() => setShowDatePicker(!showDatePicker)}
-          >
-            <span className="text-gray-600">
-              {selectedDate ? `Day ${selectedDate}` : "Select Day"}
-            </span>
-            <img src={image.calendar} alt="calendar" className="w-4 h-4" />
-          </div>
+      {/* Start Day Picker */}
+      <StartDayPicker
+        selectedDate={formData.selectedDate}
+        showDatePicker={showDatePicker}
+        onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
+        onDateSelect={handleDateSelect}
+      />
 
-          {/* Date Picker Dropdown */}
-          {showDatePicker && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 p-3">
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: 28 }, (_, i) => i + 1).map((date) => (
-                  <button
-                    key={date}
-                    onClick={() => handleDateSelect(date)}
-                    className={`w-8 h-8 flex items-center justify-center rounded text-sm hover:bg-blue-100 ${
-                      selectedDate === date.toString()
-                        ? "bg-[#004368] text-white"
-                        : "bg-white text-gray-700"
-                    }`}
-                  >
-                    {date}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* === Salary Section === */}
+      {/* Salary Section */}
       <div className="space-y-2">
         {salarySections.map(
-          ({
-            id,
-            label,
-            value,
-            setValue,
-            placeholder,
-            hasValue,
-            isReadOnly,
-          }) => (
-            <div key={id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <Checkbox
-                  id={id}
-                  className={checkboxStyle}
-                  checked={hasValue}
-                  onCheckedChange={(checked) => {
-                    if (!checked && id === "basic-salary") {
-                      setValue("");
-                    }
-                  }}
-                />
-                <Label htmlFor={id}>{label}</Label>
-              </div>
-              <Input
-                value={value}
-                onChange={
-                  isReadOnly ? undefined : (e) => setValue(e.target.value)
-                }
-                className="w-80"
-                placeholder={placeholder}
-                type={"number"}
-                readOnly={isReadOnly}
-              />
-            </div>
+          ({ id, label, value, placeholder, hasValue, readOnly }) => (
+            <SalaryRow
+              key={id}
+              id={id}
+              label={label}
+              value={value}
+              placeholder={placeholder}
+              hasValue={hasValue}
+              readOnly={readOnly}
+              checkboxStyle={checkboxStyle}
+              onClear={() =>
+                id === SALARY_SECTION_TYPES.BASIC &&
+                handleInputChange("basic", "")
+              }
+              onChange={(newValue) => handleInputChange("basic", newValue)}
+            />
           )
         )}
 
         {/* Additional Salary Sections */}
         {additionalSalaries.map((salary) => (
-          <div key={salary.id} className="flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <Checkbox
-                className={checkboxStyle}
-                checked={!!salary.type && !!salary.amount}
-                onCheckedChange={(checked) => {
-                  if (!checked) {
-                    updateSalarySectionType(salary.id, "");
-                    updateSalarySectionAmount(salary.id, "");
-                  }
-                }}
-              />
-              <div className="flex gap-2">
-                <Input
-                  value={salary.type}
-                  onChange={(e) =>
-                    updateSalarySectionType(salary.id, e.target.value)
-                  }
-                  className="w-40"
-                  placeholder="Salary Type"
-                />
-                <Input
-                  value={salary.amount}
-                  onChange={(e) =>
-                    updateSalarySectionAmount(salary.id, e.target.value)
-                  }
-                  className="w-40"
-                  placeholder="Amount"
-                  type={"number"}
-                />
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => removeSalarySection(salary.id)}
-              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
+          <AdditionalSalaryRow
+            key={salary.id}
+            salary={salary}
+            checkboxStyle={checkboxStyle}
+            onTypeChange={(value) =>
+              updateSalarySection(salary.id, "type", value)
+            }
+            onAmountChange={(value) =>
+              updateSalarySection(salary.id, "amount", value)
+            }
+            onRemove={() => removeSalarySection(salary.id)}
+            onCheckboxChange={(checked) =>
+              toggleSalaryCheckbox(salary.id, checked)
+            }
+          />
         ))}
 
         <div className="flex justify-end">
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0]"
-            style={{ padding: "16px 52px" }}
+            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
-            <Plus className="w-4 h-4 text-[#004368]" />
-            <span>Add another salary section</span>
+            <Plus className="w-4 h-4 text-[#004368] mr-2" />
+            Add another salary section
           </Button>
         </div>
       </div>
 
-      {/* === Working Day === */}
-      <div className="flex justify-between">
-        <Label className="font-semibold whitespace-nowrap">
-          Add Working Day
-        </Label>
-        <Input
-          placeholder="26 Days"
-          className="w-80"
-          type={"number"}
-          value={workingDay}
-          onChange={(e) => setWorkingDay(e.target.value)}
-        />
-      </div>
+      {/* Working Information */}
+      <WorkingField
+        label="Add Working Day"
+        placeholder="26 Days"
+        value={formData.workingDay}
+        onChange={(value) => handleInputChange("workingDay", value)}
+      />
 
-      {/* === Working Hours === */}
-      <div className="flex justify-between">
-        <Label className="font-semibold whitespace-nowrap">
-          Add Working Hours
-        </Label>
-        <Input
-          placeholder="8"
-          className="w-80"
-          type={"number"}
-          value={workingHours}
-          onChange={(e) => setWorkingHours(e.target.value)}
-        />
-      </div>
+      <WorkingField
+        label="Add Working Hours"
+        placeholder="8"
+        value={formData.workingHours}
+        onChange={(value) => handleInputChange("workingHours", value)}
+      />
 
-      {/* === Overtime Rate === */}
-      <div className="space-y-3">
-        <Label className="font-semibold">Select Overtime Rate</Label>
-        <div className="flex flex-col space-y-2">
-          {[
-            {
-              id: "auto-calc",
-              label: "Automatic Calculation (Day)",
-              placeholder: "000",
-            },
-            {
-              id: "fixed-input",
-              label: "Fixed Input (Hour)",
-              placeholder: "Enter Overtime Rate",
-            },
-          ].map(({ id, label, placeholder }) => (
-            <div key={id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <Checkbox
-                  id={id}
-                  className={checkboxStyle}
-                  checked={selectedOvertimeOption === id}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      handleOvertimeOptionChange(id);
-                    }
-                  }}
-                />
-                <Label htmlFor={id} className="whitespace-nowrap">
-                  {label}
-                </Label>
-              </div>
-              <Input
-                placeholder={placeholder}
-                className="w-80"
-                type={"number"}
-                value={selectedOvertimeOption === id ? overtimeRate : ""}
-                onChange={(e) => setOvertimeRate(e.target.value)}
-                disabled={id === "auto-calc"} // Disable input for auto-calc
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Overtime Rate Section */}
+      <OvertimeSection
+        options={OVERTIME_OPTIONS}
+        selectedOption={formData.selectedOvertimeOption}
+        overtimeRate={formData.overtimeRate}
+        checkboxStyle={checkboxStyle}
+        onOptionChange={handleOvertimeOptionChange}
+        onRateChange={(value) => handleInputChange("overtimeRate", value)}
+      />
 
-      {/* === Details Section === */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
-        <ul className="text-sm text-gray-700 space-y-2">
-          <li className="flex items-start">
-            <span className="font-semibold mr-2">•</span>
-            <span>
-              if you select the automatic calculation option,the system will
-              calculate the base hourly wage based on the salary, then calculate
-              the overtime wage based on the overtime multiplier (for
-              example,1.5 times on regular days,2 times on weekends: multipliers
-              can be set in wage rules).if you select fixed input,the system
-              will use the entered value to calculate the hourly wage and then
-              apply the same rule to calculate the overtime wage.
-            </span>
-          </li>
-        </ul>
-      </div>
-      <button
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
+      {/* Details Section */}
+      <DetailsSection />
+
+      {/* Save Button */}
+      <Button
+        className="w-full py-3 bg-[#004368] text-white rounded-lg font-medium hover:bg-[#003556]"
         onClick={handleSave}
+        disabled={updating}
       >
         {updating ? "Saving..." : "Save"}
-      </button>
+      </Button>
     </div>
   );
 }
+
+// Sub-components
+const StartDayPicker = ({
+  selectedDate,
+  showDatePicker,
+  onToggleDatePicker,
+  onDateSelect,
+}) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3.5">
+      <Label>Start Day</Label>
+    </div>
+    <div className="w-80 relative">
+      <div
+        className="w-full border border-gray-300 h-9 rounded-md flex items-center justify-between px-3 cursor-pointer bg-white"
+        onClick={onToggleDatePicker}
+      >
+        <span className="text-gray-600">
+          {selectedDate ? `Day ${selectedDate}` : "Select Day"}
+        </span>
+        <img src={image.calendar} alt="calendar" className="w-4 h-4" />
+      </div>
+
+      {/* Date Picker Dropdown */}
+      {showDatePicker && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 p-3">
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 28 }, (_, i) => i + 1).map((date) => (
+              <button
+                key={date}
+                onClick={() => onDateSelect(date)}
+                className={`w-8 h-8 flex items-center justify-center rounded text-sm hover:bg-blue-100 ${
+                  selectedDate === date.toString()
+                    ? "bg-[#004368] text-white"
+                    : "bg-white text-gray-700"
+                }`}
+              >
+                {date}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+const SalaryRow = ({
+  id,
+  label,
+  value,
+  placeholder,
+  hasValue,
+  readOnly,
+  checkboxStyle,
+  onClear,
+  onChange,
+}) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3.5">
+      <Checkbox
+        id={id}
+        className={checkboxStyle}
+        checked={hasValue}
+        onCheckedChange={(checked) => !checked && onClear?.()}
+      />
+      <Label htmlFor={id}>{label}</Label>
+    </div>
+    <Input
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      className="w-80"
+      placeholder={placeholder}
+      type="number"
+      readOnly={readOnly}
+    />
+  </div>
+);
+
+const AdditionalSalaryRow = ({
+  salary,
+  checkboxStyle,
+  onTypeChange,
+  onAmountChange,
+  onRemove,
+  onCheckboxChange,
+}) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3.5">
+      <Checkbox
+        className={checkboxStyle}
+        checked={salary.isChecked !== false} // Default to true
+        onCheckedChange={(checked) => onCheckboxChange?.(checked)}
+      />
+      <div className="flex gap-2">
+        <Input
+          value={salary.type}
+          onChange={(e) => onTypeChange?.(e.target.value)}
+          className="w-40"
+          placeholder="Salary Type"
+        />
+        <Input
+          value={salary.amount}
+          onChange={(e) => onAmountChange?.(e.target.value)}
+          className="w-40"
+          placeholder="Amount"
+          type="number"
+        />
+      </div>
+    </div>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onRemove}
+      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+    >
+      <Trash2 className="w-4 h-4" />
+    </Button>
+  </div>
+);
+
+const WorkingField = ({ label, placeholder, value, onChange }) => (
+  <div className="flex justify-between">
+    <Label className="font-semibold whitespace-nowrap">{label}</Label>
+    <Input
+      placeholder={placeholder}
+      className="w-80"
+      type="number"
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+    />
+  </div>
+);
+
+const OvertimeSection = ({
+  options,
+  selectedOption,
+  overtimeRate,
+  checkboxStyle,
+  onOptionChange,
+  onRateChange,
+}) => (
+  <div className="space-y-3">
+    <Label className="font-semibold">Select Overtime Rate</Label>
+    <div className="flex flex-col space-y-2">
+      {options.map(({ id, label, placeholder, disabled }) => (
+        <div key={id} className="flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            <Checkbox
+              id={id}
+              className={checkboxStyle}
+              checked={selectedOption === id}
+              onCheckedChange={(checked) => checked && onOptionChange?.(id)}
+            />
+            <Label htmlFor={id} className="whitespace-nowrap">
+              {label}
+            </Label>
+          </div>
+          <Input
+            placeholder={placeholder}
+            className="w-80"
+            type="number"
+            value={selectedOption === id ? overtimeRate : ""}
+            onChange={(e) => onRateChange?.(e.target.value)}
+            disabled={disabled}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const DetailsSection = () => (
+  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+    <ul className="text-sm text-gray-700 space-y-2">
+      <li className="flex items-start">
+        <span className="font-semibold mr-2">•</span>
+        <span>
+          If you select the automatic calculation option, the system will
+          calculate the base hourly wage based on the salary, then calculate the
+          overtime wage based on the overtime multiplier (for example, 1.5 times
+          on regular days, 2 times on weekends: multipliers can be set in wage
+          rules). If you select fixed input, the system will use the entered
+          value to calculate the hourly wage and then apply the same rule to
+          calculate the overtime wage.
+        </span>
+      </li>
+    </ul>
+  </div>
+);
 
 export default MonthlyForm;

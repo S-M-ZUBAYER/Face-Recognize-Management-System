@@ -39,7 +39,8 @@ function NormalMonthForm() {
   });
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
-  const { selectedEmployees } = useSelectedEmployeeStore();
+  const { selectedEmployees, updateEmployeeSalaryInfo } =
+    useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Calculate other salary total
@@ -96,6 +97,7 @@ function NormalMonthForm() {
         id: `${Date.now()}-${Math.random()}`,
         type: "",
         amount: "",
+        isChecked: true, // Default to checked when adding new
       },
     ]);
   }, []);
@@ -112,13 +114,22 @@ function NormalMonthForm() {
     );
   }, []);
 
-  // Prepare other salary array
+  // Toggle checkbox for additional salary
+  const toggleSalaryCheckbox = useCallback((id, checked) => {
+    setAdditionalSalaries((prev) =>
+      prev.map((salary) =>
+        salary.id === id ? { ...salary, isChecked: checked } : salary
+      )
+    );
+  }, []);
+
+  // Prepare other salary array with isChecked status
   const getOtherSalaryArray = useCallback(
     () =>
       additionalSalaries
         .filter((salary) => salary.type.trim() && salary.amount)
         .map((salary) => ({
-          isChecked: true,
+          isChecked: salary.isChecked !== false, // Default to true if not specified
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
@@ -136,7 +147,6 @@ function NormalMonthForm() {
 
     try {
       const updatePromises = selectedEmployees.map(async (employee) => {
-        // console.log(employee.salaryInfo);
         const payPeriodJSON = convertJsonForPayPeriod(
           employee?.salaryInfo || {},
           {
@@ -156,23 +166,31 @@ function NormalMonthForm() {
                 : employee?.salaryInfo?.overtimeFixed,
             overtimeSalary:
               formData.selectedOvertimeOption === "auto-calc"
-                ? parseFloat(formData.overtimeRate)
+                ? parseFloat(formData.overtimeRate) || 0
                 : employee?.salaryInfo?.overtimeSalary,
             payPeriod: "normalMonthly",
             salary: formData.basic || employee?.salaryInfo?.salary,
             selectedOvertimeOption:
               formData.selectedOvertimeOption === "auto-calc"
+                ? 0
+                : formData.selectedOvertimeOption === "fixed-input"
                 ? 1
                 : employee?.salaryInfo?.selectedOvertimeOption,
+            shift: employee?.salaryInfo?.shift || "Morning",
+            startDay: employee?.salaryInfo?.startDay || 1,
+            startWeek: employee?.salaryInfo?.startWeek || null,
+            status: employee?.salaryInfo?.status || null,
           }
         );
+        const parsed = JSON.parse(payPeriodJSON);
+        parsed.otherSalary = JSON.parse(parsed.otherSalary);
+        updateEmployeeSalaryInfo(employee.employeeId, parsed);
 
         return updateEmployee({
           mac: employee?.deviceMAC || "",
           id: employee?.employeeId,
           payload: { payPeriod: payPeriodJSON },
         });
-        // return console.log(payPeriodJSON);
       });
 
       await Promise.all(updatePromises);
@@ -225,10 +243,9 @@ function NormalMonthForm() {
               updateSalarySection(salary.id, "amount", value)
             }
             onRemove={() => removeSalarySection(salary.id)}
-            onClear={() => {
-              updateSalarySection(salary.id, "type", "");
-              updateSalarySection(salary.id, "amount", "");
-            }}
+            onCheckboxChange={(checked) =>
+              toggleSalaryCheckbox(salary.id, checked)
+            }
           />
         ))}
 
@@ -324,14 +341,14 @@ const AdditionalSalaryRow = ({
   onTypeChange,
   onAmountChange,
   onRemove,
-  onClear,
+  onCheckboxChange,
 }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3.5">
       <Checkbox
         className={checkboxStyle}
-        checked={!!salary.type && !!salary.amount}
-        onCheckedChange={(checked) => !checked && onClear?.()}
+        checked={salary.isChecked !== false} // Default to true
+        onCheckedChange={(checked) => onCheckboxChange?.(checked)}
       />
       <div className="flex gap-2">
         <Input
