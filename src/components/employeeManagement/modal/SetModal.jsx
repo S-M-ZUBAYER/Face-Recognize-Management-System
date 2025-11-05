@@ -4,6 +4,7 @@ import { X, Settings, Calendar, BookOpen } from "lucide-react";
 import PayPeriodModal from "./PayPeriodModal";
 import RulesModal from "./RulesModal";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 function SetModal({ selectedEmployees: sEmployees }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +12,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
   const [showRules, setShowRules] = useState(false);
   const { setSelectedEmployees, clearSelection, selectedEmployees } =
     useSelectedEmployeeStore();
+  const { clearRulesIds } = useUserStore();
   console.log(sEmployees, selectedEmployees);
 
   // Handle opening modal
@@ -29,6 +31,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
   const handleClose = () => {
     setIsOpen(false);
     clearSelection();
+    clearRulesIds();
   };
 
   // Navigate to PayPeriod

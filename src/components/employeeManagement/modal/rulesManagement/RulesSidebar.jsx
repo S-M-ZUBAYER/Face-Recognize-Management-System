@@ -1,23 +1,26 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import useAlertDialog from "@/zustand/useAlertDialog";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 import { useEffect } from "react";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   const { selectedEmployee } = useEmployeeStore();
   const { openDialog } = useAlertDialog();
+  const { rulesIds } = useUserStore();
 
   // Force re-render when selectedEmployee changes
   useEffect(() => {
     // This will trigger a re-render whenever selectedEmployee updates
   }, [selectedEmployee]);
 
-  const getAllRuleIds = (rulesArray) => {
-    if (!Array.isArray(rulesArray)) return [];
-    return rulesArray.map((rule) => Number(rule.ruleId));
-  };
+  // const getAllRuleIds = (rulesArray) => {
+  //   if (!Array.isArray(rulesArray)) return [];
+  //   return rulesArray.map((rule) => Number(rule.ruleId));
+  // };
 
-  const existingRuleIds = getAllRuleIds(selectedEmployee?.salaryRules?.rules);
+  // const existingRuleIds = getAllRuleIds(selectedEmployee?.salaryRules?.rules);
+  const existingRuleIds = rulesIds;
 
   const hasRuleId = (ruleIdsArray, id) => {
     if (!Array.isArray(ruleIdsArray)) return false;
@@ -25,9 +28,9 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   };
 
   // Check if rule ID is in dependency group (6-9)
-  const isDependencyRule = (ruleId) => {
-    return [6, 7, 8, 9].includes(ruleId);
-  };
+  // const isDependencyRule = (ruleId) => {
+  //   return [6, 7, 8, 9].includes(ruleId);
+  // };
 
   // Check if rule ID is in exclusive group (18-23)
   const isExclusiveRule = (ruleId) => {
@@ -41,24 +44,24 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
 
   const handleRuleSelect = (rule) => {
     // Condition 0: Rule 1 is mandatory for all other rules
-    if (rule.id !== 0 && !hasRuleId(existingRuleIds, 0)) {
-      openDialog(
-        `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`
-      );
-      return;
-    }
+    // if (rule.id !== 0 && !hasRuleId(existingRuleIds, 0)) {
+    //   openDialog(
+    //     `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`
+    //   );
+    //   return;
+    // }
 
-    // Condition 1: Rules 6-9 require rule 24 to be set
-    if (isDependencyRule(rule.id)) {
-      if (!hasRuleId(existingRuleIds, 24)) {
-        openDialog(
-          `Rule ${
-            rule.id + 1
-          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
-        );
-        return;
-      }
-    }
+    // // Condition 1: Rules 6-9 require rule 24 to be set
+    // if (isDependencyRule(rule.id)) {
+    //   if (!hasRuleId(existingRuleIds, 24)) {
+    //     openDialog(
+    //       `Rule ${
+    //         rule.id + 1
+    //       } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
+    //     );
+    //     return;
+    //   }
+    // }
 
     // Condition 2: Rules 18-23 are mutually exclusive
     if (isExclusiveRule(rule.id)) {

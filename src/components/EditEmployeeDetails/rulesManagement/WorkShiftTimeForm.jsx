@@ -624,19 +624,15 @@ export const WorkShiftTimeForm = () => {
           overtimes: [],
         };
 
-        const workingTimesData = JSON.stringify(
-          (config.workingTimes || []).map((wt) => ({
-            start: wt.startTime,
-            end: wt.endTime,
-          }))
-        );
+        const workingTimesData = (config.workingTimes || []).map((wt) => ({
+          start: wt.startTime,
+          end: wt.endTime,
+        }));
 
-        const overtimeData = JSON.stringify(
-          (config.overtimes || []).map((ot) => ({
-            start: ot.startTime,
-            end: ot.endTime,
-          }))
-        );
+        const overtimeData = (config.overtimes || []).map((ot) => ({
+          start: ot.startTime,
+          end: ot.endTime,
+        }));
 
         return {
           id: index + 1,

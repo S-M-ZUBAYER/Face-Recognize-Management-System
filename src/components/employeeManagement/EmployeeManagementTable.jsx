@@ -11,9 +11,17 @@ const EmployeeManagementTable = ({ employees = [] }) => {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
 
   const { overTime } = useOverTimeData();
+
+  // Generate stable unique IDs for employees - MOVED TO TOP
+  const employeesWithStableIds = useMemo(() => {
+    return employees.map((emp, index) => ({
+      ...emp,
+      stableId: `${emp.companyEmployeeId || emp.employeeId || emp.id}-${index}`,
+    }));
+  }, [employees]);
 
   // Reset selections when employees prop changes
   useEffect(() => {
@@ -23,15 +31,15 @@ const EmployeeManagementTable = ({ employees = [] }) => {
   }, [employees]);
 
   const handleNavigate = (employeeId, deviceMAC) => {
-    Navigate("editEmployeeDetails/" + employeeId + "/" + deviceMAC);
+    navigate("editEmployeeDetails/" + employeeId + "/" + deviceMAC);
   };
 
   // Filter employees based on search query
   const filteredEmployees = useMemo(() => {
-    if (!searchQuery.trim()) return employees;
+    if (!searchQuery.trim()) return employeesWithStableIds;
 
     const query = searchQuery.toLowerCase().trim();
-    return employees.filter((emp) => {
+    return employeesWithStableIds.filter((emp) => {
       const name = (emp?.name || "").split("<")[0].toLowerCase();
       const employeeId = (
         emp?.companyEmployeeId ||
@@ -51,7 +59,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
         department.includes(query)
       );
     });
-  }, [employees, searchQuery]);
+  }, [employeesWithStableIds, searchQuery]);
 
   // Selection logic
   const selectedEmployeeIdsSet = useMemo(
@@ -61,48 +69,55 @@ const EmployeeManagementTable = ({ employees = [] }) => {
 
   const isAllSelected = useMemo(() => {
     if (filteredEmployees.length === 0) return false;
-    return filteredEmployees.every((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
-  }, [filteredEmployees, selectedEmployees]);
+    return filteredEmployees.every((emp) =>
+      selectedEmployeeIdsSet.has(emp.stableId)
+    );
+  }, [filteredEmployees, selectedEmployeeIdsSet]);
 
   const isIndeterminate = useMemo(() => {
     if (selectedEmployees.length === 0) return false;
     if (isAllSelected) return false;
-    return filteredEmployees.some((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
-  }, [selectedEmployees, isAllSelected, filteredEmployees]);
+    return filteredEmployees.some((emp) =>
+      selectedEmployeeIdsSet.has(emp.stableId)
+    );
+  }, [
+    selectedEmployees.length,
+    isAllSelected,
+    filteredEmployees,
+    selectedEmployeeIdsSet,
+  ]);
 
   const handleSelectAll = useCallback(() => {
     if (isAllSelected) {
-      const filteredIds = new Set(
-        filteredEmployees.map(
-          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-        )
-      );
+      // Deselect all filtered employees
+      const filteredIds = new Set(filteredEmployees.map((emp) => emp.stableId));
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
-      const filteredIds = filteredEmployees.map(
-        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-      );
-      setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
+      // Select all filtered employees
+      const filteredIds = filteredEmployees.map((emp) => emp.stableId);
+      setSelectedEmployees((prev) => {
+        const newSelection = new Set([...prev, ...filteredIds]);
+        return Array.from(newSelection);
+      });
     }
   }, [filteredEmployees, isAllSelected]);
 
-  const toggleSelectEmployee = useCallback((id) => {
-    setSelectedEmployees((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
-    );
+  const toggleSelectEmployee = useCallback((stableId) => {
+    setSelectedEmployees((prev) => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(stableId)) {
+        newSelection.delete(stableId);
+      } else {
+        newSelection.add(stableId);
+      }
+      return Array.from(newSelection);
+    });
   }, []);
 
   const handleSearch = useCallback(() => {
     if (searchInput.trim()) {
       setIsSearching(true);
       setSearchQuery(searchInput.trim());
-      setSelectedEmployees([]);
       setTimeout(() => setIsSearching(false), 200);
     }
   }, [searchInput]);
@@ -124,26 +139,29 @@ const EmployeeManagementTable = ({ employees = [] }) => {
   );
 
   // Check overtime records
-  function hasOvertimeRecords(employeeId, overtimeArray = overTime) {
-    const today = new Date().toISOString().split("T")[0];
-    return overtimeArray.some((record) => {
-      const recordDate = record.date.split("T")[0];
-      return record.employeeId === employeeId && recordDate === today;
-    });
-  }
+  const hasOvertimeRecords = useCallback(
+    (employeeId) => {
+      const today = new Date().toISOString().split("T")[0];
+      return overTime.some((record) => {
+        const recordDate = record.date?.split("T")[0];
+        return record.employeeId === employeeId && recordDate === today;
+      });
+    },
+    [overTime]
+  );
 
   // Get selected employee data to pass to ExportButton
   const selectedEmployeeData = useMemo(() => {
-    return employees.filter((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
-  }, [employees, selectedEmployees]);
+    const selectedIdsSet = new Set(selectedEmployees);
+    return employeesWithStableIds.filter((emp) =>
+      selectedIdsSet.has(emp.stableId)
+    );
+  }, [employeesWithStableIds, selectedEmployees]);
 
   // Loading state
-  if (!employees) {
+  if (employees.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32">
+      <div className="flex items-center justify-center h-140">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004368]"></div>
         <span className="ml-3">Loading employees...</span>
       </div>
@@ -184,8 +202,8 @@ const EmployeeManagementTable = ({ employees = [] }) => {
             disabled={!searchInput.trim() || isSearching}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               searchInput.trim() && !isSearching
-                ? "bg-[#004368] text-white cursor-pointer"
-                : "bg-[#004368] text-white cursor-not-allowed"
+                ? "bg-[#004368] text-white hover:bg-[#003556] cursor-pointer"
+                : "bg-gray-400 text-white cursor-not-allowed"
             }`}
           >
             {isSearching ? "Searching..." : "Search"}
@@ -193,7 +211,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
           {searchQuery && (
             <button
               onClick={handleReset}
-              className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm hover:bg-gray-500 transition-colors"
+              className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
             >
               Reset
             </button>
@@ -204,8 +222,8 @@ const EmployeeManagementTable = ({ employees = [] }) => {
       {/* Table */}
       <div className="overflow-x-auto bg-white h-[62vh] overflow-y-auto">
         <table className="w-full text-left text-sm">
-          <thead className="text-gray-500 border-b sticky top-0 z-10">
-            <tr className="bg-[#E6ECF0]">
+          <thead className="text-gray-500 border-b sticky top-0 z-10 bg-[#E6ECF0]">
+            <tr>
               <th className="p-3">Select</th>
               <th className="p-3">Name</th>
               <th className="p-3">Employee ID</th>
@@ -219,21 +237,22 @@ const EmployeeManagementTable = ({ employees = [] }) => {
           <tbody>
             {filteredEmployees.length === 0 ? (
               <tr>
-                <td colSpan="7" className="p-8 text-center text-gray-500">
+                <td colSpan="8" className="p-8 text-center text-gray-500">
                   {searchQuery
                     ? "No employees found matching your search"
                     : "No employees found"}
                 </td>
               </tr>
             ) : (
-              filteredEmployees.map((emp, idx) => {
-                const empId = emp.companyEmployeeId || emp.employeeId || emp.id;
-                const isSelected = selectedEmployeeIdsSet.has(empId);
-                const hasOvertime = hasOvertimeRecords(empId);
+              filteredEmployees.map((emp) => {
+                const isSelected = selectedEmployeeIdsSet.has(emp.stableId);
+                const hasOvertime = hasOvertimeRecords(
+                  emp.employeeId || emp.id
+                );
 
                 return (
                   <tr
-                    key={`${empId}-${idx}`}
+                    key={emp.stableId}
                     className={`border-b transition-colors ${
                       isSelected ? "bg-blue-50" : "hover:bg-gray-50"
                     }`}
@@ -241,7 +260,9 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                     <td className="p-2">
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={() => toggleSelectEmployee(empId)}
+                        onCheckedChange={() =>
+                          toggleSelectEmployee(emp.stableId)
+                        }
                         className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                       />
                     </td>
@@ -258,7 +279,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                     <td className="p-2">{emp?.department || "N/A"}</td>
                     <td className="p-2">
                       <span
-                        className={`${
+                        className={`font-medium ${
                           hasOvertime ? "text-green-600" : "text-gray-600"
                         }`}
                       >
@@ -267,7 +288,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                     </td>
                     <td className="p-2">
                       <div
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:opacity-70 transition-opacity"
                         onClick={() =>
                           handleNavigate(emp.employeeId, emp.deviceMAC)
                         }
@@ -282,23 +303,23 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                           <path
                             d="M6.12868 14.8713L14.8713 6.12868C15.2802 5.71974 15.4847 5.51527 15.594 5.2947C15.802 4.87504 15.802 4.38232 15.594 3.96265C15.4847 3.74209 15.2802 3.53761 14.8713 3.12868C14.4624 2.71974 14.2579 2.51528 14.0373 2.40597C13.6176 2.19801 13.125 2.19801 12.7053 2.40597C12.4847 2.51528 12.2802 2.71974 11.8713 3.12868L3.12868 11.8713C2.69513 12.3048 2.47836 12.5216 2.36418 12.7972C2.25 13.0729 2.25 13.3795 2.25 13.9926V15.7499H4.00736C4.62049 15.7499 4.92705 15.7499 5.20271 15.6358C5.47836 15.5216 5.69513 15.3048 6.12868 14.8713Z"
                             stroke="#336986"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           />
                           <path
                             d="M9 15.75H13.5"
                             stroke="#336986"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           />
                           <path
                             d="M10.875 4.125L13.875 7.125"
                             stroke="#336986"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           />
                         </svg>
                       </div>

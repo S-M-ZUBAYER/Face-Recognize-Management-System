@@ -24,6 +24,18 @@ const useSelectedEmployeeStore = create((set) => ({
           : emp
       ),
     })),
+  // ✅ Update salaryRules for a specific employee
+  updateEmployeeSalaryRules: (employeeId, newSalaryRules) =>
+    set((state) => ({
+      selectedEmployees: state.selectedEmployees.map((emp) =>
+        emp.employeeId === employeeId
+          ? {
+              ...emp,
+              salaryRules: newSalaryRules,
+            }
+          : emp
+      ),
+    })),
 }));
 
 export default useSelectedEmployeeStore;

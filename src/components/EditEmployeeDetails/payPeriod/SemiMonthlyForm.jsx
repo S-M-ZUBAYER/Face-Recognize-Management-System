@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ function SemiMonthlyForm() {
             id: Date.now() + index, // unique ID
             type: salary?.type || "",
             amount: salary?.amount?.toString() || "",
+            isChecked: salary?.isChecked !== false,
           }))
         : [];
       setAdditionalSalaries(initialAdditionalSalaries);
@@ -83,16 +84,18 @@ function SemiMonthlyForm() {
     },
   ];
 
-  const addSalarySection = () => {
-    setAdditionalSalaries([
-      ...additionalSalaries,
+  // Added isChecked: true for new salaries
+  const addSalarySection = useCallback(() => {
+    setAdditionalSalaries((prev) => [
+      ...prev,
       {
-        id: Date.now() + Math.random(), // More unique ID
+        id: `${Date.now()}-${Math.random()}`,
         type: "",
         amount: "",
+        isChecked: true, // ← ADDED THIS LINE
       },
     ]);
-  };
+  }, []);
 
   const removeSalarySection = (id) => {
     setAdditionalSalaries(
@@ -130,11 +133,21 @@ function SemiMonthlyForm() {
     }
   };
 
+  // Added this new function
+  const toggleSalaryCheckbox = useCallback((id, checked) => {
+    setAdditionalSalaries((prev) =>
+      prev.map((salary) =>
+        salary.id === id ? { ...salary, isChecked: checked } : salary
+      )
+    );
+  }, []);
+
   const handleSave = async () => {
     // Filter out empty additional salaries
     const otherSalaryArray = additionalSalaries
       .filter((salary) => salary.type && salary.amount)
       .map((salary) => ({
+        isChecked: salary.isChecked !== false,
         type: salary.type,
         amount: parseFloat(salary.amount) || 0,
       }));
@@ -234,13 +247,10 @@ function SemiMonthlyForm() {
             <div className="flex items-center gap-3.5">
               <Checkbox
                 className={checkboxStyle}
-                checked={!!salary.type && !!salary.amount}
-                onCheckedChange={(checked) => {
-                  if (!checked) {
-                    updateSalarySectionType(salary.id, "");
-                    updateSalarySectionAmount(salary.id, "");
-                  }
-                }}
+                checked={salary.isChecked !== false}
+                onCheckedChange={(checked) =>
+                  toggleSalaryCheckbox(salary.id, checked)
+                }
               />
               <div className="flex gap-2">
                 <Input
