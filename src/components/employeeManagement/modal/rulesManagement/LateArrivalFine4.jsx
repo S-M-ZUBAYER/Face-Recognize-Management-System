@@ -1,60 +1,22 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalFine4 = () => {
   const [latenessTime, setLatenessTime] = useState("");
   const [fixedPenalty, setFixedPenalty] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing lateness time and fixed penalty values from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleNineteen = existingRules.find(
-          (rule) => rule.ruleId === 19 || rule.ruleId === "19"
-        );
-
-        if (ruleNineteen) {
-          // param1 contains lateness time value
-          if (ruleNineteen.param1) {
-            const latenessTimeValue =
-              typeof ruleNineteen.param1 === "string"
-                ? ruleNineteen.param1
-                : String(ruleNineteen.param1);
-            setLatenessTime(latenessTimeValue);
-          }
-
-          // param2 contains fixed penalty value
-          if (ruleNineteen.param2) {
-            const fixedPenaltyValue =
-              typeof ruleNineteen.param2 === "string"
-                ? ruleNineteen.param2
-                : String(ruleNineteen.param2);
-            setFixedPenalty(fixedPenaltyValue);
-          }
-        }
-      } catch (error) {
-        console.error(
-          "Error parsing lateness time and fixed penalty values:",
-          error
-        );
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save lateness time and fixed penalty configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
 
@@ -69,55 +31,66 @@ export const LateArrivalFine4 = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 19
-      let ruleNineteen = existingRules.find(
-        (rule) => rule.ruleId === 19 || rule.ruleId === "19"
-      );
+        // Find or create rule with ruleId = 19
+        let ruleNineteen = existingRules.find(
+          (rule) => rule.ruleId === 19 || rule.ruleId === "19"
+        );
 
-      if (!ruleNineteen) {
-        // Create new rule with ruleId = 19 if it doesn't exist
-        ruleNineteen = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "19", // string
-          ruleStatus: 1, // number
-          param1: latenessTime, // string containing lateness time value (minutes)
-          param2: fixedPenalty, // string containing fixed penalty value
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleNineteen object - preserve all other properties
-        ruleNineteen.empId = empId; // string
-        ruleNineteen.param1 = latenessTime; // update with new lateness time value
-        ruleNineteen.param2 = fixedPenalty; // update with new fixed penalty value
-        // Keep all other properties as they are
-      }
+        if (!ruleNineteen) {
+          // Create new rule with ruleId = 19 if it doesn't exist
+          ruleNineteen = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "19", // string
+            ruleStatus: 1, // number
+            param1: latenessTime, // string containing lateness time value (minutes)
+            param2: fixedPenalty, // string containing fixed penalty value
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleNineteen object - preserve all other properties
+          ruleNineteen.empId = empId; // string
+          ruleNineteen.param1 = latenessTime; // update with new lateness time value
+          ruleNineteen.param2 = fixedPenalty; // update with new fixed penalty value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 19 || r.ruleId === "19",
-          newValue: ruleNineteen, // update ruleId=19 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 19 || r.ruleId === "19",
+            newValue: ruleNineteen, // update ruleId=19 object
+          },
+        });
+
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      console.log(payload);
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
+      await Promise.all(updatePromises);
 
       toast.success("Late arrival fine settings updated successfully!");
     } catch (error) {

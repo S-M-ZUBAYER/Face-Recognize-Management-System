@@ -1,102 +1,82 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LatenessForm = () => {
   const [lateTime, setLateTime] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-
-  // Load existing lateness value from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleFour = existingRules.find(
-          (rule) => rule.ruleId === 4 || rule.ruleId === "4"
-        );
-
-        if (ruleFour && ruleFour.param1) {
-          // param1 should contain the late time value as string
-          const lateTimeValue =
-            typeof ruleFour.param1 === "string"
-              ? ruleFour.param1
-              : String(ruleFour.param1);
-          setLateTime(lateTimeValue);
-        }
-      } catch (error) {
-        console.error("Error parsing lateness value:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save lateness configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
-
     if (!lateTime || isNaN(lateTime) || parseInt(lateTime) < 0) {
       toast.error("Please enter a valid positive number for late time");
       return;
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 4
-      let ruleFive = existingRules.find(
-        (rule) => rule.ruleId === 4 || rule.ruleId === "4"
-      );
+        // Find or create rule with ruleId = 4
+        let ruleFive = existingRules.find(
+          (rule) => rule.ruleId === 4 || rule.ruleId === "4"
+        );
 
-      if (!ruleFive) {
-        // Create new rule with ruleId = 4 if it doesn't exist
-        ruleFive = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "4", // string
-          ruleStatus: 1, // number
-          param1: lateTime, // string containing the late time value
-          param2: "",
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleFive object - preserve all other properties
-        ruleFive.empId = empId; // string
-        ruleFive.param1 = lateTime; // update with new late time value
-        // Keep all other properties as they are
-      }
+        if (!ruleFive) {
+          // Create new rule with ruleId = 4 if it doesn't exist
+          ruleFive = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "4", // string
+            ruleStatus: 1, // number
+            param1: lateTime, // string containing the late time value
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleFive object - preserve all other properties
+          ruleFive.empId = empId; // string
+          ruleFive.param1 = lateTime; // update with new late time value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 4 || r.ruleId === "4",
-          newValue: ruleFive, // update ruleId=4 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 4 || r.ruleId === "4",
+            newValue: ruleFive, // update ruleId=4 object
+          },
+        });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
+      await Promise.all(updatePromises);
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      console.log("Lateness setting updated successfully:", lateTime);
       toast.success("Lateness setting updated successfully!");
     } catch (error) {
       console.error("Error saving lateness setting:", error);

@@ -1,45 +1,21 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalFine5 = () => {
   const [incrementalAmount, setIncrementalAmount] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing incremental amount value from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleTwenty = existingRules.find(
-          (rule) => rule.ruleId === 20 || rule.ruleId === "20"
-        );
-
-        if (ruleTwenty && ruleTwenty.param1) {
-          // param1 contains the incremental amount value
-          const incrementalAmountValue =
-            typeof ruleTwenty.param1 === "string"
-              ? ruleTwenty.param1
-              : String(ruleTwenty.param1);
-          setIncrementalAmount(incrementalAmountValue);
-        }
-      } catch (error) {
-        console.error("Error parsing incremental amount value:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save incremental amount configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
 
@@ -55,52 +31,59 @@ export const LateArrivalFine5 = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 20
-      let ruleTwenty = existingRules.find(
-        (rule) => rule.ruleId === 20 || rule.ruleId === "20"
-      );
+        // Find or create rule with ruleId = 20
+        let ruleTwenty = existingRules.find(
+          (rule) => rule.ruleId === 20 || rule.ruleId === "20"
+        );
 
-      if (!ruleTwenty) {
-        // Create new rule with ruleId = 20 if it doesn't exist
-        ruleTwenty = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "20", // string
-          ruleStatus: 1, // number
-          param1: incrementalAmount, // string containing incremental amount value
-          param2: "",
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleTwenty object - preserve all other properties
-        ruleTwenty.empId = empId; // string
-        ruleTwenty.param1 = incrementalAmount; // update with new incremental amount value
-        // Keep all other properties as they are
-      }
+        if (!ruleTwenty) {
+          // Create new rule with ruleId = 20 if it doesn't exist
+          ruleTwenty = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "20", // string
+            ruleStatus: 1, // number
+            param1: incrementalAmount, // string containing incremental amount value
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleTwenty object - preserve all other properties
+          ruleTwenty.empId = empId; // string
+          ruleTwenty.param1 = incrementalAmount; // update with new incremental amount value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 20 || r.ruleId === "20",
-          newValue: ruleTwenty, // update ruleId=20 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 20 || r.ruleId === "20",
+            newValue: ruleTwenty, // update ruleId=20 object
+          },
+        });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
+      await Promise.all(updatePromises);
 
       toast.success("Incremental late penalty updated successfully!");
     } catch (error) {

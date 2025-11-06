@@ -1,13 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const daysOfWeek = [
@@ -19,38 +24,6 @@ export const WeekendForm = () => {
     "Friday",
     "Saturday",
   ];
-
-  // Load existing weekend days from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const parsedRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleTwo = parsedRules.find(
-          (rule) => rule.ruleId === 2 || rule.ruleId === "2"
-        );
-
-        if (ruleTwo && ruleTwo.param1) {
-          // Parse the comma-separated string of days
-          const daysString =
-            typeof ruleTwo.param1 === "string"
-              ? ruleTwo.param1
-              : String(ruleTwo.param1);
-          const existingDays = daysString
-            .split(",")
-            .map((day) => day.trim())
-            .filter((day) => day);
-
-          setSelectedDays(existingDays);
-        }
-      } catch (error) {
-        console.error("Error parsing weekend days:", error);
-      }
-    }
-  }, [selectedEmployee]);
 
   const handleDayChange = (day, checked) => {
     if (checked) {
@@ -67,62 +40,72 @@ export const WeekendForm = () => {
 
   // Save weekend configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
-
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
-
-      // Parse existing rules - preserve ALL existing rules
-
-      // Find or create rule with ruleId = 2
-      let ruleThree = existingRules.find(
-        (rule) => rule.ruleId === 2 || rule.ruleId === "2"
-      );
-
-      if (!ruleThree) {
-        // Create new rule with ruleId = 2 if it doesn't exist
-        ruleThree = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "2", // string
-          ruleStatus: 1, // number
-          param1: selectedDays.join(","), // string of comma-separated days
-          param2: "",
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleThree object - preserve all other properties
-        (ruleThree.empId = empId), // string
-          (ruleThree.param1 = selectedDays.join(","));
-        // Keep all other properties as they are
+      // Check if any employees are selected
+      if (selectedEmployees.length === 0) {
+        toast.error("Please select at least one employee!");
+        return;
       }
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 2,
-          newValue: ruleThree, // update ruleId=0 object
-        },
+        // Parse existing rules - preserve ALL existing rules
+
+        // Find or create rule with ruleId = 2
+        let ruleThree = existingRules.find(
+          (rule) => rule.ruleId === 2 || rule.ruleId === "2"
+        );
+
+        if (!ruleThree) {
+          // Create new rule with ruleId = 2 if it doesn't exist
+          ruleThree = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "2", // string
+            ruleStatus: 1, // number
+            param1: selectedDays.join(","), // string of comma-separated days
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleThree object - preserve all other properties
+          (ruleThree.empId = empId), // string
+            (ruleThree.param1 = selectedDays.join(","));
+          // Keep all other properties as they are
+        }
+
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 2,
+            newValue: ruleThree, // update ruleId=0 object
+          },
+        });
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+        return updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      console.log("Weekend days updated successfully:", selectedDays.join(","));
+      await Promise.all(updatePromises);
+      setRulesIds(2);
       toast.success("Weekend days updated successfully!");
     } catch (error) {
       console.error("Error saving weekend days:", error);

@@ -1,60 +1,24 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalPenalty6 = () => {
   const [dayShiftPenalty, setDayShiftPenalty] = useState("");
   const [nightShiftPenalty, setNightShiftPenalty] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing shift penalty values from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleTwentyOne = existingRules.find(
-          (rule) => rule.ruleId === 21 || rule.ruleId === "21"
-        );
-
-        if (ruleTwentyOne) {
-          // param1 contains day shift penalty value
-          if (ruleTwentyOne.param1) {
-            const dayPenaltyValue =
-              typeof ruleTwentyOne.param1 === "string"
-                ? ruleTwentyOne.param1
-                : String(ruleTwentyOne.param1);
-            setDayShiftPenalty(dayPenaltyValue);
-          }
-
-          // param2 contains night shift penalty value
-          if (ruleTwentyOne.param2) {
-            const nightPenaltyValue =
-              typeof ruleTwentyOne.param2 === "string"
-                ? ruleTwentyOne.param2
-                : String(ruleTwentyOne.param2);
-            setNightShiftPenalty(nightPenaltyValue);
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing shift penalty values:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save shift penalty configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
-
     if (
       !dayShiftPenalty ||
       isNaN(dayShiftPenalty) ||
@@ -76,58 +40,62 @@ export const LateArrivalPenalty6 = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 21
-      let ruleTwentyOne = existingRules.find(
-        (rule) => rule.ruleId === 21 || rule.ruleId === "21"
-      );
+        // Find or create rule with ruleId = 21
+        let ruleTwentyOne = existingRules.find(
+          (rule) => rule.ruleId === 21 || rule.ruleId === "21"
+        );
 
-      if (!ruleTwentyOne) {
-        // Create new rule with ruleId = 21 if it doesn't exist
-        ruleTwentyOne = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "21", // string
-          ruleStatus: 1, // number
-          param1: dayShiftPenalty, // string containing day shift penalty value
-          param2: nightShiftPenalty, // string containing night shift penalty value
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleTwentyOne object - preserve all other properties
-        ruleTwentyOne.empId = empId; // string
-        ruleTwentyOne.param1 = dayShiftPenalty; // update with new day shift penalty value
-        ruleTwentyOne.param2 = nightShiftPenalty; // update with new night shift penalty value
-        // Keep all other properties as they are
-      }
+        if (!ruleTwentyOne) {
+          // Create new rule with ruleId = 21 if it doesn't exist
+          ruleTwentyOne = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "21", // string
+            ruleStatus: 1, // number
+            param1: dayShiftPenalty, // string containing day shift penalty value
+            param2: nightShiftPenalty, // string containing night shift penalty value
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleTwentyOne object - preserve all other properties
+          ruleTwentyOne.empId = empId; // string
+          ruleTwentyOne.param1 = dayShiftPenalty; // update with new day shift penalty value
+          ruleTwentyOne.param2 = nightShiftPenalty; // update with new night shift penalty value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 21 || r.ruleId === "21",
-          newValue: ruleTwentyOne, // update ruleId=21 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 21 || r.ruleId === "21",
+            newValue: ruleTwentyOne, // update ruleId=21 object
+          },
+        });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      console.log("Shift penalty settings updated successfully:", {
-        dayShiftPenalty,
-        nightShiftPenalty,
-      });
+      await Promise.all(updatePromises);
       toast.success("Shift penalty settings updated successfully!");
     } catch (error) {
       console.error("Error saving shift penalty settings:", error);

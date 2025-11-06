@@ -1,102 +1,83 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalPenalty3 = () => {
   const [hourlyRate, setHourlyRate] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
+
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-
-  // Load existing hourly rate value from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleEighteen = existingRules.find(
-          (rule) => rule.ruleId === 18 || rule.ruleId === "18"
-        );
-
-        if (ruleEighteen && ruleEighteen.param2) {
-          // param2 contains the hourly rate value
-          const hourlyRateValue =
-            typeof ruleEighteen.param2 === "string"
-              ? ruleEighteen.param2
-              : String(ruleEighteen.param2);
-          setHourlyRate(hourlyRateValue);
-        }
-      } catch (error) {
-        console.error("Error parsing hourly rate value:", error);
-      }
-    }
-  }, [selectedEmployee]);
 
   // Save hourly rate configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
-
     if (!hourlyRate || isNaN(hourlyRate) || parseFloat(hourlyRate) < 0) {
       toast.error("Please enter a valid positive number for hourly rate");
       return;
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 18
-      let ruleEighteen = existingRules.find(
-        (rule) => rule.ruleId === 18 || rule.ruleId === "18"
-      );
+        // Find or create rule with ruleId = 18
+        let ruleEighteen = existingRules.find(
+          (rule) => rule.ruleId === 18 || rule.ruleId === "18"
+        );
 
-      if (!ruleEighteen) {
-        // Create new rule with ruleId = 18 if it doesn't exist
-        ruleEighteen = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "18", // string
-          ruleStatus: 1, // number
-          param1: "1",
-          param2: hourlyRate, // string containing hourly rate value
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleEighteen object - preserve all other properties
-        ruleEighteen.empId = empId; // string
-        ruleEighteen.param2 = hourlyRate; // update with new hourly rate value
-        // Keep all other properties as they are
-      }
+        if (!ruleEighteen) {
+          // Create new rule with ruleId = 18 if it doesn't exist
+          ruleEighteen = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "18", // string
+            ruleStatus: 1, // number
+            param1: "1",
+            param2: hourlyRate, // string containing hourly rate value
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleEighteen object - preserve all other properties
+          ruleEighteen.empId = empId; // string
+          ruleEighteen.param2 = hourlyRate; // update with new hourly rate value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 18 || r.ruleId === "18",
-          newValue: ruleEighteen, // update ruleId=18 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 18 || r.ruleId === "18",
+            newValue: ruleEighteen, // update ruleId=18 object
+          },
+        });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      console.log("Hourly late penalty rate updated successfully:", hourlyRate);
+      await Promise.all(updatePromises);
       toast.success("Hourly late penalty rate updated successfully!");
     } catch (error) {
       console.error("Error saving hourly late penalty rate:", error);

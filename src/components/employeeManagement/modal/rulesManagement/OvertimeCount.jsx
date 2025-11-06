@@ -1,48 +1,22 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const OvertImeCount = () => {
   const [minOvertimeUnit, setMinOvertimeUnit] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-
-  // Load existing minimum overtime unit value from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleSeven = existingRules.find(
-          (rule) => rule.ruleId === 7 || rule.ruleId === "7"
-        );
-
-        if (ruleSeven && ruleSeven.param1) {
-          // param1 contains the minimum overtime unit value
-          const minUnitValue =
-            typeof ruleSeven.param1 === "string"
-              ? ruleSeven.param1
-              : String(ruleSeven.param1);
-          setMinOvertimeUnit(minUnitValue);
-        }
-      } catch (error) {
-        console.error("Error parsing minimum overtime unit value:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save minimum overtime unit configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
-
     if (
       !minOvertimeUnit ||
       isNaN(minOvertimeUnit) ||
@@ -55,57 +29,55 @@ export const OvertImeCount = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 7
-      let ruleSeven = existingRules.find(
-        (rule) => rule.ruleId === 7 || rule.ruleId === "7"
-      );
+        // Find or create rule with ruleId = 7
+        let ruleSeven = existingRules.find(
+          (rule) => rule.ruleId === 7 || rule.ruleId === "7"
+        );
 
-      if (!ruleSeven) {
-        // Create new rule with ruleId = 7 if it doesn't exist
-        ruleSeven = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "7", // string
-          ruleStatus: 1, // number
-          param1: minOvertimeUnit, // string containing minimum overtime unit value (minutes)
-          param2: "",
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleSeven object - preserve all other properties
-        ruleSeven.empId = empId; // string
-        ruleSeven.param1 = minOvertimeUnit; // update with new minimum overtime unit value
-        // Keep all other properties as they are
-      }
+        if (!ruleSeven) {
+          ruleSeven = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "7", // string
+            ruleStatus: 1, // number
+            param1: minOvertimeUnit,
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          ruleSeven.empId = empId;
+          ruleSeven.param1 = minOvertimeUnit;
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 7 || r.ruleId === "7",
-          newValue: ruleSeven, // update ruleId=7 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 7 || r.ruleId === "7",
+            newValue: ruleSeven, // update ruleId=7 object
+          },
+        });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
+      await Promise.all(updatePromises);
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      console.log(
-        "Minimum overtime unit updated successfully:",
-        minOvertimeUnit
-      );
       toast.success("Minimum overtime unit updated successfully!");
     } catch (error) {
       console.error("Error saving minimum overtime unit:", error);

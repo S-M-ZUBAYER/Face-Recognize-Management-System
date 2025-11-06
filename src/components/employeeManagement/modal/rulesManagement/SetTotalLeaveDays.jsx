@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const SetTotalLeaveDays = () => {
   const [totalDays, setTotalDays] = useState("");
@@ -18,65 +19,10 @@ export const SetTotalLeaveDays = () => {
     Others: "",
   });
 
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing leave values from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleTwentyFour = existingRules.find(
-          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
-        );
-
-        if (ruleTwentyFour) {
-          // param1 contains total days value
-          if (ruleTwentyFour.param1) {
-            const totalDaysValue =
-              typeof ruleTwentyFour.param1 === "string"
-                ? ruleTwentyFour.param1
-                : String(ruleTwentyFour.param1);
-            setTotalDays(totalDaysValue);
-          }
-
-          // param2 contains leave days object
-          if (ruleTwentyFour.param2) {
-            const leaveDaysObj =
-              typeof ruleTwentyFour.param2 === "string"
-                ? JSON.parse(ruleTwentyFour.param2)
-                : ruleTwentyFour.param2;
-
-            if (typeof leaveDaysObj === "object" && leaveDaysObj !== null) {
-              setLeaveDays({
-                "Maternity Leave": String(
-                  leaveDaysObj["Maternity Leave"] || ""
-                ),
-                "Marriage Leave": String(leaveDaysObj["Marriage Leave"] || ""),
-                "Paternity Leave": String(
-                  leaveDaysObj["Paternity Leave"] || ""
-                ),
-                "Sick Leave": String(leaveDaysObj["Sick Leave"] || ""),
-                "Casual Leave": String(leaveDaysObj["Casual Leave"] || ""),
-                "Earned leave": String(leaveDaysObj["Earned leave"] || ""),
-                "Without Pay Leave": String(
-                  leaveDaysObj["Without Pay Leave"] || ""
-                ),
-                "Rest Leave": String(leaveDaysObj["Rest Leave"] || ""),
-                Others: String(leaveDaysObj["Others"] || ""),
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing leave values:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Calculate total from leave categories
   const calculateTotalFromLeaves = useCallback(() => {
@@ -166,11 +112,10 @@ export const SetTotalLeaveDays = () => {
 
   // Save leave configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
-
     const finalTotalDays = parseInt(totalDays) || 0;
 
     if (finalTotalDays <= 0) {
@@ -179,59 +124,65 @@ export const SetTotalLeaveDays = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Prepare leave days object with numbers
-      const leaveDaysObj = {};
-      Object.keys(leaveDays).forEach((key) => {
-        leaveDaysObj[key] = parseInt(leaveDays[key]) || 0;
+        // Prepare leave days object with numbers
+        const leaveDaysObj = {};
+        Object.keys(leaveDays).forEach((key) => {
+          leaveDaysObj[key] = parseInt(leaveDays[key]) || 0;
+        });
+
+        // Find or create rule with ruleId = 24
+        let ruleTwentyFour = existingRules.find(
+          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
+        );
+
+        if (!ruleTwentyFour) {
+          // Create new rule with ruleId = 24 if it doesn't exist
+          ruleTwentyFour = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "24", // string
+            ruleStatus: 1, // number
+            param1: String(finalTotalDays), // string containing total days value
+            param2: JSON.stringify(leaveDaysObj), // string containing leave days object
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleTwentyFour object - preserve all other properties
+          ruleTwentyFour.empId = empId; // string
+          ruleTwentyFour.param1 = String(finalTotalDays); // update with new total days value
+          ruleTwentyFour.param2 = JSON.stringify(leaveDaysObj); // update with new leave days object
+          // Keep all other properties as they are
+        }
+
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 24 || r.ruleId === "24",
+            newValue: ruleTwentyFour, // update ruleId=24 object
+          },
+        });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
 
-      // Find or create rule with ruleId = 24
-      let ruleTwentyFour = existingRules.find(
-        (rule) => rule.ruleId === 24 || rule.ruleId === "24"
-      );
-
-      if (!ruleTwentyFour) {
-        // Create new rule with ruleId = 24 if it doesn't exist
-        ruleTwentyFour = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "24", // string
-          ruleStatus: 1, // number
-          param1: String(finalTotalDays), // string containing total days value
-          param2: JSON.stringify(leaveDaysObj), // string containing leave days object
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleTwentyFour object - preserve all other properties
-        ruleTwentyFour.empId = empId; // string
-        ruleTwentyFour.param1 = String(finalTotalDays); // update with new total days value
-        ruleTwentyFour.param2 = JSON.stringify(leaveDaysObj); // update with new leave days object
-        // Keep all other properties as they are
-      }
-
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 24 || r.ruleId === "24",
-          newValue: ruleTwentyFour, // update ruleId=24 object
-        },
-      });
-
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
+      await Promise.all(updatePromises);
 
       toast.success("Leave settings updated successfully!");
     } catch (error) {

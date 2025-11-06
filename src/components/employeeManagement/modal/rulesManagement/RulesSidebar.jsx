@@ -28,9 +28,9 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   };
 
   // Check if rule ID is in dependency group (6-9)
-  // const isDependencyRule = (ruleId) => {
-  //   return [6, 7, 8, 9].includes(ruleId);
-  // };
+  const isDependencyRule = (ruleId) => {
+    return [6, 7, 8, 9].includes(ruleId);
+  };
 
   // Check if rule ID is in exclusive group (18-23)
   const isExclusiveRule = (ruleId) => {
@@ -52,16 +52,16 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
     // }
 
     // // Condition 1: Rules 6-9 require rule 24 to be set
-    // if (isDependencyRule(rule.id)) {
-    //   if (!hasRuleId(existingRuleIds, 24)) {
-    //     openDialog(
-    //       `Rule ${
-    //         rule.id + 1
-    //       } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
-    //     );
-    //     return;
-    //   }
-    // }
+    if (isDependencyRule(rule.id)) {
+      if (!hasRuleId(existingRuleIds, 24)) {
+        openDialog(
+          `Rule ${
+            rule.id + 1
+          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
+        );
+        return;
+      }
+    }
 
     // Condition 2: Rules 18-23 are mutually exclusive
     if (isExclusiveRule(rule.id)) {

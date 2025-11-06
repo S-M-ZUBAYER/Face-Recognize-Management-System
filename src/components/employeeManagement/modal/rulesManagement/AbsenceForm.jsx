@@ -1,45 +1,21 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const AbsenceForm = () => {
   const [penaltyDays, setPenaltyDays] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing penalty days value from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleThirteen = existingRules.find(
-          (rule) => rule.ruleId === 13 || rule.ruleId === "13"
-        );
-
-        if (ruleThirteen && ruleThirteen.param2) {
-          // param2 contains the penalty days value
-          const penaltyDaysValue =
-            typeof ruleThirteen.param2 === "string"
-              ? ruleThirteen.param2
-              : String(ruleThirteen.param2);
-          setPenaltyDays(penaltyDaysValue);
-        }
-      } catch (error) {
-        console.error("Error parsing penalty days value:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save penalty days configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
 
@@ -49,53 +25,60 @@ export const AbsenceForm = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 13
-      let ruleThirteen = existingRules.find(
-        (rule) => rule.ruleId === 13 || rule.ruleId === "13"
-      );
+        // Find or create rule with ruleId = 13
+        let ruleThirteen = existingRules.find(
+          (rule) => rule.ruleId === 13 || rule.ruleId === "13"
+        );
 
-      if (!ruleThirteen) {
-        // Create new rule with ruleId = 13 if it doesn't exist
-        ruleThirteen = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "13", // string
-          ruleStatus: 1, // number
-          param1: "",
-          param2: penaltyDays, // string containing penalty days value
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleThirteen object - preserve all other properties
-        ruleThirteen.empId = empId; // string
-        ruleThirteen.param2 = penaltyDays; // update with new penalty days value
-        // Keep all other properties as they are
-      }
+        if (!ruleThirteen) {
+          // Create new rule with ruleId = 13 if it doesn't exist
+          ruleThirteen = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "13", // string
+            ruleStatus: 1, // number
+            param1: "",
+            param2: penaltyDays, // string containing penalty days value
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleThirteen object - preserve all other properties
+          ruleThirteen.empId = empId; // string
+          ruleThirteen.param2 = penaltyDays; // update with new penalty days value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 13 || r.ruleId === "13",
-          newValue: ruleThirteen, // update ruleId=13 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 13 || r.ruleId === "13",
+            newValue: ruleThirteen, // update ruleId=13 object
+          },
+        });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
-
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
+      await Promise.all(updatePromises);
       toast.success("Penalty days updated successfully!");
     } catch (error) {
       console.error("Error saving penalty days:", error);

@@ -1,45 +1,21 @@
-import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalPenalty1 = () => {
   const [penaltyAmount, setPenaltyAmount] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  // Load existing penalty amount value from selectedEmployee
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
-      try {
-        const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
-
-        const ruleFifteen = existingRules.find(
-          (rule) => rule.ruleId === 15 || rule.ruleId === "15"
-        );
-
-        if (ruleFifteen && ruleFifteen.param1) {
-          // param1 contains the penalty amount value
-          const penaltyAmountValue =
-            typeof ruleFifteen.param1 === "string"
-              ? ruleFifteen.param1
-              : String(ruleFifteen.param1);
-          setPenaltyAmount(penaltyAmountValue);
-        }
-      } catch (error) {
-        console.error("Error parsing penalty amount value:", error);
-      }
-    }
-  }, [selectedEmployee]);
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
 
   // Save penalty amount configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
 
@@ -53,52 +29,60 @@ export const LateArrivalPenalty1 = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Find or create rule with ruleId = 15
-      let ruleFifteen = existingRules.find(
-        (rule) => rule.ruleId === 15 || rule.ruleId === "15"
-      );
+        // Find or create rule with ruleId = 15
+        let ruleFifteen = existingRules.find(
+          (rule) => rule.ruleId === 15 || rule.ruleId === "15"
+        );
 
-      if (!ruleFifteen) {
-        // Create new rule with ruleId = 15 if it doesn't exist
-        ruleFifteen = {
-          id: Math.floor(10 + Math.random() * 90), // number
-          empId: empId, // string
-          ruleId: "15", // string
-          ruleStatus: 1, // number
-          param1: penaltyAmount, // string containing penalty amount value
-          param2: "",
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        // Update ONLY the ruleFifteen object - preserve all other properties
-        ruleFifteen.empId = empId; // string
-        ruleFifteen.param1 = penaltyAmount; // update with new penalty amount value
-        // Keep all other properties as they are
-      }
+        if (!ruleFifteen) {
+          // Create new rule with ruleId = 15 if it doesn't exist
+          ruleFifteen = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "15", // string
+            ruleStatus: 1, // number
+            param1: penaltyAmount, // string containing penalty amount value
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleFifteen object - preserve all other properties
+          ruleFifteen.empId = empId; // string
+          ruleFifteen.param1 = penaltyAmount; // update with new penalty amount value
+          // Keep all other properties as they are
+        }
 
-      // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 15 || r.ruleId === "15",
-          newValue: ruleFifteen, // update ruleId=15 object
-        },
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 15 || r.ruleId === "15",
+            newValue: ruleFifteen, // update ruleId=15 object
+          },
+        });
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
-
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
+      await Promise.all(updatePromises);
 
       toast.success("Late arrival penalty updated successfully!");
     } catch (error) {

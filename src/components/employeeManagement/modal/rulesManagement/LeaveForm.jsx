@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDownIcon, XIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,20 +10,27 @@ import {
 } from "@/components/ui/popover";
 import image from "@/constants/image";
 import { Label } from "@/components/ui/label";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import formatDateForStorage from "@/lib/formatDateForStorage";
+import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
   const [openPopovers, setOpenPopovers] = useState({});
   const [leaveDetails, setLeaveDetails] = useState({});
   const [timePopovers, setTimePopovers] = useState({});
-  const [totalLeaveDays, setTotalLeaveDays] = useState(0);
-  const { selectedEmployee } = useEmployeeStore();
+  const [tempTimeRanges, setTempTimeRanges] = useState({});
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { selectedEmployees, updateEmployeeSalaryRules } =
+    useSelectedEmployeeStore();
+
+  // Helper function to get consistent date string
+  const getDateString = (date) => {
+    return date.toISOString().split("T")[0];
+  };
 
   // Leave type mappings
   const leaveMappings = {
@@ -43,187 +50,6 @@ export const LeaveForm = () => {
     "Without Pay Leave": 7,
     Others: 9,
   };
-
-  // Load existing leave data
-  useEffect(() => {
-    if (selectedEmployee?.salaryRules) {
-      const salaryRules = selectedEmployee.salaryRules;
-
-      // Load total leave days from ruleId === 24
-      try {
-        const rules =
-          typeof salaryRules.rules === "string"
-            ? JSON.parse(salaryRules.rules)
-            : salaryRules.rules || [];
-
-        const ruleTwentyFour = rules.find(
-          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
-        );
-        if (ruleTwentyFour && ruleTwentyFour.param1) {
-          const totalDays =
-            typeof ruleTwentyFour.param1 === "string"
-              ? parseInt(ruleTwentyFour.param1)
-              : ruleTwentyFour.param1;
-          setTotalLeaveDays(totalDays || 0);
-        }
-      } catch (error) {
-        console.error("Error parsing total leave days:", error);
-      }
-
-      // Load selected leaves and their details
-      const loadedSelectedLeaves = [];
-      const loadedLeaveDetails = {};
-
-      Object.entries(leaveMappings).forEach(([leaveName, fieldName]) => {
-        try {
-          const leaveData =
-            typeof salaryRules[fieldName] === "string"
-              ? JSON.parse(salaryRules[fieldName])
-              : salaryRules[fieldName] || [];
-
-          if (Array.isArray(leaveData) && leaveData.length > 0) {
-            loadedSelectedLeaves.push(leaveName);
-
-            // Convert stored dates to Date objects and extract time ranges
-            const dates = [];
-            const timeRanges = {};
-
-            leaveData.forEach((item) => {
-              if (
-                item.date &&
-                typeof item.date === "object" &&
-                item.date.date
-              ) {
-                const date = new Date(item.date.date);
-                if (!isNaN(date.getTime())) {
-                  dates.push(date);
-                  const dateStr = date.toISOString().split("T")[0];
-                  timeRanges[dateStr] = {
-                    startTime: item.date.start || "09:00",
-                    endTime: item.date.end || "17:00",
-                  };
-                }
-              }
-            });
-
-            loadedLeaveDetails[leaveName] = {
-              dates: dates,
-              days: "",
-              cost: "",
-              timeRanges: timeRanges,
-            };
-          }
-        } catch (error) {
-          console.error(`Error parsing ${fieldName}:`, error);
-        }
-      });
-
-      // Load ruleId === 10 data for specific leaves
-      try {
-        const rules =
-          typeof salaryRules.rules === "string"
-            ? JSON.parse(salaryRules.rules)
-            : salaryRules.rules || [];
-
-        const ruleTen = rules.find(
-          (rule) => rule.ruleId === 10 || rule.ruleId === "10"
-        );
-
-        if (ruleTen && ruleTen.param1) {
-          const param1Data =
-            typeof ruleTen.param1 === "string"
-              ? JSON.parse(ruleTen.param1)
-              : ruleTen.param1;
-
-          if (Array.isArray(param1Data)) {
-            param1Data.forEach((item, index) => {
-              const leaveType = Object.keys(ruleTenMappings).find(
-                (key) => ruleTenMappings[key] === index + 1
-              );
-
-              if (leaveType && loadedLeaveDetails[leaveType]) {
-                loadedLeaveDetails[leaveType] = {
-                  ...loadedLeaveDetails[leaveType],
-                  days: item?.dayCount?.toString() || "",
-                  cost: item?.cost?.toString() || "",
-                };
-              }
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing ruleId 10:", error);
-      }
-
-      setSelectedLeaves(loadedSelectedLeaves);
-      setLeaveDetails(loadedLeaveDetails);
-    }
-  }, [selectedEmployee]);
-
-  // Calculate total leave time used
-  const calculateTotalLeaveTimeUsed = () => {
-    let totalMinutes = 0;
-
-    Object.values(leaveDetails).forEach((leave) => {
-      if (leave.timeRanges && typeof leave.timeRanges === "object") {
-        Object.values(leave.timeRanges).forEach((timeRange) => {
-          // Add null checks for timeRange
-          if (timeRange && timeRange.startTime && timeRange.endTime) {
-            try {
-              const [startHours, startMinutes] = timeRange.startTime
-                .split(":")
-                .map(Number);
-              const [endHours, endMinutes] = timeRange.endTime
-                .split(":")
-                .map(Number);
-
-              const startTotal = startHours * 60 + startMinutes;
-              const endTotal = endHours * 60 + endMinutes;
-
-              totalMinutes += Math.max(0, endTotal - startTotal);
-            } catch (error) {
-              console.error("Error calculating time range:", error);
-            }
-          }
-        });
-      }
-    });
-
-    const days = Math.floor(totalMinutes / (8 * 60)); // 8 hours per day
-    const remainingMinutes = totalMinutes % (8 * 60);
-    const hours = Math.floor(remainingMinutes / 60);
-    const minutes = remainingMinutes % 60;
-
-    return { days, hours, minutes, totalMinutes };
-  };
-
-  // Calculate remaining leave
-  const calculateRemainingLeave = () => {
-    const used = calculateTotalLeaveTimeUsed();
-    const totalMinutesAvailable = totalLeaveDays * 8 * 60; // Convert days to minutes
-
-    const remainingMinutes = Math.max(
-      0,
-      totalMinutesAvailable - used.totalMinutes
-    );
-
-    const days = Math.floor(remainingMinutes / (8 * 60));
-    const remainingAfterDays = remainingMinutes % (8 * 60);
-    const hours = Math.floor(remainingAfterDays / 60);
-    const minutes = remainingAfterDays % 60;
-
-    return {
-      days,
-      hours,
-      minutes,
-      totalMinutes: remainingMinutes,
-      usedDays: used.days,
-      usedHours: used.hours,
-      usedMinutes: used.minutes,
-    };
-  };
-
-  const remainingLeave = calculateRemainingLeave();
 
   const handleLeaveChange = (leave, checked) => {
     if (checked) {
@@ -255,20 +81,22 @@ export const LeaveForm = () => {
   const handleDateChange = (leave, newDates) => {
     if (!newDates) return;
 
-    // Initialize time ranges for new dates
+    // Initialize time ranges for new dates with consistent date strings
     const currentTimeRanges = leaveDetails[leave]?.timeRanges || {};
     const newTimeRanges = { ...currentTimeRanges };
 
     newDates.forEach((date) => {
-      const dateStr = date.toISOString().split("T")[0];
-
+      const dateStr = getDateString(date);
       if (!newTimeRanges[dateStr]) {
         newTimeRanges[dateStr] = {
-          startTime: "09:00",
-          endTime: "17:00",
+          startTime: null,
+          endTime: null,
         };
       }
     });
+
+    console.log("Updated time ranges for dates:", newDates);
+    console.log("New time ranges:", newTimeRanges);
 
     setLeaveDetails((prev) => ({
       ...prev,
@@ -282,13 +110,13 @@ export const LeaveForm = () => {
   };
 
   const removeDate = (leave, dateToRemove) => {
-    const dateStr = dateToRemove.toISOString().split("T")[0];
+    const dateStr = getDateString(dateToRemove);
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
         ...prev[leave],
         dates: prev[leave].dates.filter(
-          (date) => date.toISOString().split("T")[0] !== dateStr
+          (date) => getDateString(date) !== dateStr
         ),
         timeRanges: Object.keys(prev[leave].timeRanges || {})
           .filter((key) => key !== dateStr)
@@ -310,8 +138,51 @@ export const LeaveForm = () => {
     }));
   };
 
-  const handleTimeChange = (leave, date, field, value) => {
-    const dateStr = date.toISOString().split("T")[0];
+  // Handle time change in temporary state
+  const handleTempTimeChange = (leave, date, field, value) => {
+    const key = `${leave}-${getDateString(date)}`;
+    setTempTimeRanges((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Apply time changes
+  const applyTimeChanges = (leave, date) => {
+    const key = `${leave}-${getDateString(date)}`;
+    const tempTimeRange = tempTimeRanges[key];
+
+    if (tempTimeRange) {
+      setLeaveDetails((prev) => ({
+        ...prev,
+        [leave]: {
+          ...prev[leave],
+          timeRanges: {
+            ...prev[leave].timeRanges,
+            [getDateString(date)]: {
+              startTime: tempTimeRange.startTime || null,
+              endTime: tempTimeRange.endTime || null,
+            },
+          },
+        },
+      }));
+    }
+
+    // Close popover and clear temp state
+    toggleTimePopover(leave, date, false);
+    setTempTimeRanges((prev) => {
+      const newTemp = { ...prev };
+      delete newTemp[key];
+      return newTemp;
+    });
+  };
+
+  // Clear time for a specific date
+  const clearTime = (leave, date) => {
+    const dateStr = getDateString(date);
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
@@ -319,15 +190,13 @@ export const LeaveForm = () => {
         timeRanges: {
           ...prev[leave].timeRanges,
           [dateStr]: {
-            ...(prev[leave].timeRanges?.[dateStr] || {
-              startTime: "09:00",
-              endTime: "17:00",
-            }),
-            [field]: value,
+            startTime: null,
+            endTime: null,
           },
         },
       },
     }));
+    toggleTimePopover(leave, date, false);
   };
 
   const togglePopover = (leave, isOpen) => {
@@ -338,7 +207,22 @@ export const LeaveForm = () => {
   };
 
   const toggleTimePopover = (leave, date, isOpen) => {
-    const key = `${leave}-${date.toISOString().split("T")[0]}`;
+    const key = `${leave}-${getDateString(date)}`;
+
+    if (isOpen) {
+      // Initialize temp state with current values when opening
+      const currentTimeRange = leaveDetails[leave]?.timeRanges?.[
+        getDateString(date)
+      ] || {
+        startTime: null,
+        endTime: null,
+      };
+      setTempTimeRanges((prev) => ({
+        ...prev,
+        [key]: { ...currentTimeRange },
+      }));
+    }
+
     setTimePopovers((prev) => ({
       ...prev,
       [key]: isOpen,
@@ -370,117 +254,147 @@ export const LeaveForm = () => {
     });
   };
 
+  // Format time display
+  const formatTimeDisplay = (timeRange) => {
+    if (!timeRange.startTime && !timeRange.endTime) {
+      return "Set time";
+    }
+    return `${timeRange.startTime || "--:--"} - ${
+      timeRange.endTime || "--:--"
+    }`;
+  };
+
   // Save leave configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
+    if (selectedEmployees.length === 0) {
+      toast.error("Please select at least one employee!");
       return;
     }
-
     try {
-      const salaryRules = selectedEmployee.salaryRules;
-      const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
-
-      // Prepare leave arrays for each type
-      const updatedLeaveData = {};
-
-      Object.entries(leaveMappings).forEach(([leaveName, fieldName]) => {
-        if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
-          const leaveData = leaveDetails[leaveName].dates.map((date, index) => {
-            const dateStr = formatDateForStorage(date);
-            const timeRange = leaveDetails[leaveName].timeRanges?.[dateStr] || {
-              start: "09:00",
-              end: "17:00",
-            };
-
-            // Base object for all leave types
-            const baseLeaveObject = {
-              id: index + 1,
-              empId: Number(empId),
-              date: JSON.stringify({
-                date: `${dateStr}T00:00:00.000`,
-                start: timeRange.startTime || null,
-                end: timeRange.endTime || null,
-              }),
-            };
-
-            // For Maternity Leave, For Marriage, Paternity Leave - no deduct fields
-            if (
-              leaveName === "Maternity Leave" ||
-              leaveName === "For Marriage" ||
-              leaveName === "Paternity Leave"
-            ) {
-              return baseLeaveObject;
-            }
-
-            return {
-              ...baseLeaveObject,
-              deductDay: "0",
-              deductMoney: "0",
-            };
-          });
-          updatedLeaveData[fieldName] = leaveData;
-        } else {
-          updatedLeaveData[fieldName] = [];
+      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
         }
-      });
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
 
-      // Prepare ruleId === 10 data
-      const ruleTenData = Array(9)
-        .fill(null)
-        .map(() => ({ dayCount: "", cost: "" }));
+        // Prepare leave arrays for each type
+        const updatedLeaveData = {};
 
-      Object.entries(ruleTenMappings).forEach(([leaveName, index]) => {
-        if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
-          ruleTenData[index - 1] = {
-            dayCount: leaveDetails[leaveName].days || "",
-            cost: leaveDetails[leaveName].cost || "",
+        Object.entries(leaveMappings).forEach(([leaveName, fieldName]) => {
+          if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
+            const leaveData = leaveDetails[leaveName].dates.map(
+              (date, index) => {
+                const dateStr = getDateString(date);
+                const timeRange = leaveDetails[leaveName].timeRanges?.[
+                  dateStr
+                ] || {
+                  startTime: null,
+                  endTime: null,
+                };
+
+                console.log(
+                  `Creating object for ${leaveName}, date ${dateStr}:`,
+                  timeRange
+                );
+
+                const correctDateStr = formatDateForStorage(date);
+
+                // Base object for all leave types
+                const baseLeaveObject = {
+                  id: index + 1,
+                  empId: Number(empId),
+                  date: JSON.stringify({
+                    date: `${correctDateStr}T00:00:00.000`,
+                    start: timeRange.startTime,
+                    end: timeRange.endTime,
+                  }),
+                };
+
+                console.log("Base leave object:", baseLeaveObject);
+
+                // For Maternity Leave, For Marriage, Paternity Leave - no deduct fields
+                if (
+                  leaveName === "Maternity Leave" ||
+                  leaveName === "For Marriage" ||
+                  leaveName === "Paternity Leave"
+                ) {
+                  return baseLeaveObject;
+                }
+
+                return {
+                  ...baseLeaveObject,
+                  deductDay: "0",
+                  deductMoney: "0",
+                };
+              }
+            );
+            updatedLeaveData[fieldName] = leaveData;
+          } else {
+            updatedLeaveData[fieldName] = [];
+          }
+        });
+
+        console.log("Final updated leave data:", updatedLeaveData);
+
+        // Prepare ruleId === 10 data
+        const ruleTenData = Array(9)
+          .fill(null)
+          .map(() => ({ dayCount: "", cost: "" }));
+
+        Object.entries(ruleTenMappings).forEach(([leaveName, index]) => {
+          if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
+            ruleTenData[index - 1] = {
+              dayCount: leaveDetails[leaveName].days || "",
+              cost: leaveDetails[leaveName].cost || "",
+            };
+          }
+        });
+
+        // Find or create rule with ruleId = 10
+        let ruleTen = existingRules.find(
+          (rule) => rule.ruleId === 10 || rule.ruleId === "10"
+        );
+
+        if (!ruleTen) {
+          ruleTen = {
+            id: Math.floor(10 + Math.random() * 90),
+            empId: empId,
+            ruleId: "10",
+            ruleStatus: 1,
+            param1: JSON.stringify(ruleTenData),
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
           };
+        } else {
+          ruleTen.empId = empId;
+          ruleTen.param1 = JSON.stringify(ruleTenData);
         }
-      });
 
-      // Find or create rule with ruleId = 10
-      let ruleTen = existingRules.find(
-        (rule) => rule.ruleId === 10 || rule.ruleId === "10"
-      );
-
-      if (!ruleTen) {
-        ruleTen = {
-          id: Math.floor(10 + Math.random() * 90),
+        // Generate final JSON
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
           empId: empId,
-          ruleId: "10",
-          ruleStatus: 1,
-          param1: JSON.stringify(ruleTenData),
-          param2: "",
-          param3: "",
-          param4: "",
-          param5: "",
-          param6: "",
-        };
-      } else {
-        ruleTen.empId = empId;
-        ruleTen.param1 = JSON.stringify(ruleTenData);
-      }
+          rules: {
+            filter: (r) => r.ruleId === 10 || r.ruleId === "10",
+            newValue: ruleTen,
+          },
+          ...updatedLeaveData,
+        });
 
-      // Generate final JSON
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
-        empId: empId,
-        rules: {
-          filter: (r) => r.ruleId === 10 || r.ruleId === "10",
-          newValue: ruleTen,
-        },
-        ...updatedLeaveData,
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
       });
-
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
+      await Promise.all(updatePromises);
       toast.success("Leave configuration updated successfully!");
     } catch (error) {
       console.error("Error saving leave configuration:", error);
@@ -490,35 +404,6 @@ export const LeaveForm = () => {
 
   return (
     <div className="space-y-6">
-      {/* Total Leave Display */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-green-900 mb-2">
-          Leave Balance
-        </h3>
-        <div className="flex justify-between items-center  gap-4 text-sm">
-          <div>
-            <div className="text-green-700 font-semibold">Total Available</div>
-            <div className="text-green-600">{totalLeaveDays} Days</div>
-          </div>
-          <div>
-            <div className="text-blue-700 font-semibold">Used</div>
-            <div className="text-blue-600">
-              {remainingLeave.usedDays}d {remainingLeave.usedHours}h{" "}
-              {remainingLeave.usedMinutes}m
-            </div>
-          </div>
-          <div className="col-span-2">
-            <div className="text-gray-700 font-semibold  pt-2">
-              Remaining Balance
-            </div>
-            <div className="text-gray-600">
-              {remainingLeave.days} Days {remainingLeave.hours} Hours{" "}
-              {remainingLeave.minutes} Minutes
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div>
         <label className="block text-sm font-semibold mb-3">Leave Types</label>
         <div className="space-y-4">
@@ -590,12 +475,15 @@ export const LeaveForm = () => {
                           </p>
                           <div className="space-y-2">
                             {leaveDetails[leave].dates.map((date, index) => {
-                              const dateStr = date.toISOString().split("T")[0];
+                              const dateStr = getDateString(date);
                               const timeRange = leaveDetails[leave]
                                 .timeRanges?.[dateStr] || {
-                                startTime: "09:00",
-                                endTime: "17:00",
+                                startTime: null,
+                                endTime: null,
                               };
+                              const tempKey = `${leave}-${dateStr}`;
+                              const tempTimeRange =
+                                tempTimeRanges[tempKey] || timeRange;
 
                               return (
                                 <div
@@ -606,7 +494,7 @@ export const LeaveForm = () => {
                                     {formatDate(date)}
                                   </span>
                                   <Popover
-                                    open={timePopovers[`${leave}-${dateStr}`]}
+                                    open={timePopovers[tempKey]}
                                     onOpenChange={(isOpen) =>
                                       toggleTimePopover(leave, date, isOpen)
                                     }
@@ -618,8 +506,7 @@ export const LeaveForm = () => {
                                         className="h-8 text-xs"
                                       >
                                         <Clock className="h-3 w-3 mr-1" />
-                                        {timeRange.startTime} -{" "}
-                                        {timeRange.endTime}
+                                        {formatTimeDisplay(timeRange)}
                                       </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-64 p-3">
@@ -630,9 +517,11 @@ export const LeaveForm = () => {
                                           </Label>
                                           <input
                                             type="time"
-                                            value={timeRange.startTime}
+                                            value={
+                                              tempTimeRange.startTime || ""
+                                            }
                                             onChange={(e) =>
-                                              handleTimeChange(
+                                              handleTempTimeChange(
                                                 leave,
                                                 date,
                                                 "startTime",
@@ -648,9 +537,9 @@ export const LeaveForm = () => {
                                           </Label>
                                           <input
                                             type="time"
-                                            value={timeRange.endTime}
+                                            value={tempTimeRange.endTime || ""}
                                             onChange={(e) =>
-                                              handleTimeChange(
+                                              handleTempTimeChange(
                                                 leave,
                                                 date,
                                                 "endTime",
@@ -659,6 +548,27 @@ export const LeaveForm = () => {
                                             }
                                             className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
                                           />
+                                        </div>
+                                        <div className="flex gap-2 pt-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              clearTime(leave, date)
+                                            }
+                                            variant="outline"
+                                            className="flex-1 text-xs"
+                                          >
+                                            Clear
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              applyTimeChanges(leave, date)
+                                            }
+                                            className="flex-1 text-xs bg-[#004368] text-white"
+                                          >
+                                            Apply
+                                          </Button>
                                         </div>
                                       </div>
                                     </PopoverContent>
@@ -741,18 +651,19 @@ export const LeaveForm = () => {
                 {leaveDetails[leave]?.dates?.length > 0 && (
                   <div className="mt-1 text-xs text-gray-500">
                     {leaveDetails[leave].dates.map((date, idx) => {
-                      const dateStr = date.toISOString().split("T")[0];
+                      const dateStr = getDateString(date);
                       const timeRange = leaveDetails[leave].timeRanges?.[
                         dateStr
                       ] || {
-                        startTime: "09:00",
-                        endTime: "17:00",
+                        startTime: null,
+                        endTime: null,
                       };
                       return (
                         <span key={idx} className="block">
                           {formatDate(date)}{" "}
-                          {timeRange &&
-                            `(${timeRange.startTime} - ${timeRange.endTime})`}
+                          {timeRange.startTime && timeRange.endTime
+                            ? `(${timeRange.startTime} - ${timeRange.endTime})`
+                            : "(No time set)"}
                         </span>
                       );
                     })}
