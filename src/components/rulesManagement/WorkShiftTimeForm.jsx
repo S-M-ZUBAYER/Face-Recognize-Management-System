@@ -7,15 +7,17 @@ import ExcelFormatExample from "./ExcelFormatExample";
 import toast from "react-hot-toast";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { TimeRangePicker } from "../TimePicker";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
+import { TimeRangePicker } from "@/components/TimePicker";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployees } from "@/hook/useEmployees";
 
 export const WorkShiftTimeForm = () => {
-  const { selectedEmployees } = useSelectedEmployeeStore();
+  const { Employees } = useEmployees();
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDateForConfig, setSelectedDateForConfig] = useState(null);
+  const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -325,13 +327,13 @@ export const WorkShiftTimeForm = () => {
       }
 
       // Check if any employees are selected
-      if (selectedEmployees.length === 0) {
+      if (Employees.length === 0) {
         toast.error("Please select at least one employee!");
         return;
       }
 
       // ✅ Continue with saving for selected employees
-      for (const emp of selectedEmployees) {
+      for (const emp of Employees) {
         if (!emp?.employeeId) {
           toast.error("Invalid employee data");
           continue;
@@ -396,18 +398,14 @@ export const WorkShiftTimeForm = () => {
             empId: employeeId,
             ruleId: "0",
             date: dateStr,
-            param1: normalizeParam(
-              config.workingTimes.map((wt) => ({
-                start: wt.startTime,
-                end: wt.endTime,
-              }))
-            ),
-            param2: normalizeParam(
-              config.overtimes.map((ot) => ({
-                start: ot.startTime,
-                end: ot.endTime,
-              }))
-            ),
+            param1: config.workingTimes.map((wt) => ({
+              start: wt.startTime,
+              end: wt.endTime,
+            })),
+            param2: config.overtimes.map((ot) => ({
+              start: ot.startTime,
+              end: ot.endTime,
+            })),
             param3: "",
             param4: "",
             param5: "",
@@ -426,8 +424,6 @@ export const WorkShiftTimeForm = () => {
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        console.log("Saving payload for employee:", employeeId, payload);
-
         // ✅ Use the mutation function instead of calling the hook directly
         await updateEmployee({
           mac: emp?.deviceMAC || "",
@@ -437,6 +433,7 @@ export const WorkShiftTimeForm = () => {
 
         toast.success(`Shift configuration saved for employee ${employeeId}!`);
       }
+      setRulesIds(0);
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
       toast.error("Failed to save shift configuration.");

@@ -1,9 +1,10 @@
-import React, { memo, useState, useCallback, useEffect } from "react";
+import React, { memo, useState, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useUserData } from "@/hook/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
 import localforage from "localforage";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DashboardIcon,
   EmployeeIcon,
@@ -20,6 +21,89 @@ import {
 } from "@/constants/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { base64ToImage } from "@/lib/base64Toimage";
+
+// Simplified animation variants
+const sidebarVariants = {
+  hidden: { x: -100, opacity: 0 },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const navItemVariants = {
+  hidden: { x: -20, opacity: 0 },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 200,
+      damping: 20,
+    },
+  },
+};
+
+// Simplified hover effect - only transform with will-change for better performance
+const hoverEffect = {
+  scale: 1.02,
+  transition: {
+    type: "tween",
+    duration: 0.15,
+    ease: "easeOut",
+  },
+};
+
+const tapEffect = {
+  scale: 0.98,
+  transition: {
+    type: "tween",
+    duration: 0.1,
+  },
+};
+
+const activeIndicatorVariants = {
+  hidden: { scaleX: 0, opacity: 0 },
+  visible: {
+    scaleX: 1,
+    opacity: 1,
+    transition: {
+      type: "tween",
+      duration: 0.2,
+    },
+  },
+};
+
+const loadingSpinVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear",
+    },
+  },
+};
+
+const userSectionVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+      delay: 0.2,
+    },
+  },
+};
 
 const links = [
   { label: "Dashboard", icon: DashboardIcon, path: "/" },
@@ -45,11 +129,6 @@ const links = [
     icon: AdminManagementIcon,
     path: "/admin-management",
   },
-  // {
-  //   label: "Task management",
-  //   icon: TaskManagementIcon,
-  //   path: "/task-management",
-  // },
   {
     label: "Leave approval",
     icon: LeaveManagementIcon,
@@ -59,6 +138,173 @@ const links = [
   { label: "PayPeriod", icon: PayPeriodIcon, path: "/pay-period" },
 ];
 
+// Optimized NavItem with reduced animations
+const NavItem = memo(({ link, isActive, isPending, onNavClick, onKeyDown }) => {
+  const handleClick = useCallback(() => {
+    onNavClick(link.path);
+  }, [onNavClick, link.path]);
+
+  const handleKeyPress = useCallback(
+    (e) => {
+      onKeyDown(e, () => onNavClick(link.path));
+    },
+    [onKeyDown, onNavClick, link.path]
+  );
+
+  return (
+    <motion.div
+      variants={navItemVariants}
+      whileHover={hoverEffect}
+      whileTap={tapEffect}
+      className="relative"
+      style={{ willChange: "transform" }} // Performance hint
+    >
+      <NavLink
+        to={link.path}
+        onClick={handleClick}
+        onKeyDown={handleKeyPress}
+        className={cn(
+          "flex items-center gap-3 p-2 pl-[2vw] py-2 text-sm font-medium transition-colors relative group",
+          isActive || isPending
+            ? "text-[#004368]"
+            : "text-[#BDBDBD] hover:text-[#004368]"
+        )}
+        aria-label={`Navigate to ${link.label}`}
+        aria-current={isActive ? "page" : undefined}
+      >
+        {/* Active indicator */}
+        <AnimatePresence>
+          {(isActive || isPending) && (
+            <motion.div
+              variants={activeIndicatorVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="absolute right-[0px] top-0 bottom-0 w-1 bg-[#004368] rounded-r"
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Icon with simplified hover */}
+        <div className="relative">
+          <link.icon
+            aria-hidden="true"
+            className={cn(
+              "transition-colors duration-150",
+              isActive
+                ? "text-[#004368]"
+                : "text-[#BDBDBD] group-hover:text-[#004368]"
+            )}
+          />
+        </div>
+
+        {/* Label */}
+        <span className="transition-colors duration-150">{link.label}</span>
+
+        {/* Loading spinner */}
+        <AnimatePresence>
+          {isPending && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="ml-auto"
+              aria-label="Loading"
+            >
+              <motion.div
+                variants={loadingSpinVariants}
+                animate="animate"
+                className="h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </NavLink>
+    </motion.div>
+  );
+});
+
+NavItem.displayName = "NavItem";
+
+// Memoized user avatar component
+const UserAvatar = memo(({ user, loading, error, imageUrl }) => {
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center gap-2"
+      >
+        <Avatar>
+          <AvatarFallback>
+            <motion.div
+              variants={loadingSpinVariants}
+              animate="animate"
+              className="h-6 w-6 border border-gray-300 border-t-transparent rounded-full"
+            />
+          </AvatarFallback>
+        </Avatar>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-[#2A2A2A] text-[14px] font-[700] uppercase"
+        >
+          Loading...
+        </motion.p>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2">
+        <Avatar>
+          <AvatarFallback className="bg-red-100 text-red-600">!</AvatarFallback>
+        </Avatar>
+        <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">Error</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="flex items-center gap-2"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.1 }}
+    >
+      <Avatar>
+        <AvatarImage src={imageUrl} alt={user?.userName || "User avatar"} />
+        <AvatarFallback>
+          {user?.userName?.charAt(0)?.toUpperCase() || "U"}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <motion.p
+          className="text-[#2A2A2A] text-[14px] font-[700] uppercase"
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          {user?.userName || "User"}
+        </motion.p>
+        {user?.adminEmail && (
+          <motion.p
+            className="text-[#2A2A2A] text-[10px] opacity-60"
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            {user.adminEmail}
+          </motion.p>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+UserAvatar.displayName = "UserAvatar";
+
 const Sidebar = () => {
   const [pendingRoute, setPendingRoute] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -66,10 +312,11 @@ const Sidebar = () => {
   const { user, loading, error } = useUserData();
   const queryClient = useQueryClient();
 
-  let imageUrl = "https://i.pravatar.cc/300";
-  if (user?.photo) {
-    imageUrl = base64ToImage(user.photo);
-  }
+  const imageUrl = useMemo(() => {
+    return user?.photo
+      ? base64ToImage(user.photo)
+      : "https://i.pravatar.cc/300";
+  }, [user?.photo]);
 
   // Clear pending route when navigation completes
   useEffect(() => {
@@ -92,12 +339,10 @@ const Sidebar = () => {
       localStorage.removeItem("user");
       localStorage.removeItem("deviceMACs");
 
-      // Small delay for better UX feedback
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       queryClient.clear();
 
-      // Remove persisted cache from IndexedDB
       await localforage.removeItem("reactQuery");
 
       window.location.href = "/signin";
@@ -114,10 +359,41 @@ const Sidebar = () => {
     }
   }, []);
 
+  // Memoize navigation items to prevent unnecessary re-renders
+  const navItems = useMemo(() => {
+    return links.map((link, idx) => {
+      const isActive = location.pathname === link.path;
+      const isPending = pendingRoute === link.path;
+
+      return (
+        <NavItem
+          key={`${link.path}-${idx}`}
+          link={link}
+          isActive={isActive}
+          isPending={isPending}
+          onNavClick={handleNavClick}
+          onKeyDown={handleKeyDown}
+        />
+      );
+    });
+  }, [location.pathname, pendingRoute, handleNavClick, handleKeyDown]);
+
   return (
-    <aside className="w-80 h-screen border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0]">
+    <motion.aside
+      initial="hidden"
+      animate="visible"
+      variants={sidebarVariants}
+      className="w-80 h-screen border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0]"
+      style={{ willChange: "transform" }} // Performance hint
+    >
+      {/* Top Section */}
       <div className="flex flex-col justify-center items-center">
-        <div className="py-10 w-full px-10">
+        {/* Logo */}
+        <motion.div
+          className="py-10 w-full px-10"
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "tween", duration: 0.15 }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="145"
@@ -127,7 +403,12 @@ const Sidebar = () => {
             role="img"
             aria-label="Company Logo"
           >
+            {/* Your SVG paths here */}
             <g clipPath="url(#clip0_769_7740)">
+              <path
+                d="M14.1496 17.5833V13.0209H25.9495V23.8071C24.8016 24.9157 23.1409 25.8905 20.9644 26.7343C18.788 27.5781 16.5853 28 14.3535 28C11.5186 28 9.04502 27.4064 6.93852 26.2164C4.8291 25.0292 3.24412 23.3299 2.18358 21.1215C1.12304 18.9101 0.592773 16.5067 0.592773 13.9083C0.592773 11.0888 1.18423 8.5836 2.36713 6.3926C3.55296 4.19869 5.28361 2.51689 7.56493 1.34719C9.30433 0.451003 11.4662 0 14.0564 0C17.4215 0 20.0525 0.704146 21.9434 2.11535C23.8372 3.52655 25.0521 5.47314 25.597 7.96093L20.1603 8.97641C19.7786 7.64668 19.0589 6.59628 18.0042 5.82812C16.9495 5.05996 15.6326 4.67297 14.0564 4.67297C11.6643 4.67297 9.76176 5.42949 8.3516 6.94544C6.93852 8.4614 6.23344 10.7077 6.23344 13.6872C6.23344 16.8995 6.94726 19.3116 8.37782 20.9178C9.80838 22.524 11.6818 23.327 14.001 23.327C15.1489 23.327 16.2969 23.103 17.4507 22.652C18.6044 22.2039 19.5921 21.6569 20.4196 21.0167V17.5833H14.1496Z"
+                fill="#004368"
+              />
               <path
                 d="M14.1496 17.5833V13.0209H25.9495V23.8071C24.8016 24.9157 23.1409 25.8905 20.9644 26.7343C18.788 27.5781 16.5853 28 14.3535 28C11.5186 28 9.04502 27.4064 6.93852 26.2164C4.8291 25.0292 3.24412 23.3299 2.18358 21.1215C1.12304 18.9101 0.592773 16.5067 0.592773 13.9083C0.592773 11.0888 1.18423 8.5836 2.36713 6.3926C3.55296 4.19869 5.28361 2.51689 7.56493 1.34719C9.30433 0.451003 11.4662 0 14.0564 0C17.4215 0 20.0525 0.704146 21.9434 2.11535C23.8372 3.52655 25.0521 5.47314 25.597 7.96093L20.1603 8.97641C19.7786 7.64668 19.0589 6.59628 18.0042 5.82812C16.9495 5.05996 15.6326 4.67297 14.0564 4.67297C11.6643 4.67297 9.76176 5.42949 8.3516 6.94544C6.93852 8.4614 6.23344 10.7077 6.23344 13.6872C6.23344 16.8995 6.94726 19.3116 8.37782 20.9178C9.80838 22.524 11.6818 23.327 14.001 23.327C15.1489 23.327 16.2969 23.103 17.4507 22.652C18.6044 22.2039 19.5921 21.6569 20.4196 21.0167V17.5833H14.1496Z"
                 fill="#004368"
@@ -157,7 +438,7 @@ const Sidebar = () => {
                 fill="#004368"
               />
               <path
-                d="M139.133 21.2959L144.31 22.163C143.643 24.0602 142.594 25.5034 141.158 26.4956C139.721 27.4878 137.924 27.9824 135.768 27.9824C132.353 27.9824 129.824 26.868 128.184 24.6392C126.89 22.8526 126.24 20.6005 126.24 17.88C126.24 14.6298 127.091 12.0839 128.793 10.242C130.494 8.40018 132.644 7.48071 135.246 7.48071C138.168 7.48071 140.473 8.44382 142.163 10.37C143.853 12.2963 144.66 15.2496 144.587 19.2272H131.566C131.604 20.7664 132.024 21.9652 132.825 22.8206C133.626 23.6761 134.625 24.1038 135.82 24.1038C136.633 24.1038 137.318 23.8827 137.874 23.4375C138.431 22.9923 138.85 22.2794 139.133 21.2959ZM139.43 16.0498C139.392 14.5484 139.005 13.4049 138.265 12.6251C137.524 11.8423 136.624 11.4524 135.564 11.4524C134.43 11.4524 133.492 11.8656 132.752 12.6891C132.012 13.5154 131.648 14.6357 131.659 16.0498H139.43Z"
+                d="M139.133 21.2959L144.31 22.163C143.643 24.0602 142.594 25.5034 141.158 26.4956C139.721 27.4878 137.924 27.9824 135.768 27.9824C132.353 27.9824 129.824 26.868 128.184 24.6392C126.89 22.8526 126.24 20.6005 126.24 17.88C126.24 14.6298 127.091 12.0839 128.793 10.242C130.494 8.40018 132.644 7.48071 135.246 7.48071C138.168 7.48071 140.473 8.44382 142.163 10.37C143.853 12.2963 144.66 15.2496 144.587 19.2272H131.566C131.604 20.7664 132.024 21.9652 132.825 22.8206C133.626 23.6761 134.625 24.1038 135.820 24.1038C136.633 24.1038 137.318 23.8827 137.874 23.4375C138.431 22.9923 138.85 22.2794 139.133 21.2959ZM139.43 16.0498C139.392 14.5484 139.005 13.4049 138.265 12.6251C137.524 11.8423 136.624 11.4524 135.564 11.4524C134.43 11.4524 133.492 11.8656 132.752 12.6891C132.012 13.5154 131.648 14.6357 131.659 16.0498H139.43Z"
                 fill="#004368"
               />
             </g>
@@ -172,55 +453,31 @@ const Sidebar = () => {
               </clipPath>
             </defs>
           </svg>
-        </div>
+        </motion.div>
 
-        <nav
-          className="space-y-2"
+        {/* Navigation */}
+        <motion.nav
+          className="space-y-2 w-full"
           role="navigation"
           aria-label="Main navigation"
+          variants={{
+            visible: {
+              transition: {
+                staggerChildren: 0.1,
+              },
+            },
+          }}
         >
-          {links.map((link, idx) => {
-            const isActive = location.pathname === link.path;
-            const isPending = pendingRoute === link.path;
-
-            return (
-              <NavLink
-                key={idx}
-                to={link.path}
-                onClick={() => handleNavClick(link.path)}
-                onKeyDown={(e) =>
-                  handleKeyDown(e, () => handleNavClick(link.path))
-                }
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 px-4 py-2 text-sm font-medium transition-all relative",
-                    isActive || isPending
-                      ? "text-[#004368] before:absolute before:left-[-30px] before:top-0 before:bottom-0 before:w-1 before:bg-[#004368]"
-                      : "text-[#BDBDBD] hover:text-[#004368]"
-                  )
-                }
-                aria-label={`Navigate to ${link.label}`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <link.icon aria-hidden="true" />
-                <span>{link.label}</span>
-                {isPending && (
-                  <div
-                    className="ml-auto animate-spin h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
-                    aria-label="Loading"
-                  />
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
+          {navItems}
+        </motion.nav>
       </div>
 
-      <div className="pl-9">
-        <div
+      {/* User Section */}
+      <motion.div variants={userSectionVariants} className="pl-4">
+        <motion.div
           className={cn(
-            "flex items-center gap-2 justify-between cursor-pointer",
-            isLoggingOut && "opacity-50 pointer-events-none"
+            "flex items-center gap-2 justify-between cursor-pointer p-2 rounded-lg transition-colors",
+            isLoggingOut ? "opacity-50 pointer-events-none" : ""
           )}
           onClick={handleLogout}
           onKeyDown={(e) => handleKeyDown(e, handleLogout)}
@@ -228,59 +485,49 @@ const Sidebar = () => {
           tabIndex={0}
           aria-label={isLoggingOut ? "Logging out..." : "Logout"}
           disabled={isLoggingOut}
+          whileHover={isLoggingOut ? undefined : hoverEffect}
+          whileTap={isLoggingOut ? undefined : tapEffect}
+          style={{ willChange: "transform" }}
         >
-          <div className="flex items-center gap-2">
-            <Avatar>
-              {loading ? (
-                <AvatarFallback>...</AvatarFallback>
-              ) : (
-                <>
-                  <AvatarImage
-                    src={imageUrl}
-                    alt={user?.userName || "User avatar"}
+          <UserAvatar
+            user={user}
+            loading={loading}
+            error={error}
+            imageUrl={imageUrl}
+          />
+
+          <div className="flex items-center gap-1">
+            <AnimatePresence>
+              {isLoggingOut && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  aria-label="Logging out"
+                >
+                  <motion.div
+                    variants={loadingSpinVariants}
+                    animate="animate"
+                    className="h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
                   />
-                  <AvatarFallback>
-                    {user?.userName?.charAt(0)?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </>
+                </motion.div>
               )}
-            </Avatar>
-            <div>
-              {loading ? (
-                <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">
-                  Loading...
-                </p>
-              ) : error ? (
-                <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">
-                  Error
-                </p>
-              ) : (
-                <>
-                  <p className="text-[#2A2A2A] text-[14px] font-[700] uppercase">
-                    {user?.userName || "User"}
-                  </p>
-                  {user?.adminEmail && (
-                    <p className="text-[#2A2A2A] text-[10px] opacity-60">
-                      {user.adminEmail}
-                    </p>
-                  )}
-                </>
-              )}
+            </AnimatePresence>
+            <div className="transition-colors duration-150">
+              <LogoutIcon
+                aria-hidden="true"
+                className={cn(
+                  isLoggingOut
+                    ? "text-gray-400"
+                    : "text-[#004368] hover:text-red-600"
+                )}
+              />
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            {isLoggingOut && (
-              <div
-                className="animate-spin h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
-                aria-label="Logging out"
-              />
-            )}
-            <LogoutIcon aria-hidden="true" />
-          </div>
-        </div>
-      </div>
-    </aside>
+        </motion.div>
+      </motion.div>
+    </motion.aside>
   );
 };
 
-export default memo(Sidebar);
+export default Sidebar;

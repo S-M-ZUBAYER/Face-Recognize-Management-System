@@ -1,10 +1,102 @@
 import { useState } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployees } from "@/hook/useEmployees";
 
 export const SelectOvertime = () => {
   const [allowOvertime, setAllowOvertime] = useState("No");
   const [multiplier, setMultiplier] = useState("1");
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { Employees } = useEmployees();
+
+  // Save overtime configuration
+  const handleSave = async () => {
+    if (Employees.length === 0) {
+      toast.error("Please select at least one employee!");
+      return;
+    }
+    if (
+      allowOvertime === "Yes" &&
+      (!multiplier || isNaN(multiplier) || parseFloat(multiplier) <= 0)
+    ) {
+      toast.error(
+        "Please enter a valid positive number for overtime multiplier"
+      );
+      return;
+    }
+
+    try {
+      const updatePromises = Employees.map(async (selectedEmployee) => {
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
+
+        // Convert "Yes"/"No" to "true"/"false" strings for storage
+        const allowOvertimeValue = allowOvertime === "Yes" ? "true" : "false";
+
+        // Find or create rule with ruleId = 23
+        let ruleTwentyThree = existingRules.find(
+          (rule) => rule.ruleId === 23 || rule.ruleId === "23"
+        );
+
+        if (!ruleTwentyThree) {
+          // Create new rule with ruleId = 23 if it doesn't exist
+          ruleTwentyThree = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "23", // string
+            ruleStatus: 1, // number
+            param1: allowOvertimeValue, // string containing "true" or "false"
+            param2: allowOvertime === "Yes" ? multiplier : "", // string containing multiplier value
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          // Update ONLY the ruleTwentyThree object - preserve all other properties
+          ruleTwentyThree.empId = empId; // string
+          ruleTwentyThree.param1 = allowOvertimeValue; // update with new allow overtime value
+          ruleTwentyThree.param2 = allowOvertime === "Yes" ? multiplier : ""; // update with new multiplier value
+          // Keep all other properties as they are
+        }
+
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 23 || r.ruleId === "23",
+            newValue: ruleTwentyThree, // update ruleId=23 object
+          },
+        });
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
+      });
+      await Promise.all(updatePromises);
+
+      toast.success("Overtime settings updated successfully!");
+    } catch (error) {
+      console.error("Error saving overtime settings:", error);
+      toast.error("Failed to update overtime settings.");
+    }
+  };
+
+  const handleMultiplierChange = (e) => {
+    const value = e.target.value;
+    // Allow only positive numbers greater than 0
+    if (value === "" || (!isNaN(value) && parseFloat(value) > 0)) {
+      setMultiplier(value);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -37,9 +129,10 @@ export const SelectOvertime = () => {
                 type="number"
                 step="0.1"
                 value={multiplier}
-                onChange={(e) => setMultiplier(e.target.value)}
+                onChange={handleMultiplierChange}
                 placeholder="1.5"
-                className="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+                min="0.1"
+                className="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004368] focus:border-transparent"
               />
             </div>
           )}
@@ -65,13 +158,23 @@ export const SelectOvertime = () => {
               card.
             </span>
           </li>
+          <li className="flex items-start">
+            <span className="mr-2">•</span>
+            <span className="text-gray-600">
+              Choose whether to allow overtime and set the multiplier rate
+            </span>
+          </li>
         </ul>
       </div>
 
       <hr className="border-gray-200" />
 
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium">
-        Save
+      <button
+        onClick={handleSave}
+        disabled={updating}
+        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {updating ? "Saving..." : "Save"}
       </button>
     </div>
   );

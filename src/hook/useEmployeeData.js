@@ -6,7 +6,8 @@ import { useGlobalSalary } from "./useGlobalSalary";
 
 export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
-  const { globalSalaryRules = [] } = useGlobalSalary();
+  const { globalSalaryRules = [], isLoading: globalSalaryLoading } =
+    useGlobalSalary();
   const { Employees = [], isLoading: employeesLoading } = useEmployees();
   const { attendanceData = [], isLoading: attendanceLoading } =
     useAttendance(selectedDate);
@@ -65,6 +66,6 @@ export const useEmployeeData = () => {
     totalPresent: attendedEmployees.length,
     totalAbsent: absentEmployees.length,
     totalLate,
-    isLoading: employeesLoading || attendanceLoading,
+    isLoading: employeesLoading || attendanceLoading || globalSalaryLoading,
   };
 };

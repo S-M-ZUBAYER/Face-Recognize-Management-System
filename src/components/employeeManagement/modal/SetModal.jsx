@@ -54,7 +54,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Settings"
+        title="Changes PayPeriod & Rules to selected employees"
       >
         <Settings className="w-5 h-5 text-gray-600 hover:text-[#004368]" />
       </motion.button>

@@ -1,4 +1,80 @@
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployees } from "@/hook/useEmployees";
+
 export const LateArrivalPenalty2 = () => {
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  const { Employees } = useEmployees();
+
+  // Save rule configuration
+  const handleSave = async () => {
+    if (Employees.length === 0) {
+      toast.error("Please select at least one employee!");
+      return;
+    }
+
+    try {
+      const updatePromises = Employees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
+
+        // Find or create rule with ruleId = 17
+        let ruleSeventeen = existingRules.find(
+          (rule) => rule.ruleId === 17 || rule.ruleId === "17"
+        );
+
+        if (!ruleSeventeen) {
+          // Create new rule with ruleId = 17 if it doesn't exist
+          ruleSeventeen = {
+            id: Math.floor(10 + Math.random() * 90), // number
+            empId: empId, // string
+            ruleId: "17", // string
+            ruleStatus: 1, // number
+            param1: null,
+            param2: null,
+            param3: null,
+            param4: null,
+            param5: null,
+            param6: null,
+          };
+        } else {
+          // Rule already exists, just ensure empId is correct
+          ruleSeventeen.empId = empId; // string
+          // Keep all other properties as they are
+        }
+
+        // Generate final JSON using your helper
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 17 || r.ruleId === "17",
+            newValue: ruleSeventeen, // update ruleId=17 object
+          },
+        });
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
+      });
+      await Promise.all(updatePromises);
+
+      toast.success("Late arrival penalty rule activated successfully!");
+    } catch (error) {
+      console.error("Error saving late arrival penalty rule:", error);
+      toast.error("Failed to activate late arrival penalty rule.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -39,8 +115,12 @@ export const LateArrivalPenalty2 = () => {
         </p>
       </div>
 
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium">
-        Save
+      <button
+        onClick={handleSave}
+        disabled={updating}
+        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {updating ? "Activating..." : "Activate Rule"}
       </button>
     </div>
   );
