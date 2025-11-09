@@ -138,7 +138,7 @@ export const HolidayForm = () => {
     try {
       const salaryRules = selectedEmployee.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
-        deleteRuleId: 1, // 👈 this will remove ruleId = 10
+        deleteRuleId: 1,
       });
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
@@ -182,14 +182,6 @@ export const HolidayForm = () => {
       </div>
 
       <div className=" flex items-center w-full justify-between mt-4 gap-4">
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          disabled={updating}
-          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {updating ? "Saving..." : "Save"}
-        </button>
         {/* Delete */}
 
         <button
@@ -198,6 +190,15 @@ export const HolidayForm = () => {
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

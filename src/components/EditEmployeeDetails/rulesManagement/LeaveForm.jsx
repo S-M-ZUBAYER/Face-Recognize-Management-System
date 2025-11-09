@@ -573,6 +573,34 @@ export const LeaveForm = () => {
       toast.error("Failed to update leave configuration.");
     }
   };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 10,
+        c_leaves: [],
+        e_leaves: [],
+        m_leaves: [],
+        mar_leaves: [],
+        o_leaves: [],
+        p_leaves: [],
+        r_leaves: [],
+        s_leaves: [],
+        w_leaves: [],
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -903,13 +931,26 @@ export const LeaveForm = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save Configuration"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

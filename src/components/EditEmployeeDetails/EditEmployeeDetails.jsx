@@ -1,6 +1,6 @@
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import FancyLoader from "../FancyLoader";
 import PayPeriodSettings from "./PayPeriodSettings";
 import EditRules from "./EditRules";
@@ -13,8 +13,7 @@ const EditEmployeeDetails = () => {
   const { data, isLoading, isError, error, updateEmployee, updating } =
     useSingleEmployeeDetails(id, deviceMac);
   const { setSelectedEmployee } = useEmployeeStore();
-
-  console.log(data);
+  const navigate = useNavigate();
 
   const [employeeData, setEmployeeData] = useState({
     employeeId: "",
@@ -118,14 +117,14 @@ const EditEmployeeDetails = () => {
     if (data) {
       const emailParts = data.email?.split("|") || [];
       setEmployeeData({
-        employeeId: emailParts[0] || "",
+        employeeId: emailParts[1] || "",
         joiningDate: data.startDate || "",
         monthlySalary: data.payPeriod?.salary || "",
         designation: data.designation || "",
         contactNumber: data.contactNumber || "",
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
-        employeeName: data.name?.split("<")[1] || "",
+        employeeName: data.name?.split("<")[0] || "",
         address: parseAddress(data.address),
         department: data.department || "",
         email: emailParts[0] || "",
@@ -184,7 +183,28 @@ const EditEmployeeDetails = () => {
   return (
     <div>
       <div className="mx-auto">
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 flex  gap-3.5 items-center">
+          <div
+            onClick={() => {
+              navigate("/employee-management");
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <path
+                d="M15 18C15 18 9 13.5811 9 12C9 10.4188 15 6 15 6"
+                stroke="#272727"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
           <h1 className="text-xl font-semibold text-gray-800">
             Edit Employee Details
           </h1>

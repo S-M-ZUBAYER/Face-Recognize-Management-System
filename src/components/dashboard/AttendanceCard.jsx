@@ -101,73 +101,84 @@ const titleVariants = {
   },
 };
 
-// Memoized CountUp component to prevent unnecessary re-renders
-const AnimatedCount = ({ isLoading, loopKey, parsedValue }) => {
-  if (isLoading) {
-    return (
-      <motion.div variants={countUpVariants} key={`loading-${loopKey}`}>
-        <CountUp
-          start={0}
-          end={Math.floor(Math.random() * 1000) + 100}
-          duration={0.8}
-          separator=","
-        />
-      </motion.div>
-    );
-  }
+// Memoized CountUp component for loading state with continuous animation
+const LoadingCount = React.memo(({ loopKey }) => {
+  const [randomValue, setRandomValue] = useState(0);
 
+  // Continuous random value generation for smooth animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRandomValue(Math.floor(Math.random() * 1000) + 100);
+    }, 1500); // Change every 1.5 seconds for continuous animation
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <motion.div variants={countUpVariants} key={`loading-${loopKey}`}>
+      <CountUp
+        start={0}
+        end={randomValue}
+        duration={1.2}
+        separator=","
+        decimals={0}
+      />
+    </motion.div>
+  );
+});
+
+LoadingCount.displayName = "LoadingCount";
+
+// Memoized CountUp component for actual count
+const ActualCount = React.memo(({ parsedValue }) => {
   return (
     <motion.div variants={countUpVariants} key={`count-${parsedValue}`}>
       <CountUp
         start={0}
         end={parsedValue}
-        duration={1.8}
+        duration={2}
         separator=","
         preserveValue
+        decimals={0}
       />
     </motion.div>
   );
-};
+});
 
-AnimatedCount.displayName = "AnimatedCount";
+ActualCount.displayName = "ActualCount";
 
-function AttendanceCard({
-  title,
-  count,
-  icon,
-  isLoading,
-  delay = 0, // Optional delay for staggered animations
-}) {
+function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
   const navigate = useNavigate();
   const setActiveFilter = useAttendanceStore((state) => state.setActiveFilter);
   const [loopKey, setLoopKey] = useState(0);
 
-  // Memoize parsed value to prevent recalculation on every render
+  // Properly memoized parsed value calculation
   const parsedValue =
     (() => {
-      return Number(String(count || 0).replace(/[^0-9]/g, "")) || 0;
+      const num = Number(String(count || 0).replace(/[^0-9.-]+/g, ""));
+      return isNaN(num) ? 0 : Math.max(0, num);
     },
     [count]);
 
-  // Memoize the filter mapping to prevent recreation on every render
+  // Memoize the filter mapping
   const filterMap =
     (() => ({
       "Total Employees": "all",
       Present: "present",
       Absent: "absent",
-      "Late Punch": "all",
+      "Late Punch": "late",
     }),
     []);
 
-  // Optimized loading animation with cleanup
+  // Continuous loading animation - never stops until isLoading becomes false
   useEffect(() => {
-    if (!isLoading) return;
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setLoopKey((prev) => prev + 1);
+      }, 1500); // Update every 1.5 seconds for continuous animation
 
-    const interval = setInterval(() => {
-      setLoopKey((prev) => prev + 1);
-    }, 5000);
-
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    }
   }, [isLoading]);
 
   // Memoized navigation handler
@@ -202,7 +213,7 @@ function AttendanceCard({
         ...cardVariants.visible,
         transition: {
           ...cardVariants.visible.transition,
-          delay: delay * 0.1, // Staggered delay based on prop
+          delay: delay * 0.1,
         },
       },
     }),
@@ -235,11 +246,11 @@ function AttendanceCard({
           className="text-2xl font-bold text-gray-800"
           variants={countUpVariants}
         >
-          <AnimatedCount
-            isLoading={isLoading}
-            loopKey={loopKey}
-            parsedValue={parsedValue}
-          />
+          {isLoading ? (
+            <LoadingCount loopKey={loopKey} />
+          ) : (
+            <ActualCount parsedValue={parsedValue} />
+          )}
         </motion.h2>
 
         <motion.p
@@ -266,7 +277,7 @@ function AttendanceCard({
               opacity: [0.5, 0.8, 0.5],
             }}
             transition={{
-              duration: 2,
+              duration: 1.5,
               repeat: Infinity,
               ease: "easeInOut",
             }}

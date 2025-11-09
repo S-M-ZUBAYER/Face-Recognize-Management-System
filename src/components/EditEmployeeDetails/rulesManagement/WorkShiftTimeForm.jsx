@@ -682,6 +682,7 @@ export const WorkShiftTimeForm = () => {
       const salaryRules = getSalaryRules();
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 0,
+        timeTables: [],
       });
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
 

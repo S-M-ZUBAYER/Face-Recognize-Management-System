@@ -18,6 +18,7 @@ function SetModal({ selectedEmployees: sEmployees }) {
   // Handle opening modal
   const handleOpen = () => {
     clearSelection();
+    clearRulesIds();
     // Add employees to store
     if (Array.isArray(sEmployees)) {
       sEmployees.forEach((emp) => setSelectedEmployees(emp));
