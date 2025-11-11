@@ -12,7 +12,7 @@ function DeviceCard({ deviceName, MacAddress, EmployeeCount }) {
   return (
     <div className="border border-[#E6ECF0] py-4 px-4 rounded-lg">
       <div className="flex items-center justify-center pb-6">
-        <img src={image.deviceIcon} alt="Device Icon" />
+        <img src={image.product} alt="Device Icon" className="w-28" />
       </div>
 
       <div className="pb-4 font-poppins">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import CountUp from "react-countup";
 import { useNavigate } from "react-router-dom";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
@@ -109,7 +109,7 @@ const LoadingCount = React.memo(({ loopKey }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       setRandomValue(Math.floor(Math.random() * 1000) + 100);
-    }, 1500); // Change every 1.5 seconds for continuous animation
+    }, 1500);
 
     return () => clearInterval(interval);
   }, []);
@@ -152,36 +152,37 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
   const setActiveFilter = useAttendanceStore((state) => state.setActiveFilter);
   const [loopKey, setLoopKey] = useState(0);
 
-  // Properly memoized parsed value calculation
-  const parsedValue =
-    (() => {
-      const num = Number(String(count || 0).replace(/[^0-9.-]+/g, ""));
-      return isNaN(num) ? 0 : Math.max(0, num);
-    },
-    [count]);
+  // Fixed: Properly memoized parsed value calculation
+  const parsedValue = useMemo(() => {
+    const num = Number(String(count || 0).replace(/[^0-9.-]+/g, ""));
+    return isNaN(num) ? 0 : Math.max(0, num);
+  }, [count]);
 
-  // Memoize the filter mapping
-  const filterMap =
-    (() => ({
+  // Fixed: Memoize the filter mapping properly
+  const filterMap = useMemo(
+    () => ({
       "Total Employees": "all",
       Present: "present",
       Absent: "absent",
       "Late Punch": "late",
     }),
-    []);
+    []
+  );
 
-  // Continuous loading animation - never stops until isLoading becomes false
+  // Fixed: Continuous loading animation
   useEffect(() => {
     if (isLoading) {
       const interval = setInterval(() => {
         setLoopKey((prev) => prev + 1);
-      }, 1500); // Update every 1.5 seconds for continuous animation
+      }, 1500);
 
       return () => clearInterval(interval);
+    } else {
+      setLoopKey(0); // Reset when not loading
     }
   }, [isLoading]);
 
-  // Memoized navigation handler
+  // Fixed: Memoized navigation handler
   const handleRedirect = useCallback(() => {
     try {
       const filter = filterMap[title];
@@ -194,7 +195,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
     }
   }, [title, filterMap, setActiveFilter, navigate]);
 
-  // Memoized keyboard handler
+  // Fixed: Memoized keyboard handler
   const handleKeyDown = useCallback(
     (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -205,9 +206,9 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
     [handleRedirect]
   );
 
-  // Enhanced variants with delay
-  const enhancedCardVariants =
-    (() => ({
+  // Fixed: Enhanced variants with delay
+  const enhancedCardVariants = useMemo(
+    () => ({
       ...cardVariants,
       visible: {
         ...cardVariants.visible,
@@ -217,7 +218,8 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
         },
       },
     }),
-    [delay]);
+    [delay]
+  );
 
   return (
     <motion.div
@@ -242,7 +244,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
 
       {/* Content */}
       <div className="relative z-10">
-        <motion.h2
+        <motion.div
           className="text-2xl font-bold text-gray-800"
           variants={countUpVariants}
         >
@@ -251,7 +253,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
           ) : (
             <ActualCount parsedValue={parsedValue} />
           )}
-        </motion.h2>
+        </motion.div>
 
         <motion.p
           className="text-gray-500 text-[14px] mt-1"
@@ -296,4 +298,4 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
 }
 
 // Export memoized component
-export default AttendanceCard;
+export default React.memo(AttendanceCard);
