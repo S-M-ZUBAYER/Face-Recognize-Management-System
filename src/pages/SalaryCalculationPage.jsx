@@ -10,7 +10,7 @@ function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
 
   const { isLoading, enrichedEmployees } = useSalaryCalculationData();
-  const { designation } = useDesignation();
+  const { designation, isLoading: designationLoading } = useDesignation();
 
   console.log(enrichedEmployees);
 
@@ -26,7 +26,7 @@ function SalaryCalculationPage() {
   }, []);
 
   // Early return for loading state
-  if (isLoading) {
+  if (isLoading || designationLoading) {
     return <FancyLoader />;
   }
 

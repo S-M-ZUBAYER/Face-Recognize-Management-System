@@ -8,7 +8,7 @@ import FancyLoader from "@/components/FancyLoader";
 function EmployeeManagementPage() {
   const { Employees, isLoading } = useEmployees();
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
-  const { designation } = useDesignation();
+  const { designation, isLoading: managementLoading } = useDesignation();
 
   // Filter Employees based on activeFilter
   const getFilteredEmployees = () => {
@@ -22,7 +22,7 @@ function EmployeeManagementPage() {
         <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
           Employee Management
         </p>
-        {isLoading ? (
+        {isLoading || managementLoading ? (
           <FancyLoader />
         ) : (
           <>
