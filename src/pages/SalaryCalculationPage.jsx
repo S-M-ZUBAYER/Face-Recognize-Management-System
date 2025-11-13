@@ -12,20 +12,15 @@ function SalaryCalculationPage() {
   const { isLoading, enrichedEmployees } = useSalaryCalculationData();
   const { designation, isLoading: designationLoading } = useDesignation();
 
-  console.log(enrichedEmployees);
-
-  // Memoized filtered employees to prevent unnecessary recalculations
   const filteredEmployees = useMemo(() => {
     if (activeFilter === "All Employees") return enrichedEmployees;
     return enrichedEmployees.filter((emp) => emp.department === activeFilter);
   }, [activeFilter, enrichedEmployees]);
 
-  // Memoized handler for filter changes
   const handleFilterChange = useCallback((filter) => {
     setActiveFilter(filter);
   }, []);
 
-  // Early return for loading state
   if (isLoading || designationLoading) {
     return <FancyLoader />;
   }

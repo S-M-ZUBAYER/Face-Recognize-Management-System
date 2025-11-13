@@ -1,11 +1,4 @@
-import React, {
-  memo,
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import React, { memo, useState, useMemo, useCallback, useEffect } from "react";
 import { AutoSizer, MultiGrid } from "react-virtualized";
 import "react-virtualized/styles.css";
 import AttendanceFilters from "./AttendanceFilters";
@@ -19,204 +12,149 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useEmployees } from "@/hook/useEmployees";
 import { useOverTimeData } from "@/hook/useOverTimeData";
 
-// Memoized AttendanceExport to prevent unnecessary re-renders
+// Memoized components
 const MemoizedAttendanceExport = memo(AttendanceExport);
+const MemoizedAttendanceFilters = memo(AttendanceFilters);
+const MemoizedDateRangePicker = memo(DateRangePicker);
 
-// --- Memoized SearchBox Component ---
-const SearchBox = memo(function SearchBox({
-  searchInput,
-  setSearchInput,
-  handleSearch,
-  handleReset,
-  handleKeyDown,
-  searchQuery,
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        type="text"
-        placeholder="Search by Date,ID, Name or Department..."
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368] "
-      />
-      <button
-        onClick={handleSearch}
-        disabled={!searchInput.trim()}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-          searchInput.trim()
-            ? "bg-[#004368] text-white hover:bg-[#003155]"
-            : "bg-[#004368] text-white cursor-not-allowed"
-        }`}
-      >
-        Search
-      </button>
-      {searchQuery && (
+// SearchBox component
+const SearchBox = memo(
+  ({ searchInput, setSearchInput, handleSearch, handleReset, searchQuery }) => {
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Search by Date, ID, Name or Department..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+        />
         <button
-          onClick={handleReset}
-          className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm hover:bg-gray-500 transition-colors"
+          onClick={handleSearch}
+          disabled={!searchInput.trim()}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            searchInput.trim()
+              ? "bg-[#004368] text-white hover:bg-[#003155]"
+              : "bg-gray-400 text-white cursor-not-allowed"
+          }`}
         >
-          Reset
+          Search
         </button>
-      )}
-    </div>
-  );
-});
+        {searchQuery && (
+          <button
+            onClick={handleReset}
+            className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+    );
+  }
+);
 
 const AttendanceTable = ({ employees = [] }) => {
-  // Simple individual selectors - NO custom equality functions
+  // Store selectors
   const isProcessing = useAttendanceStore((state) => state.isProcessing);
   const isFilterLoading = useAttendanceStore((state) => state.isFilterLoading);
   const activeFilter = useAttendanceStore((state) => state.activeFilter);
-
-  // Date range from store
-  const { startDate, endDate } = useDateRangeStore();
-
-  // FIXED: Get isRefreshing from store and use the store's refresh function
   const isRefreshing = useAttendanceStore((state) => state.isRefreshing);
   const refreshAttendanceData = useAttendanceStore(
     (state) => state.refreshAttendanceData
   );
 
-  // Get refetch functions for the refresh
-  const { refresh, isFetching } = useAttendanceData();
+  // Hooks
+  const { startDate, endDate } = useDateRangeStore();
+  const { refresh } = useAttendanceData();
   const { refetch: refetchEmployees } = useEmployees();
   const { refetch: refetchOverTime } = useOverTimeData();
 
-  // Local state for table functionality
+  // Local state
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Refs to track previous values for auto-unselect
-  const prevActiveFilterRef = useRef(activeFilter);
-  const prevStartDateRef = useRef(startDate);
-  const prevEndDateRef = useRef(endDate);
-  const prevSearchQueryRef = useRef("");
-
-  // Auto-unselect effect when activeFilter, date range, or search changes
+  // Track when initial load is complete
   useEffect(() => {
-    const filterChanged = prevActiveFilterRef.current !== activeFilter;
-    const dateChanged =
-      prevStartDateRef.current !== startDate ||
-      prevEndDateRef.current !== endDate;
-    const searchChanged = prevSearchQueryRef.current !== searchQuery;
-
-    if (filterChanged || dateChanged || searchChanged) {
-      if (selectedEmployees.length > 0) {
-        console.log(
-          "🔄 Auto-unselecting employees due to filter/date/search change"
-        );
-        setSelectedEmployees([]);
-      }
+    if (employees.length > 0 && isInitialLoad) {
+      setIsInitialLoad(false);
     }
+  }, [employees.length, isInitialLoad]);
 
-    // Update refs
-    prevActiveFilterRef.current = activeFilter;
-    prevStartDateRef.current = startDate;
-    prevEndDateRef.current = endDate;
-    prevSearchQueryRef.current = searchQuery;
+  // Auto-unselect when filters change
+  useEffect(() => {
+    if (selectedEmployees.length > 0) {
+      setSelectedEmployees([]);
+    }
   }, [activeFilter, startDate, endDate, searchQuery, selectedEmployees.length]);
 
+  // Search handlers
   const handleSearch = useCallback(() => {
     if (searchInput.trim()) {
-      setIsSearching(true);
       setSearchQuery(searchInput.trim());
-      setTimeout(() => setIsSearching(false), 200);
     }
   }, [searchInput]);
 
   const handleReset = useCallback(() => {
     setSearchInput("");
     setSearchQuery("");
-    setIsSearching(false);
   }, []);
 
-  // FIXED: Proper refresh function
+  // Refresh handler
   const handleRefresh = useCallback(async () => {
-    console.log("🔄 Manual refresh initiated from table");
-
     try {
-      // Use the store's refresh function with proper refetch callbacks
-      const success = await refreshAttendanceData({
-        refetchEmployees: refetchEmployees,
+      await refreshAttendanceData({
+        refetchEmployees,
         refetchAttendance: refresh,
-        refetchOverTime: refetchOverTime,
+        refetchOverTime,
       });
-
-      if (success) {
-        console.log("✅ Table refresh completed successfully");
-      } else {
-        console.error("❌ Table refresh failed");
-      }
     } catch (error) {
-      console.error("❌ Table refresh error:", error);
+      console.error("Refresh error:", error);
     }
   }, [refreshAttendanceData, refetchEmployees, refresh, refetchOverTime]);
 
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter") handleSearch();
-    },
-    [handleSearch]
-  );
-
-  // Filter employees based on search query
-  // In AttendanceTable.jsx - ADD these useMemo hooks
-
-  // Optimize filtered data calculation
+  // Filtered data
   const filteredData = useMemo(() => {
     if (!searchQuery) return employees;
-    const q = searchQuery.toLowerCase();
 
+    const query = searchQuery.toLowerCase();
     return employees.filter((emp) => {
-      const date = (emp?.punch?.date ?? "").toLowerCase();
-      const name = (emp?.name ?? "").split("<")[0].toLowerCase();
-      const empId = (emp?.companyEmployeeId ?? emp?.employeeId ?? emp?.id ?? "")
+      const date = (emp?.punch?.date || "").toLowerCase();
+      const name = (emp?.name || "").split("<")[0].toLowerCase();
+      const empId = (emp?.companyEmployeeId || emp?.employeeId || emp?.id || "")
         .toString()
         .toLowerCase();
-      const department = (emp?.department ?? "").toLowerCase();
+      const department = (emp?.department || "").toLowerCase();
 
       return (
-        date.includes(q) ||
-        name.includes(q) ||
-        empId.includes(q) ||
-        department.includes(q)
+        date.includes(query) ||
+        name.includes(query) ||
+        empId.includes(query) ||
+        department.includes(query)
       );
     });
   }, [employees, searchQuery]);
 
-  // Optimize max punch count calculation
+  // Max punch count
   const maxPunchCount = useMemo(() => {
-    if (!employees.length) return 1;
-
     let max = 1;
-    for (let i = 0; i < employees.length; i++) {
-      const checkIn = employees[i]?.punch?.checkIn;
+    employees.forEach((emp) => {
+      const checkIn = emp?.punch?.checkIn;
       if (Array.isArray(checkIn)) {
         max = Math.max(max, checkIn.length);
       } else if (checkIn) {
         max = Math.max(max, 1);
       }
-    }
+    });
     return max;
   }, [employees]);
 
-  // // Optimize selected employee data
-  // const selectedEmployeeData = useMemo(() => {
-  //   const selectedSet = new Set(selectedEmployees);
-  //   return employees.filter((emp) => {
-  //     const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-  //     return selectedSet.has(id);
-  //   });
-  // }, [employees, selectedEmployees]);
-
-  // Column definitions
+  // Columns definition
   const columns = useMemo(() => {
-    const selectColumn = { label: "", width: 56, key: "select" };
-    const base = [
+    const baseColumns = [
+      { label: "", width: 56, key: "select" },
       { label: "Date", width: 140, key: "date" },
       { label: "Name", width: 260, key: "name" },
       { label: "Employee ID", width: 160, key: "employeeId" },
@@ -224,13 +162,13 @@ const AttendanceTable = ({ employees = [] }) => {
       { label: "Department", width: 200, key: "department" },
     ];
 
-    const punchCols = Array.from({ length: maxPunchCount }, (_, idx) => ({
+    const punchColumns = Array.from({ length: maxPunchCount }, (_, idx) => ({
       label: maxPunchCount === 1 ? "Punch" : `Punch ${idx + 1}`,
       width: 120,
       key: `punch-${idx}`,
     }));
 
-    return [selectColumn, ...base, ...punchCols];
+    return [...baseColumns, ...punchColumns];
   }, [maxPunchCount]);
 
   // Selection logic
@@ -240,20 +178,24 @@ const AttendanceTable = ({ employees = [] }) => {
   );
 
   const isAllSelected = useMemo(() => {
-    if (filteredData.length === 0) return false;
-    return filteredData.every((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
+    return (
+      filteredData.length > 0 &&
+      filteredData.every((emp) => {
+        const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+        return selectedEmployees.includes(id);
+      })
+    );
   }, [filteredData, selectedEmployees]);
 
   const isIndeterminate = useMemo(() => {
-    if (selectedEmployees.length === 0) return false;
-    if (isAllSelected) return false;
-    return filteredData.some((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
+    return (
+      selectedEmployees.length > 0 &&
+      !isAllSelected &&
+      filteredData.some((emp) => {
+        const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+        return selectedEmployees.includes(id);
+      })
+    );
   }, [selectedEmployees, isAllSelected, filteredData]);
 
   const toggleSelectEmployee = useCallback((id) => {
@@ -271,19 +213,20 @@ const AttendanceTable = ({ employees = [] }) => {
       );
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
-      const filteredIds = filteredData.map(
+      const newIds = filteredData.map(
         (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
       );
-      setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
+      setSelectedEmployees((prev) => [...new Set([...prev, ...newIds])]);
     }
   }, [filteredData, isAllSelected]);
 
   const selectedEmployeeData = useMemo(
     () =>
-      employees.filter((emp) => {
-        const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-        return selectedEmployees.includes(id);
-      }),
+      employees.filter((emp) =>
+        selectedEmployees.includes(
+          emp.companyEmployeeId || emp.employeeId || emp.id
+        )
+      ),
     [employees, selectedEmployees]
   );
 
@@ -294,26 +237,6 @@ const AttendanceTable = ({ employees = [] }) => {
       const isSticky = columnIndex < 4;
 
       if (isHeader) {
-        if (columnIndex === 0) {
-          return (
-            <div
-              key={key}
-              style={{
-                ...style,
-                fontWeight: 600,
-                fontSize: "14px",
-                color: "#374151",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: isSticky ? 60 : 10,
-              }}
-            >
-              Select
-            </div>
-          );
-        }
-
         return (
           <div
             key={key}
@@ -330,9 +253,10 @@ const AttendanceTable = ({ employees = [] }) => {
               overflow: "hidden",
               textOverflow: "ellipsis",
               padding: "0 8px",
+              backgroundColor: "#f8fafc",
             }}
           >
-            {columns[columnIndex].label}
+            {columnIndex === 0 ? "Select" : columns[columnIndex].label}
           </div>
         );
       }
@@ -353,21 +277,23 @@ const AttendanceTable = ({ employees = [] }) => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              background: isSelected ? "#F0F9FF" : "white",
+              backgroundColor: isSelected ? "#F0F9FF" : "white",
               zIndex: isSticky ? 40 : 1,
             }}
           >
             <Checkbox
               checked={isSelected}
               onCheckedChange={() => toggleSelectEmployee(empId)}
-              className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
+              className="data-[state=checked]:bg-[#004368]"
             />
           </div>
         );
       }
 
       let content = "";
-      switch (columns[columnIndex].key) {
+      const columnKey = columns[columnIndex].key;
+
+      switch (columnKey) {
         case "date":
           content = employee.punch?.date || "";
           break;
@@ -375,11 +301,7 @@ const AttendanceTable = ({ employees = [] }) => {
           content = (employee.name || "").split("<")[0];
           break;
         case "employeeId":
-          content =
-            employee.companyEmployeeId ||
-            employee.employeeId ||
-            employee.id ||
-            "";
+          content = empId;
           break;
         case "designation":
           content = employee.designation || "";
@@ -387,15 +309,16 @@ const AttendanceTable = ({ employees = [] }) => {
         case "department":
           content = employee.department || "";
           break;
-        default: {
-          const punchIndex = columnIndex - 6;
-          const checkIn = employee.punch?.checkIn;
-          content = Array.isArray(checkIn)
-            ? checkIn[punchIndex] ?? ""
-            : punchIndex === 0
-            ? checkIn ?? ""
-            : "";
-        }
+        default:
+          if (columnKey.startsWith("punch-")) {
+            const punchIndex = columnIndex - 6;
+            const checkIn = employee.punch?.checkIn;
+            content = Array.isArray(checkIn)
+              ? checkIn[punchIndex] || ""
+              : punchIndex === 0
+              ? checkIn || ""
+              : "";
+          }
       }
 
       return (
@@ -406,7 +329,7 @@ const AttendanceTable = ({ employees = [] }) => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            background: isSelected ? "#F0F9FF" : "white",
+            backgroundColor: isSelected ? "#F0F9FF" : "white",
             fontSize: "14px",
             color: "#4B5563",
             zIndex: isSticky ? 40 : 1,
@@ -424,79 +347,90 @@ const AttendanceTable = ({ employees = [] }) => {
     [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee]
   );
 
-  const isWaiting = employees.length === 0 && !isProcessing && !isFetching;
+  // Loading and empty states - FIXED LOGIC
+  const isLoading =
+    isProcessing || isFilterLoading || isRefreshing || isInitialLoad;
+  const hasData = employees.length > 0;
+  const hasFilteredData = filteredData.length > 0;
 
-  // FIXED: Updated loading logic to include isRefreshing
-  const showLoading =
-    isWaiting ||
-    isSearching ||
-    isProcessing ||
-    isFetching ||
-    isFilterLoading ||
-    isRefreshing;
+  const getStatusMessage = () => {
+    // Show loading states first
+    if (isLoading) {
+      if (isRefreshing) return "Refreshing data...";
+      if (isProcessing) return "Processing attendance data...";
+      if (isFilterLoading) return "Applying filter...";
+      return "Loading employee data...";
+    }
 
-  const getLoadingMessage = () => {
-    if (isWaiting) return "Loading employee data...";
-    if (isRefreshing) return "Refreshing all data...";
-    if (isProcessing) return "Processing attendance data...";
-    if (isFilterLoading) return "Switching filter...";
-    if (isFetching) return "Fetching data...";
-    if (isSearching) return "Searching...";
-    return "Loading...";
+    // Then check for search results
+    if (searchQuery && !hasFilteredData) {
+      return "No employees match your search";
+    }
+
+    // Finally check for empty data
+    if (!hasData) {
+      return "No employee data available";
+    }
+
+    return null;
   };
+
+  const showStatusMessage = getStatusMessage() !== null;
 
   return (
     <div className="h-[80vh] w-[77vw]">
       {/* Top Controls */}
       <div className="flex justify-between items-end mb-2.5 bg-[#E6ECF0] px-4 py-6 rounded-2xl">
-        <AttendanceFilters />
-        <DateRangePicker />
+        <MemoizedAttendanceFilters />
+        <MemoizedDateRangePicker />
         <SearchBox
           searchInput={searchInput}
           setSearchInput={setSearchInput}
           handleSearch={handleSearch}
           handleReset={handleReset}
-          handleKeyDown={handleKeyDown}
           searchQuery={searchQuery}
         />
       </div>
 
-      {/* Select All */}
-      <div className="flex justify-between mb-2">
-        <div className="flex items-center gap-2 justify-center">
-          <Checkbox
-            checked={isAllSelected}
-            indeterminate={isIndeterminate}
-            onCheckedChange={handleSelectAll}
-            className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
-          />
-          <p className="text-[#8AA9BA] font-semibold">Select All</p>
-        </div>
-        <div
-          className={`border border-[#004368] text-[#004368] rounded-2xl flex justify-center items-center gap-2.5 px-4 py-1 transition-colors ${
-            isRefreshing || isFetching
-              ? "cursor-not-allowed opacity-60"
-              : "cursor-pointer  "
-          }`}
-          onClick={isRefreshing || isFetching ? undefined : handleRefresh}
-        >
-          <div className={isRefreshing || isFetching ? "animate-spin" : ""}>
-            <RefreshIcon />
+      {/* Select All & Refresh */}
+      {!isInitialLoad && hasData && (
+        <div className="flex justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isIndeterminate}
+              onCheckedChange={handleSelectAll}
+              disabled={!hasFilteredData}
+              className="data-[state=checked]:bg-[#004368]"
+            />
+            <p className="text-[#8AA9BA] font-semibold">Select All</p>
           </div>
-          {isRefreshing ? "Refreshing..." : "Refresh"}
+          <div
+            className={`border border-[#004368] text-[#004368] rounded-2xl flex items-center gap-2.5 px-4 py-1 cursor-pointer hover:bg-[#004368] hover:text-white transition-colors ${
+              isLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={isLoading ? undefined : handleRefresh}
+          >
+            <div className={isLoading ? "animate-spin" : ""}>
+              <RefreshIcon />
+            </div>
+            {isLoading ? "Refreshing..." : "Refresh"}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Virtualized Table */}
+      {/* Table Content */}
       <div
-        className=" rounded-md overflow-hidden"
+        className="rounded-md overflow-hidden"
         style={{ height: "60vh", width: "100%" }}
       >
-        {showLoading ? (
-          <div className="flex justify-center items-center h-full text-gray-500 bg-white">
+        {showStatusMessage ? (
+          <div className="flex justify-center items-center h-full bg-white text-gray-500">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p>{getLoadingMessage()}</p>
+              {isLoading && (
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              )}
+              <p>{getStatusMessage()}</p>
             </div>
           </div>
         ) : (
@@ -512,9 +446,7 @@ const AttendanceTable = ({ employees = [] }) => {
                 width={width}
                 height={height}
                 cellRenderer={cellRenderer}
-                style={{
-                  outline: "none",
-                }}
+                style={{ outline: "none" }}
                 scrollToAlignment="start"
                 tabIndex={null}
               />
@@ -523,13 +455,15 @@ const AttendanceTable = ({ employees = [] }) => {
         )}
       </div>
 
-      {/* Bottom Controls */}
-      <div className="flex justify-end mt-4 text-sm text-gray-500">
-        <MemoizedAttendanceExport
-          selectedEmployeeData={selectedEmployeeData}
-          maxPunchCount={maxPunchCount}
-        />
-      </div>
+      {/* Export */}
+      {hasData && selectedEmployeeData.length > 0 && (
+        <div className="flex justify-end mt-4">
+          <MemoizedAttendanceExport
+            selectedEmployeeData={selectedEmployeeData}
+            maxPunchCount={maxPunchCount}
+          />
+        </div>
+      )}
     </div>
   );
 };
