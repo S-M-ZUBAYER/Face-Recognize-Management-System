@@ -26,10 +26,10 @@ export const useDesignation = () => {
           },
         ];
       },
-      //   staleTime: Infinity,
-      //   cacheTime: Infinity,
-      //   refetchOnWindowFocus: false,
-      //   refetchOnReconnect: false,
+      staleTime: 5 * 60 * 1000, // ⭐ data is fresh for 5 min
+      cacheTime: 30 * 60 * 1000, // optional (keep 30 min in cache)
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     })),
   });
 

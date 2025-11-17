@@ -2,12 +2,9 @@ import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useEmployees } from "./useEmployees";
 import { useAttendance } from "./useAttendance";
 import { useMemo } from "react";
-import { useGlobalSalary } from "./useGlobalSalary";
 
 export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
-  const { globalSalaryRules = [], isLoading: globalSalaryLoading } =
-    useGlobalSalary();
   const { Employees = [], isLoading: employeesLoading } = useEmployees();
   const { attendanceData = [], isLoading: attendanceLoading } =
     useAttendance(selectedDate);
@@ -42,30 +39,43 @@ export const useEmployeeData = () => {
         const checkInArray = JSON.parse(att.checkIn);
         const actualCheckIn = checkInArray?.[0];
 
-        let expectedTime =
-          employee.salaryRules?.rules?.[0]?.param1 ||
-          employee.salaryRules?.rules?.[0]?.param1?.[0]?.start;
-        if (!expectedTime) {
-          const globalRule = globalSalaryRules.find(
-            (rule) => rule.deviceMAC === employee.deviceMAC
+        const ruleObj = employee.salaryRules.rules.find(
+          (item) => item.ruleId === 0
+        );
+
+        // if (employee.employeeId === "70709913") {
+        //   console.log(employee);
+        //   console.log(ruleObj);
+        // }
+
+        let expectedTime = ruleObj.param1?.[0]?.start || ruleObj.param1;
+
+        if (ruleObj.param3 === "special") {
+          const thatDateExpectedTime = employee.salaryRules?.timeTables?.find(
+            (item) => item.date === selectedDate
           );
-          expectedTime =
-            globalRule?.salaryRules?.rules?.[0]?.param1 ||
-            employee.salaryRules?.rules?.[0]?.param1?.[0].start;
+          expectedTime = thatDateExpectedTime?.param1?.[0]?.start;
+
+          // if (employee.employeeId === "70709913") {
+          //   console.log(thatDateExpectedTime, expectedTime);
+          // }
         }
+        // if (actualCheckIn > expectedTime) {
+        //   console.log(employee, actualCheckIn, expectedTime);
+        // }
 
         return actualCheckIn && expectedTime && actualCheckIn > expectedTime;
       } catch {
         return false;
       }
     }).length;
-  }, [attendanceData, attendedEmployees, globalSalaryRules]);
+  }, [attendanceData, attendedEmployees, selectedDate]);
 
   return {
     totalEmployees: Employees.length,
     totalPresent: attendedEmployees.length,
     totalAbsent: absentEmployees.length,
     totalLate,
-    isLoading: employeesLoading || attendanceLoading || globalSalaryLoading,
+    isLoading: employeesLoading || attendanceLoading,
   };
 };

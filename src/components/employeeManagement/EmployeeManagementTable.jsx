@@ -158,16 +158,6 @@ const EmployeeManagementTable = ({ employees = [] }) => {
     );
   }, [employeesWithStableIds, selectedEmployees]);
 
-  // Loading state
-  if (employees.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-140">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004368]"></div>
-        <span className="ml-3">Loading employees...</span>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Search and Select All */}

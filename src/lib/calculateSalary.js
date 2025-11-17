@@ -1,4 +1,5 @@
 import calculateLeaveDeductions from "./calculateLeaveDeductions";
+import punchAndShiftDetails from "./punchAndShiftDetails";
 
 function toMinutes(time) {
   if (!time && time !== 0) return 0;
@@ -255,145 +256,6 @@ function getWorkingDaysUpToDate(
   return workingDays;
 }
 
-function findMiddleTime(startTime, endTime) {
-  const toDate = (t) => {
-    const [h, m] = t.split(":").map(Number);
-    return new Date(2000, 0, 1, h, m);
-  };
-
-  let start = toDate(startTime);
-  let end = toDate(endTime);
-  if (end < start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-
-  const middle = new Date(start.getTime() + (end - start) / 2);
-  return `${middle.getHours().toString().padStart(2, "0")}:${middle
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
-}
-
-function inclusiveInorNot(startTime, endTime, punchTime) {
-  const toDate = (t) => {
-    const [h, m] = t.split(":").map(Number);
-    return new Date(2000, 0, 1, h, m);
-  };
-
-  let start = toDate(startTime);
-  let end = toDate(endTime);
-  let punch = toDate(punchTime);
-
-  if (end < start) {
-    end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-    if (punch < start) punch = new Date(punch.getTime() + 24 * 60 * 60 * 1000);
-  }
-
-  return punch >= start && punch <= end;
-}
-function convertPunchesWithStrictRules(
-  punchesAsStrings,
-  rulesModel,
-  date,
-  oneEmployeeData
-) {
-  let punches = [...punchesAsStrings].sort();
-  let normalAllRules = [];
-
-  // Build normalAllRules depending on rulesModel type
-  if (rulesModel.param3 === "normal" || rulesModel.param3 === "special") {
-    let workingDecoded =
-      rulesModel.param3 === "normal" ? rulesModel.param1 : [];
-    let overtimeDecoded =
-      rulesModel.param3 === "normal" ? rulesModel.param2 : [];
-
-    if (rulesModel.param3 === "special") {
-      const found = oneEmployeeData.find((item) => item.date === date);
-      if (found) {
-        workingDecoded = found.param1 || [];
-        overtimeDecoded = found.param2 || [];
-      }
-    }
-
-    for (const shift of workingDecoded) {
-      normalAllRules.push(shift.start, shift.end);
-    }
-    for (const shift of overtimeDecoded) {
-      normalAllRules.push(shift.start, shift.end);
-    }
-  } else {
-    // Fixed string case
-    normalAllRules.push(
-      rulesModel.param1 || "00:00",
-      rulesModel.param2 || "00:00",
-      rulesModel.param3 || "00:00",
-      rulesModel.param4 || "00:00",
-      rulesModel.param5 || "00:00",
-      rulesModel.param6 || "00:00"
-    );
-  }
-
-  // Match punches against the time points
-  const takenPunches = normalAllRules.map((currentTime, i, arr) => {
-    const previousTime = arr[(i - 1 + arr.length) % arr.length];
-    const nextTime = arr[(i + 1) % arr.length];
-
-    const leftBorder = findMiddleTime(previousTime, currentTime);
-    const rightBorder = findMiddleTime(currentTime, nextTime);
-
-    // Check punches within the interval
-    for (let j = 0; j < punches.length; j++) {
-      if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
-        const punch = punches.splice(j, 1)[0];
-        return punch;
-      }
-    }
-
-    // Second chance: between previousTime and currentTime
-    for (let j = punches.length - 1; j >= 0; j--) {
-      if (inclusiveInorNot(previousTime, currentTime, punches[j])) {
-        const punch = punches.splice(j, 1)[0];
-        return punch;
-      }
-    }
-
-    return "00:00";
-  });
-
-  // Return all matched punches including overtime
-  return {
-    punches: takenPunches,
-    date,
-    shift: normalAllRules,
-  };
-}
-
-function punchAndShiftDetails(monthlyAttendance, salaryRules) {
-  const rulesModel = salaryRules?.rules?.[0] || {
-    param1: [],
-    param2: [],
-    param3: "normal",
-  };
-  const table = salaryRules.timeTables || [];
-  const punchesDetails = [];
-  const specialEmployeeData = rulesModel.param3 === "special" ? table : [];
-
-  for (const record of monthlyAttendance) {
-    const punches = JSON.parse(record.checkIn);
-    const date = record.date;
-
-    const overtime = convertPunchesWithStrictRules(
-      punches,
-      rulesModel,
-      date,
-      specialEmployeeData
-    );
-    if (overtime.punches.length > 0) {
-      punchesDetails.push(overtime);
-    }
-  }
-
-  return punchesDetails;
-}
-
 export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
     // attendanceRecords.push(
@@ -420,7 +282,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  // if (id === "2109058927") {
+  // if (id === "3531774237") {
   //   console.log(attendanceRecords);
   // }
 
@@ -549,8 +411,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   let year, month;
 
-  if (attendanceRecords.length > 0) {
-    const [y, m] = attendanceRecords[0].date.split("-");
+  // NEW: Get reconciled punch and shift details
+  const punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
+
+  if (punchDetails.length > 0) {
+    const [y, m] = punchDetails[0].date.split("-");
     year = Number(y);
     month = Number(m);
   } else {
@@ -606,9 +471,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
     return true;
   }
-
-  // NEW: Get reconciled punch and shift details
-  const punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
 
   let lateCount = 0;
   let earlyDepartureCount = 0;
@@ -718,7 +580,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
           .filter((p) => p === "00:00").length;
         missedPunch += missedCount;
 
-        // if (id === "2109058927") {
+        // if (id === "3531774237") {
         //   console.log("Missed punch on", date, missedCount, punches);
         // }
       }
