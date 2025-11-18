@@ -3,39 +3,32 @@ import { motion, AnimatePresence } from "framer-motion";
 import CustomPagination from "../CustomPagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdminExport from "./AdminExport";
-import axios from "axios";
 import image from "@/constants/image";
 import { useAdminData } from "@/hook/useAdminData";
 
 const ITEMS_PER_PAGE = 10;
 
-function AdminTable({ admins }) {
-  const { refetch } = useAdminData();
+function AdminTable() {
+  const { admins, deleteAdmin, isDeleting } = useAdminData();
   const [currentPage, setCurrentPage] = useState(1);
-  const [adminList, setAdminList] = useState([]);
+
   const [selectedAdmins, setSelectedAdmins] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAdmin, setDialogAdmin] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Reset page when admins data changes and sync adminList
-  useEffect(() => {
-    setAdminList(admins || []);
-    setCurrentPage(1);
-    setSelectedAdmins([]); // Clear selections when data changes
-  }, [admins]);
+  console.log(admins);
 
   // Memoized calculations
   const totalPages = useMemo(
-    () => Math.ceil(adminList.length / ITEMS_PER_PAGE),
-    [adminList.length]
+    () => Math.ceil(admins.length / ITEMS_PER_PAGE),
+    [admins.length]
   );
 
   const paginatedAdmins = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return adminList.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [currentPage, adminList]);
+    return admins.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [currentPage, admins]);
 
   // Selection state calculations
   const selectedAdminIdsSet = useMemo(
@@ -62,12 +55,19 @@ function AdminTable({ admins }) {
 
   const selectedAdminsData = useMemo(
     () =>
-      adminList.filter((admin) => {
+      admins.filter((admin) => {
         const id = admin.adminId || admin.id || admin.adminEmail;
         return selectedAdmins.includes(id);
       }),
-    [adminList, selectedAdmins]
+    [admins, selectedAdmins]
   );
+
+  // Adjust current page if it becomes invalid after data changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
 
   // Optimized handlers
   const handleSelectAll = useCallback(() => {
@@ -117,48 +117,22 @@ function AdminTable({ admins }) {
     setDialogAdmin(null);
   }, []);
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     if (!dialogAdmin) return;
 
-    setIsDeleting(true);
-
     try {
-      const deletePayload = {
-        adminName: dialogAdmin.adminName,
-        phone: dialogAdmin.phone,
-        adminEmail: dialogAdmin.adminEmail,
-        deviceMAC: dialogAdmin.devices?.[0]?.deviceMAC || "",
-      };
-
-      await axios.delete(
-        "https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/unassign",
-        { data: deletePayload }
-      );
-
-      // Remove from selections and admin list
-      const adminId =
-        dialogAdmin.adminId || dialogAdmin.id || dialogAdmin.adminEmail;
-      setSelectedAdmins((prev) => prev.filter((id) => id !== adminId));
-      setAdminList((prev) =>
-        prev.filter((admin) => {
-          const currentId = admin.adminId || admin.id || admin.adminEmail;
-          return currentId !== adminId;
-        })
-      );
+      await deleteAdmin(dialogAdmin);
 
       setMessage("Admin deleted successfully.");
 
-      refetch();
       setTimeout(() => {
         closeDialog();
       }, 2000);
     } catch (error) {
       console.error("Delete admin error:", error);
       setMessage("Failed to delete admin. Please try again.");
-    } finally {
-      setIsDeleting(false);
     }
-  }, [dialogAdmin, closeDialog, refetch]);
+  };
 
   // Loading state
   if (!admins) {
@@ -203,7 +177,9 @@ function AdminTable({ admins }) {
             {paginatedAdmins.length === 0 ? (
               <tr>
                 <td colSpan="7" className="p-8 text-center text-gray-500">
-                  No admins found
+                  {admins.length === 0
+                    ? "No admins found"
+                    : "No admins on this page"}
                 </td>
               </tr>
             ) : (
@@ -273,13 +249,13 @@ function AdminTable({ admins }) {
       </div>
 
       {/* Pagination & Export */}
-      {adminList.length > 0 && (
+      {admins.length > 0 && (
         <div className="flex justify-between items-center mt-4">
           <p className="text-sm text-gray-500">
             Showing{" "}
-            {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, adminList.length)}{" "}
-            to {Math.min(currentPage * ITEMS_PER_PAGE, adminList.length)} of{" "}
-            {adminList.length} admins
+            {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, admins.length)} to{" "}
+            {Math.min(currentPage * ITEMS_PER_PAGE, admins.length)} of{" "}
+            {admins.length} admins
           </p>
           <div className="flex items-center space-x-2">
             <CustomPagination
@@ -299,7 +275,7 @@ function AdminTable({ admins }) {
       <AnimatePresence>
         {dialogOpen && (
           <motion.div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0  bg-black/5 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -124,11 +124,11 @@
   }
 }
 
-[data-state="open"] {
+/* [data-state="open"] {
   background-color: transparent;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-}
+} */
 
 /* globals.css */
 input:-webkit-autofill {
@@ -137,29 +137,6 @@ input:-webkit-autofill {
   transition: background-color 5000s ease-in-out 0s;
   color: #004368 !important;
 }
-
-/*filter tabs*/
-
-/* For just your filter container */
-
-/* .filter-scroll::-webkit-scrollbar-track {
-  border-radius: 9999px;
-}
-
-.filter-scroll::-webkit-scrollbar-thumb {
-  background: #004368;
-  border-radius: 9999px;
-}
-
-.filter-scroll::-webkit-scrollbar-thumb:hover {
-  background: #003155;
-}
-
-.filter-scroll::-webkit-scrollbar {
-  height: 10px !important;
-  width: 40px !important;
-  background: #e6ecf0 !important;
-} */
 
 /* hide scrollbar but keep scroll functionality */
 .scrollbar-hide::-webkit-scrollbar {
@@ -189,4 +166,80 @@ input:-webkit-autofill {
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* For just your filter container */
+
+/* Custom scrollbar styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.fill-primary {
+  fill: #004368;
+  width: 9px;
+  height: 9px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+/* .text-primary {
+  color: #004368;
+} */
+
+.data-\[selected-single\=true\]\:bg-primary {
+  &[data-selected-single="true"] {
+    background-color: #004368;
+    border-radius: 100%;
+    outline: none;
+    box-shadow: none;
+    border: none;
+  }
+}
+
+.rdp-day_button {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+/* Add horizontal gap between calendar dates */
+.rdp-grid {
+  gap: 0 10px !important; /* horizontal gap: 10px */
+}
+
+.rdp-cell {
+  padding: 0 5px !important; /* horizontal padding around each date */
+}
+
+.rdp-day {
+  margin: 0 2px !important; /* small margin around each date button */
 }

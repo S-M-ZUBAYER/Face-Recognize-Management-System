@@ -9,12 +9,17 @@ import SalaryCalculationPage from "@/pages/SalaryCalculationPage";
 import DeviceManagementPage from "@/pages/DeviceManagementPage";
 import AdminManagementPage from "@/pages/AdminManagementPage";
 import EmployeeManagementPage from "@/pages/EmployeeManagementPage";
+import TaskManagementPage from "@/pages/TaskManagementPage";
+import LeaveApprovalPage from "@/pages/LeaveApprovalPage";
 import AttendancePage from "@/pages/AttendancePage";
+import RulesPage from "@/pages/RulesPage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
+import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
+import PayPeriodPage from "@/pages/PayPeriodPage";
 
 const AppLayout = () => {
   return (
-    <div className="flex h-[100vh] w-[100vw]  ">
+    <div className="flex h-[100vh] w-[100vw] font-poppins-regular ">
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Navbar />
@@ -45,7 +50,15 @@ const AppRoutes = () => {
             path="employee-management"
             element={<EmployeeManagementPage />}
           />
+          <Route
+            path="employee-management/editEmployeeDetails/:id/:deviceMac"
+            element={<EditEmployeeDetailsPage />}
+          />
           <Route path="attendance" element={<AttendancePage />} />
+          <Route path="task-management" element={<TaskManagementPage />} />
+          <Route path="leave-approval" element={<LeaveApprovalPage />} />
+          <Route path="rules" element={<RulesPage />} />
+          <Route path="pay-period" element={<PayPeriodPage />} />
           <Route path="*" element={<Animated404 />} />
         </Route>
       </Route>

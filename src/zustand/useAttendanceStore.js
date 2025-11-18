@@ -150,6 +150,7 @@ export const useAttendanceStore = create((set, get) => ({
   },
 
   // Main processing function
+  // In useAttendanceStore.js - FIXED processAttendanceData function
   processAttendanceData: async (
     employees,
     attendance,
@@ -157,10 +158,14 @@ export const useAttendanceStore = create((set, get) => ({
     startDate,
     endDate
   ) => {
-    console.log("Processing with data:", {
+    const startTime = performance.now(); // FIXED: Define startTime
+    console.log("🔄 Starting optimized attendance processing", {
       employees: employees?.length,
       attendance: attendance?.length,
       overTime: overTime?.length,
+      overTimeData: overTime,
+      startDate,
+      endDate,
     });
 
     const today = new Date().toISOString().split("T")[0];
@@ -170,87 +175,206 @@ export const useAttendanceStore = create((set, get) => ({
 
     if (lastProcessedRange === currentRange) {
       console.log("📋 Skipping attendance processing - same date range");
+      set({ isProcessing: false });
       return;
     }
 
     console.log("🔄 Processing attendance data for range:", currentRange);
     set({ isProcessing: true });
 
-    try {
-      if (!employees?.length) {
-        console.warn("⚠️ No employees data available");
-        set({ isProcessing: false });
-        return;
-      }
+    // Use setTimeout to avoid blocking UI thread
+    setTimeout(() => {
+      try {
+        if (!employees?.length) {
+          console.warn("⚠️ No employees data available");
+          set({ isProcessing: false });
+          return;
+        }
 
-      // Handle case where attendance might be empty (everyone absent)
-      const attendanceData = attendance || [];
-      const overTimeData = overTime || [];
+        const attendanceData = attendance || [];
+        const overTimeData = overTime || [];
+        const dateRange =
+          startDate && endDate
+            ? getDateRangeArray(startDate, endDate)
+            : [today];
 
-      const dateRange =
-        startDate && endDate ? getDateRangeArray(startDate, endDate) : [today];
-
-      // Build attendance lookup
-      const attendanceByEmployee = new Map();
-      attendanceData.forEach(({ empId, date, checkIn }) => {
-        if (!attendanceByEmployee.has(empId))
-          attendanceByEmployee.set(empId, new Map());
-        attendanceByEmployee
-          .get(empId)
-          .set(date, parseCheckInData(checkIn, empId, date));
-      });
-
-      // Build records
-      const allRecords = employees.flatMap((employee) => {
-        const employeeId = employee.empId || employee.id || employee.employeeId;
-        const attendanceMap = attendanceByEmployee.get(employeeId) || new Map();
-
-        return dateRange.map((date) => {
-          const checkIn = attendanceMap.get(date) || [];
-          return {
-            ...employee,
-            employeeId,
-            punch: {
-              date,
-              checkIn,
-            },
-            isPresent: checkIn.length > 0,
-          };
+        // OPTIMIZATION 1: Build lookup maps first (faster access)
+        console.time("🕐 Building lookup maps");
+        const attendanceByEmployee = new Map();
+        attendanceData.forEach(({ empId, date, checkIn }) => {
+          if (!attendanceByEmployee.has(empId))
+            attendanceByEmployee.set(empId, new Map());
+          attendanceByEmployee
+            .get(empId)
+            .set(date, parseCheckInData(checkIn, empId, date));
         });
-      });
+        const toDate = (d) => new Date(d.split("T")[0]);
+        const overtimeEmployeeIds = new Set(
+          overTimeData
+            .filter((r) => {
+              const d = toDate(r.date);
+              return d >= toDate(startDate) && d <= toDate(endDate);
+            })
+            .map((r) => r.employeeId)
+        );
 
-      const presentRecords = allRecords.filter((r) => r.isPresent);
-      const absentRecords = allRecords.filter((r) => !r.isPresent);
-      const overtimeEmployeeIds = new Set(
-        overTimeData.map((r) => r.empId) || []
-      );
-      const overtimeRecords = allRecords.filter((r) =>
-        overtimeEmployeeIds.has(r.employeeId)
-      );
+        console.timeEnd("🕐 Building lookup maps");
 
-      // Update all state at once
-      set({
-        allEmployees: allRecords,
-        presentEmployees: presentRecords,
-        absentEmployees: absentRecords,
-        overTimeEmployees: overtimeRecords,
-        presentCount: presentRecords.length,
-        absentCount: absentRecords.length,
-        totalCount: allRecords.length,
-        lastProcessedRange: currentRange,
-        isProcessing: false,
-      });
+        // FIXED: Leave types mapping with full names
+        const leaveTypesMap = {
+          m_leaves: "Medical Leave",
+          mar_leaves: "Marriage Leave",
+          p_leaves: "Personal Leave",
+          s_leaves: "Sick Leave",
+          c_leaves: "Casual Leave",
+          e_leaves: "Earned Leave",
+          w_leaves: "Without Pay Leave",
+          r_leaves: "Regular Leave",
+          o_leaves: "Other Leave",
+        };
 
-      console.log("✅ Attendance processing completed:", {
-        total: allRecords.length,
-        present: presentRecords.length,
-        absent: absentRecords.length,
-        overtime: overtimeRecords.length,
-      });
-    } catch (error) {
-      console.error("❌ Error processing attendance data:", error);
-      set({ isProcessing: false });
-    }
+        // OPTIMIZATION 2: Process in smaller batches with progress updates
+        const BATCH_SIZE = 100; // Process 100 employees at a time
+        let allRecords = [];
+        let processedCount = 0;
+
+        console.time("🕐 Processing employee batches");
+
+        for (let i = 0; i < employees.length; i += BATCH_SIZE) {
+          const batch = employees.slice(i, i + BATCH_SIZE);
+          const batchRecords = [];
+
+          // Process current batch
+          for (const employee of batch) {
+            const employeeId =
+              employee.empId || employee.id || employee.employeeId;
+            const attendanceMap =
+              attendanceByEmployee.get(employeeId) || new Map();
+
+            for (const date of dateRange) {
+              const checkIn = attendanceMap.get(date) || [];
+              const dateStr =
+                typeof date === "string"
+                  ? date
+                  : date.toISOString().split("T")[0];
+              const isPresent = checkIn.length > 0;
+
+              // FIXED: Complete leave processing with full names
+              let leaveTypes = [];
+              if (!isPresent && employee.salaryRules) {
+                const leaveArrays = [
+                  "m_leaves", // Medical leaves
+                  "mar_leaves", // Marriage leaves
+                  "p_leaves", // Personal leaves
+                  "s_leaves", // Sick leaves
+                  "c_leaves", // Casual leaves
+                  "e_leaves", // Earned leaves
+                  "w_leaves", // Without pay leaves
+                  "r_leaves", // Regular leaves
+                  "o_leaves", // Other leaves
+                ];
+
+                leaveArrays.forEach((leaveType) => {
+                  if (employee.salaryRules[leaveType]) {
+                    const hasLeaveOnDate = employee.salaryRules[leaveType].some(
+                      (leave) => {
+                        const leaveDate = leave.date?.date || leave.date;
+                        const leaveDateStr =
+                          typeof leaveDate === "string"
+                            ? leaveDate.split("T")[0]
+                            : leaveDate?.toISOString().split("T")[0];
+                        return leaveDateStr === dateStr;
+                      }
+                    );
+
+                    if (hasLeaveOnDate) {
+                      // FIXED: Push the full leave name instead of the key
+                      leaveTypes.push(leaveTypesMap[leaveType] || leaveType);
+                    }
+                  }
+                });
+              }
+
+              batchRecords.push({
+                ...employee,
+                employeeId,
+                punch: {
+                  date,
+                  checkIn: checkIn.length > 0 ? checkIn : leaveTypes,
+                },
+                isPresent,
+              });
+            }
+          }
+
+          allRecords = allRecords.concat(batchRecords);
+          processedCount += batch.length;
+
+          // OPTIMIZATION 3: Progressive UI updates for large datasets
+          if (employees.length > 200) {
+            // Update state with partial results for better UX
+            const presentRecords = allRecords.filter((r) => r.isPresent);
+            const absentRecords = allRecords.filter((r) => !r.isPresent);
+            const overtimeRecords = allRecords.filter((r) =>
+              overtimeEmployeeIds.has(r.employeeId)
+            );
+
+            set({
+              allEmployees: allRecords,
+              presentEmployees: presentRecords,
+              absentEmployees: absentRecords,
+              overTimeEmployees: overtimeRecords,
+              presentCount: presentRecords.length,
+              absentCount: absentRecords.length,
+              totalCount: allRecords.length,
+            });
+          }
+
+          console.log(
+            `📊 Processed ${processedCount}/${employees.length} employees`
+          );
+        }
+
+        console.timeEnd("🕐 Processing employee batches");
+
+        // Final update with complete data
+        const presentRecords = allRecords.filter((r) => r.isPresent);
+        const absentRecords = allRecords.filter((r) => !r.isPresent);
+        const overtimeRecords = allRecords.filter((r) =>
+          overtimeEmployeeIds.has(r.employeeId)
+        );
+
+        const endTime = performance.now(); // FIXED: Calculate end time
+        const processingTime = endTime - startTime;
+
+        set({
+          allEmployees: allRecords,
+          presentEmployees: presentRecords,
+          absentEmployees: absentRecords,
+          overTimeEmployees: overtimeRecords,
+          presentCount: presentRecords.length,
+          absentCount: absentRecords.length,
+          totalCount: allRecords.length,
+          lastProcessedRange: currentRange,
+          isProcessing: false,
+        });
+
+        console.log("✅ Optimized attendance processing completed:", {
+          total: allRecords.length,
+          present: presentRecords.length,
+          absent: absentRecords.length,
+          overtime: overtimeRecords.length,
+          processingTime: `${processingTime.toFixed(2)}ms`,
+          processingSpeed: `${(
+            allRecords.length /
+            (processingTime / 1000)
+          ).toFixed(2)} records/second`,
+        });
+      } catch (error) {
+        console.error("❌ Error processing attendance data:", error);
+        set({ isProcessing: false });
+      }
+    }, 50); // Small delay to allow UI to render first
   },
 
   // Reset function

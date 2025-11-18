@@ -1,16 +1,15 @@
-// import { create } from "zustand";
-
-// export const useUserStore = create((set) => ({
-//   user: null,
-//   setUser: (userData) => set({ user: userData }),
-//   deviceMACs: null,
-//   setDeviceMACs: (macs) => set({ deviceMACs: macs }),
-// }));
 import { create } from "zustand";
 
 export const useUserStore = create((set) => ({
   user: null,
   deviceMACs: null,
+  rulesIds: [],
+
+  setRulesIds: (ids) => {
+    set((state) => ({ rulesIds: [...state.rulesIds, ids] }));
+  },
+
+  clearRulesIds: () => set({ rulesIds: [] }),
 
   // set user and persist in localStorage "user"
   setUser: (userData) => {
@@ -38,6 +37,3 @@ export const useUserStore = create((set) => ({
     localStorage.removeItem("deviceMACs");
   },
 }));
-
-
-

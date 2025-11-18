@@ -7,6 +7,8 @@ import deviceIcon from "../assets/image/deviceIcon.svg";
 import deleteIcon from "../assets/image/delete-01.svg";
 import settingIcon from "../assets/image/setting.svg";
 import alert from "../assets/image/Alert.svg";
+import calendar from "../assets/image/calendar.svg";
+import product from "../assets/image/Product.png";
 
 export default {
   logo,
@@ -18,4 +20,6 @@ export default {
   deleteIcon,
   settingIcon,
   alert,
+  calendar,
+  product,
 };

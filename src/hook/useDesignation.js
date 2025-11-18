@@ -1,11 +1,14 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useDeviceMACs } from "./useDeviceMACs";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
+import { INFINITE_QUERY_CONFIG } from "./queryConfig";
 import convertDeviceArray from "@/lib/convertDeviceArray";
 import extractDepartments from "@/lib/extractDepartments";
 
 export const useDesignation = () => {
   const queryClient = useQueryClient();
-  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
+  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
 
   const convertMACs = convertDeviceArray(deviceMACs);
 
@@ -13,23 +16,49 @@ export const useDesignation = () => {
     queries: convertMACs.map((mac) => ({
       queryKey: ["designation", mac.macInt],
       queryFn: async () => {
-        const res = await axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/department/by-departmentId/${mac.macInt}`
-        );
+        try {
+          const res = await apiClient.get(
+            getApiUrl(`/department/by-departmentId/${mac.macInt}`)
+          );
 
-        const resData = res.data;
+          const resData = res.data;
 
-        return [
-          {
-            department: JSON.parse(resData.department),
-            designation: JSON.parse(resData.designation),
-          },
-        ];
+          // Add safe JSON parsing with error handling
+          try {
+            return [
+              {
+                department: JSON.parse(resData.department || "{}"),
+                designation: JSON.parse(resData.designation || "{}"),
+              },
+            ];
+          } catch (parseError) {
+            console.error(
+              `❌ Failed to parse department data for ${mac.macInt}:`,
+              parseError
+            );
+            return [
+              {
+                department: {},
+                designation: {},
+              },
+            ];
+          }
+        } catch (error) {
+          console.error(
+            `❌ Failed to fetch designation data for ${mac.macInt}:`,
+            error
+          );
+          // Return empty structure instead of failing
+          return [
+            {
+              department: {},
+              designation: {},
+            },
+          ];
+        }
       },
-      //   staleTime: Infinity,
-      //   cacheTime: Infinity,
-      //   refetchOnWindowFocus: false,
-      //   refetchOnReconnect: false,
+      ...INFINITE_QUERY_CONFIG,
+      enabled: convertMACs.length > 0 && !macsLoading,
     })),
   });
 
@@ -40,16 +69,25 @@ export const useDesignation = () => {
 
   const designation = extractDepartments(designationApiResponse);
 
-  // ✅ Manual refresh: now matches queryKey
+  // ✅ Manual refresh
   const refresh = () => {
     convertMACs.forEach((mac) =>
-      queryClient.invalidateQueries(["designation", mac.macInt])
+      queryClient.invalidateQueries({
+        queryKey: ["designation", mac.macInt],
+        exact: true,
+      })
     );
   };
 
+  const isLoading = designationQueries.some((q) => q.isLoading) || macsLoading;
+  const isError = designationQueries.some((q) => q.isError);
+  const isFetching = designationQueries.some((q) => q.isFetching);
+
   return {
     designation,
-    isLoading: designationQueries.some((q) => q.isLoading),
+    isLoading,
+    isError,
+    isFetching,
     refetch: refresh,
     convertMACs,
   };
