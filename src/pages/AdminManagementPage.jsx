@@ -1,14 +1,10 @@
 import { useAdminData } from "@/hook/useAdminData";
 import AdminTable from "@/components/adminManagement/AdminTable";
 import FancyLoader from "@/components/FancyLoader";
-import React, { useEffect } from "react";
 
 function AdminManagementPage() {
-  const { isLoading, admins, refetch } = useAdminData();
-  useEffect(() => {
-    refetch();
-    console.log("Refetching admin data on mount");
-  }, [refetch]);
+  const { isLoading } = useAdminData();
+
   return (
     <>
       <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F] mb-5">
@@ -19,7 +15,7 @@ function AdminManagementPage() {
           <FancyLoader />
         </div>
       ) : (
-        <AdminTable admins={admins} />
+        <AdminTable />
       )}
     </>
   );

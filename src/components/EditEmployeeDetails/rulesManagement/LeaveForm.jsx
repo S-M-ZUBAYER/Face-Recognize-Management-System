@@ -21,9 +21,15 @@ export const LeaveForm = () => {
   const [openPopovers, setOpenPopovers] = useState({});
   const [leaveDetails, setLeaveDetails] = useState({});
   const [timePopovers, setTimePopovers] = useState({});
+  const [tempTimeRanges, setTempTimeRanges] = useState({});
   const [totalLeaveDays, setTotalLeaveDays] = useState(0);
   const { selectedEmployee } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  // Helper function to get consistent date string
+  const getDateString = (date) => {
+    return date.toISOString().split("T")[0];
+  };
 
   // Leave type mappings
   const leaveMappings = {
@@ -97,10 +103,10 @@ export const LeaveForm = () => {
                 const date = new Date(item.date.date);
                 if (!isNaN(date.getTime())) {
                   dates.push(date);
-                  const dateStr = date.toISOString().split("T")[0];
+                  const dateStr = getDateString(date);
                   timeRanges[dateStr] = {
-                    startTime: item.date.start || "09:00",
-                    endTime: item.date.end || "17:00",
+                    startTime: item.date.start || null,
+                    endTime: item.date.end || null,
                   };
                 }
               }
@@ -167,7 +173,7 @@ export const LeaveForm = () => {
     Object.values(leaveDetails).forEach((leave) => {
       if (leave.timeRanges && typeof leave.timeRanges === "object") {
         Object.values(leave.timeRanges).forEach((timeRange) => {
-          // Add null checks for timeRange
+          // Only calculate if both start and end times are provided
           if (timeRange && timeRange.startTime && timeRange.endTime) {
             try {
               const [startHours, startMinutes] = timeRange.startTime
@@ -255,20 +261,22 @@ export const LeaveForm = () => {
   const handleDateChange = (leave, newDates) => {
     if (!newDates) return;
 
-    // Initialize time ranges for new dates
+    // Initialize time ranges for new dates with consistent date strings
     const currentTimeRanges = leaveDetails[leave]?.timeRanges || {};
     const newTimeRanges = { ...currentTimeRanges };
 
     newDates.forEach((date) => {
-      const dateStr = date.toISOString().split("T")[0];
-
+      const dateStr = getDateString(date);
       if (!newTimeRanges[dateStr]) {
         newTimeRanges[dateStr] = {
-          startTime: "09:00",
-          endTime: "17:00",
+          startTime: null,
+          endTime: null,
         };
       }
     });
+
+    console.log("Updated time ranges for dates:", newDates);
+    console.log("New time ranges:", newTimeRanges);
 
     setLeaveDetails((prev) => ({
       ...prev,
@@ -282,13 +290,13 @@ export const LeaveForm = () => {
   };
 
   const removeDate = (leave, dateToRemove) => {
-    const dateStr = dateToRemove.toISOString().split("T")[0];
+    const dateStr = getDateString(dateToRemove);
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
         ...prev[leave],
         dates: prev[leave].dates.filter(
-          (date) => date.toISOString().split("T")[0] !== dateStr
+          (date) => getDateString(date) !== dateStr
         ),
         timeRanges: Object.keys(prev[leave].timeRanges || {})
           .filter((key) => key !== dateStr)
@@ -310,8 +318,51 @@ export const LeaveForm = () => {
     }));
   };
 
-  const handleTimeChange = (leave, date, field, value) => {
-    const dateStr = date.toISOString().split("T")[0];
+  // Handle time change in temporary state
+  const handleTempTimeChange = (leave, date, field, value) => {
+    const key = `${leave}-${getDateString(date)}`;
+    setTempTimeRanges((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Apply time changes
+  const applyTimeChanges = (leave, date) => {
+    const key = `${leave}-${getDateString(date)}`;
+    const tempTimeRange = tempTimeRanges[key];
+
+    if (tempTimeRange) {
+      setLeaveDetails((prev) => ({
+        ...prev,
+        [leave]: {
+          ...prev[leave],
+          timeRanges: {
+            ...prev[leave].timeRanges,
+            [getDateString(date)]: {
+              startTime: tempTimeRange.startTime || null,
+              endTime: tempTimeRange.endTime || null,
+            },
+          },
+        },
+      }));
+    }
+
+    // Close popover and clear temp state
+    toggleTimePopover(leave, date, false);
+    setTempTimeRanges((prev) => {
+      const newTemp = { ...prev };
+      delete newTemp[key];
+      return newTemp;
+    });
+  };
+
+  // Clear time for a specific date
+  const clearTime = (leave, date) => {
+    const dateStr = getDateString(date);
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
@@ -319,15 +370,13 @@ export const LeaveForm = () => {
         timeRanges: {
           ...prev[leave].timeRanges,
           [dateStr]: {
-            ...(prev[leave].timeRanges?.[dateStr] || {
-              startTime: "09:00",
-              endTime: "17:00",
-            }),
-            [field]: value,
+            startTime: null,
+            endTime: null,
           },
         },
       },
     }));
+    toggleTimePopover(leave, date, false);
   };
 
   const togglePopover = (leave, isOpen) => {
@@ -338,7 +387,22 @@ export const LeaveForm = () => {
   };
 
   const toggleTimePopover = (leave, date, isOpen) => {
-    const key = `${leave}-${date.toISOString().split("T")[0]}`;
+    const key = `${leave}-${getDateString(date)}`;
+
+    if (isOpen) {
+      // Initialize temp state with current values when opening
+      const currentTimeRange = leaveDetails[leave]?.timeRanges?.[
+        getDateString(date)
+      ] || {
+        startTime: null,
+        endTime: null,
+      };
+      setTempTimeRanges((prev) => ({
+        ...prev,
+        [key]: { ...currentTimeRange },
+      }));
+    }
+
     setTimePopovers((prev) => ({
       ...prev,
       [key]: isOpen,
@@ -370,6 +434,16 @@ export const LeaveForm = () => {
     });
   };
 
+  // Format time display
+  const formatTimeDisplay = (timeRange) => {
+    if (!timeRange.startTime && !timeRange.endTime) {
+      return "Set time";
+    }
+    return `${timeRange.startTime || "--:--"} - ${
+      timeRange.endTime || "--:--"
+    }`;
+  };
+
   // Save leave configuration
   const handleSave = async () => {
     if (!selectedEmployee?.employeeId) {
@@ -388,22 +462,31 @@ export const LeaveForm = () => {
       Object.entries(leaveMappings).forEach(([leaveName, fieldName]) => {
         if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
           const leaveData = leaveDetails[leaveName].dates.map((date, index) => {
-            const dateStr = formatDateForStorage(date);
+            const dateStr = getDateString(date);
             const timeRange = leaveDetails[leaveName].timeRanges?.[dateStr] || {
-              start: "09:00",
-              end: "17:00",
+              startTime: null,
+              endTime: null,
             };
+
+            console.log(
+              `Creating object for ${leaveName}, date ${dateStr}:`,
+              timeRange
+            );
+
+            const correctDateStr = formatDateForStorage(date);
 
             // Base object for all leave types
             const baseLeaveObject = {
               id: index + 1,
               empId: Number(empId),
               date: JSON.stringify({
-                date: `${dateStr}T00:00:00.000`,
-                start: timeRange.startTime || null,
-                end: timeRange.endTime || null,
+                date: `${correctDateStr}T00:00:00.000`,
+                start: timeRange.startTime,
+                end: timeRange.endTime,
               }),
             };
+
+            console.log("Base leave object:", baseLeaveObject);
 
             // For Maternity Leave, For Marriage, Paternity Leave - no deduct fields
             if (
@@ -426,6 +509,8 @@ export const LeaveForm = () => {
         }
       });
 
+      console.log("Final updated leave data:", updatedLeaveData);
+
       // Prepare ruleId === 10 data
       const ruleTenData = Array(9)
         .fill(null)
@@ -447,7 +532,7 @@ export const LeaveForm = () => {
 
       if (!ruleTen) {
         ruleTen = {
-          id: Date.now(),
+          id: Math.floor(10 + Math.random() * 90),
           empId: empId,
           ruleId: "10",
           ruleStatus: 1,
@@ -474,7 +559,7 @@ export const LeaveForm = () => {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log(payload);
+      console.log("Saving payload:", payload);
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
@@ -482,11 +567,38 @@ export const LeaveForm = () => {
         payload,
       });
 
-      console.log("Leave configuration updated successfully");
       toast.success("Leave configuration updated successfully!");
     } catch (error) {
       console.error("Error saving leave configuration:", error);
       toast.error("Failed to update leave configuration.");
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 10,
+        c_leaves: [],
+        e_leaves: [],
+        m_leaves: [],
+        mar_leaves: [],
+        o_leaves: [],
+        p_leaves: [],
+        r_leaves: [],
+        s_leaves: [],
+        w_leaves: [],
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -497,7 +609,7 @@ export const LeaveForm = () => {
         <h3 className="text-sm font-semibold text-green-900 mb-2">
           Leave Balance
         </h3>
-        <div className="flex justify-between items-center  gap-4 text-sm">
+        <div className="flex justify-between items-center gap-4 text-sm">
           <div>
             <div className="text-green-700 font-semibold">Total Available</div>
             <div className="text-green-600">{totalLeaveDays} Days</div>
@@ -510,7 +622,7 @@ export const LeaveForm = () => {
             </div>
           </div>
           <div className="col-span-2">
-            <div className="text-gray-700 font-semibold  pt-2">
+            <div className="text-gray-700 font-semibold pt-2">
               Remaining Balance
             </div>
             <div className="text-gray-600">
@@ -592,12 +704,15 @@ export const LeaveForm = () => {
                           </p>
                           <div className="space-y-2">
                             {leaveDetails[leave].dates.map((date, index) => {
-                              const dateStr = date.toISOString().split("T")[0];
+                              const dateStr = getDateString(date);
                               const timeRange = leaveDetails[leave]
                                 .timeRanges?.[dateStr] || {
-                                startTime: "09:00",
-                                endTime: "17:00",
+                                startTime: null,
+                                endTime: null,
                               };
+                              const tempKey = `${leave}-${dateStr}`;
+                              const tempTimeRange =
+                                tempTimeRanges[tempKey] || timeRange;
 
                               return (
                                 <div
@@ -608,7 +723,7 @@ export const LeaveForm = () => {
                                     {formatDate(date)}
                                   </span>
                                   <Popover
-                                    open={timePopovers[`${leave}-${dateStr}`]}
+                                    open={timePopovers[tempKey]}
                                     onOpenChange={(isOpen) =>
                                       toggleTimePopover(leave, date, isOpen)
                                     }
@@ -620,8 +735,7 @@ export const LeaveForm = () => {
                                         className="h-8 text-xs"
                                       >
                                         <Clock className="h-3 w-3 mr-1" />
-                                        {timeRange.startTime} -{" "}
-                                        {timeRange.endTime}
+                                        {formatTimeDisplay(timeRange)}
                                       </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-64 p-3">
@@ -632,9 +746,11 @@ export const LeaveForm = () => {
                                           </Label>
                                           <input
                                             type="time"
-                                            value={timeRange.startTime}
+                                            value={
+                                              tempTimeRange.startTime || ""
+                                            }
                                             onChange={(e) =>
-                                              handleTimeChange(
+                                              handleTempTimeChange(
                                                 leave,
                                                 date,
                                                 "startTime",
@@ -650,9 +766,9 @@ export const LeaveForm = () => {
                                           </Label>
                                           <input
                                             type="time"
-                                            value={timeRange.endTime}
+                                            value={tempTimeRange.endTime || ""}
                                             onChange={(e) =>
-                                              handleTimeChange(
+                                              handleTempTimeChange(
                                                 leave,
                                                 date,
                                                 "endTime",
@@ -661,6 +777,27 @@ export const LeaveForm = () => {
                                             }
                                             className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
                                           />
+                                        </div>
+                                        <div className="flex gap-2 pt-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              clearTime(leave, date)
+                                            }
+                                            variant="outline"
+                                            className="flex-1 text-xs"
+                                          >
+                                            Clear
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              applyTimeChanges(leave, date)
+                                            }
+                                            className="flex-1 text-xs bg-[#004368] text-white"
+                                          >
+                                            Apply
+                                          </Button>
                                         </div>
                                       </div>
                                     </PopoverContent>
@@ -743,18 +880,19 @@ export const LeaveForm = () => {
                 {leaveDetails[leave]?.dates?.length > 0 && (
                   <div className="mt-1 text-xs text-gray-500">
                     {leaveDetails[leave].dates.map((date, idx) => {
-                      const dateStr = date.toISOString().split("T")[0];
+                      const dateStr = getDateString(date);
                       const timeRange = leaveDetails[leave].timeRanges?.[
                         dateStr
                       ] || {
-                        startTime: "09:00",
-                        endTime: "17:00",
+                        startTime: null,
+                        endTime: null,
                       };
                       return (
                         <span key={idx} className="block">
                           {formatDate(date)}{" "}
-                          {timeRange &&
-                            `(${timeRange.startTime} - ${timeRange.endTime})`}
+                          {timeRange.startTime && timeRange.endTime
+                            ? `(${timeRange.startTime} - ${timeRange.endTime})`
+                            : "(No time set)"}
                         </span>
                       );
                     })}
@@ -793,13 +931,26 @@ export const LeaveForm = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save Configuration"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

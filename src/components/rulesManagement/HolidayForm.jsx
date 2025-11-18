@@ -1,8 +1,120 @@
 import { useState } from "react";
-import { Calendar } from "../ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
+
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployees } from "@/hook/useEmployees";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
+
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { Employees } = useEmployees();
+  const { setRulesIds } = useUserStore();
+
+  // 🟦 Handle selection — keep dates in local time, normalized
+  const handleCalendarSelect = (dates) => {
+    if (!dates || dates.length === 0) {
+      setSpecialDates([]);
+      return;
+    }
+
+    // Store dates in "local noon" to prevent timezone shifts
+    const normalized = dates.map(
+      (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12)
+    );
+    setSpecialDates(normalized);
+  };
+
+  // 🟦 Format for backend (always YYYY-MM-DDT00:00:00.000)
+  const formatDateForStorage = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}T00:00:00.000`;
+  };
+
+  // 🟦 Save handler
+  const handleSave = async () => {
+    try {
+      // Check if any employees are selected
+      if (Employees.length === 0) {
+        toast.error("Please select at least one employee!");
+        return;
+      }
+      const updatePromises = Employees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const empId = selectedEmployee.employeeId.toString();
+        const salaryRules = selectedEmployee.salaryRules || {};
+        const existingRules = Array.isArray(salaryRules.rules)
+          ? salaryRules.rules
+          : [];
+
+        // Find or create ruleId "1"
+        let ruleOne = existingRules.find(
+          (r) => r.ruleId === "1" || r.ruleId === 1
+        );
+        if (!ruleOne) {
+          ruleOne = {
+            id: Math.floor(10 + Math.random() * 90),
+            empId,
+            ruleId: "1",
+            ruleStatus: 1,
+            param1: null,
+            param2: null,
+            param3: null,
+            param4: null,
+            param5: null,
+            param6: null,
+          };
+        } else {
+          ruleOne.empId = empId.toString();
+        }
+
+        const formattedHolidays = specialDates.map(formatDateForStorage);
+
+        // console.log(formattedHolidays);
+
+        // 🧩 Build final JSON
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          holidays: formattedHolidays, // raw array, helper stringifies
+          rules: {
+            filter: (r) => r.ruleId === 1 || r.ruleId === "1",
+            newValue: ruleOne,
+          },
+        });
+
+        // console.log("rules:", {
+        //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
+        //   newValue: ruleOne,
+        // });
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+        return updateEmployee({
+          mac: selectedEmployee.deviceMAC || "",
+          id: selectedEmployee.employeeId,
+          payload,
+        });
+        // return console.log(payload);
+      });
+
+      await Promise.all(updatePromises);
+
+      setRulesIds(1);
+
+      toast.success("Holidays updated successfully!");
+    } catch (error) {
+      console.error("Error saving holidays:", error);
+      toast.error("Failed to update holidays.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -10,13 +122,10 @@ export const HolidayForm = () => {
         <Calendar
           mode="multiple"
           selected={specialDates}
-          onSelect={setSpecialDates}
-          className=" w-[25vw]  "
+          onSelect={handleCalendarSelect}
+          className="w-[22vw]"
           modifiersStyles={{
-            today: {
-              backgroundColor: "transparent",
-              color: "inherit",
-            },
+            today: { backgroundColor: "transparent", color: "inherit" },
           }}
         />
       </div>
@@ -27,17 +136,23 @@ export const HolidayForm = () => {
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              Select national holiday, click the date to choose.When the
-              selected date turns blue,it indicates that it is a holiday and no
-              attendance is required.the selection will be automatically saved
-              (set according to your company's actual situation)
+              Select national holidays. When a date turns blue, it’s marked as a
+              holiday (no attendance required). Click "Save" to confirm.
             </span>
           </li>
         </ul>
       </div>
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium">
-        Save
-      </button>
+
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

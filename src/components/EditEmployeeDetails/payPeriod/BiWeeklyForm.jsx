@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -103,6 +103,7 @@ function BiWeeklyForm() {
             id: Date.now() + index, // unique ID
             type: salary?.type || "",
             amount: salary?.amount?.toString() || "",
+            isChecked: salary?.isChecked !== false,
           }))
         : [];
       setAdditionalSalaries(initialAdditionalSalaries);
@@ -146,6 +147,7 @@ function BiWeeklyForm() {
         id: Date.now() + Math.random(),
         type: "",
         amount: "",
+        isChecked: true,
       },
     ]);
   };
@@ -189,11 +191,21 @@ function BiWeeklyForm() {
     }
   };
 
+  // Added this new function
+  const toggleSalaryCheckbox = useCallback((id, checked) => {
+    setAdditionalSalaries((prev) =>
+      prev.map((salary) =>
+        salary.id === id ? { ...salary, isChecked: checked } : salary
+      )
+    );
+  }, []);
+
   const handleSave = async () => {
     // Filter out empty additional salaries
     const otherSalaryArray = additionalSalaries
       .filter((salary) => salary.type && salary.amount)
       .map((salary) => ({
+        isChecked: salary.isChecked !== false,
         type: salary.type,
         amount: parseFloat(salary.amount) || 0,
       }));
@@ -213,7 +225,7 @@ function BiWeeklyForm() {
       overtimeSalary: 0, // Not used for BiWeekly
       payPeriod: "biWeekly",
       salary: parseFloat(basic) || 0, // Basic salary field
-      selectedOvertimeOption: 2, // Always fixed input for BiWeekly
+      selectedOvertimeOption: 1, // Always fixed input for BiWeekly
       shift: selectedEmployee?.payPeriod?.shift || "Morning",
       startDay: selectedWeekdayIndex, // Weekday index (Monday = 0, Tuesday = 1, ..., Sunday = 6)
       startWeek: parseInt(selectedDate) || 1, // Selected date
@@ -372,13 +384,10 @@ function BiWeeklyForm() {
             <div className="flex items-center gap-3.5">
               <Checkbox
                 className={checkboxStyle}
-                checked={!!salary.type && !!salary.amount}
-                onCheckedChange={(checked) => {
-                  if (!checked) {
-                    updateSalarySectionType(salary.id, "");
-                    updateSalarySectionAmount(salary.id, "");
-                  }
-                }}
+                checked={salary.isChecked !== false}
+                onCheckedChange={(checked) =>
+                  toggleSalaryCheckbox(salary.id, checked)
+                }
               />
               <div className="flex gap-2">
                 <Input

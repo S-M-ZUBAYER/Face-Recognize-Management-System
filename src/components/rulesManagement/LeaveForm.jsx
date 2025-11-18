@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Checkbox } from "../ui/checkbox";
-import { ChevronDownIcon, XIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDownIcon, XIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -9,34 +9,65 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import image from "@/constants/image";
-import { Label } from "../ui/label";
+import { Label } from "@/components/ui/label";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import formatDateForStorage from "@/lib/formatDateForStorage";
+import { useEmployees } from "@/hook/useEmployees";
 
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
   const [openPopovers, setOpenPopovers] = useState({});
   const [leaveDetails, setLeaveDetails] = useState({});
+  const [timePopovers, setTimePopovers] = useState({});
+  const [tempTimeRanges, setTempTimeRanges] = useState({});
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { Employees } = useEmployees();
+
+  // Helper function to get consistent date string
+  const getDateString = (date) => {
+    return date.toISOString().split("T")[0];
+  };
+
+  // Leave type mappings
+  const leaveMappings = {
+    "Maternity Leave": "m_leaves",
+    "For Marriage": "mar_leaves",
+    "Paternity Leave": "p_leaves",
+    "Sick Leave": "s_leaves",
+    "Casual Leave": "c_leaves",
+    "Earned Leave": "e_leaves",
+    "Without Pay Leave": "w_leaves",
+    "Rest Leave": "r_leaves",
+    Others: "o_leaves",
+  };
+
+  const ruleTenMappings = {
+    "Sick Leave": 4,
+    "Without Pay Leave": 7,
+    Others: 9,
+  };
 
   const handleLeaveChange = (leave, checked) => {
     if (checked) {
       setSelectedLeaves((prev) => [...prev, leave]);
-      // Initialize details for the selected leave
       setLeaveDetails((prev) => ({
         ...prev,
         [leave]: {
           dates: [],
           days: "",
           cost: "",
+          timeRanges: {},
         },
       }));
     } else {
       setSelectedLeaves((prev) => prev.filter((l) => l !== leave));
-      // Remove details for the deselected leave
       setLeaveDetails((prev) => {
         const newDetails = { ...prev };
         delete newDetails[leave];
         return newDetails;
       });
-      // Close popover if open
       setOpenPopovers((prev) => {
         const newPopovers = { ...prev };
         delete newPopovers[leave];
@@ -46,23 +77,51 @@ export const LeaveForm = () => {
   };
 
   const handleDateChange = (leave, newDates) => {
+    if (!newDates) return;
+
+    // Initialize time ranges for new dates with consistent date strings
+    const currentTimeRanges = leaveDetails[leave]?.timeRanges || {};
+    const newTimeRanges = { ...currentTimeRanges };
+
+    newDates.forEach((date) => {
+      const dateStr = getDateString(date);
+      if (!newTimeRanges[dateStr]) {
+        newTimeRanges[dateStr] = {
+          startTime: null,
+          endTime: null,
+        };
+      }
+    });
+
+    console.log("Updated time ranges for dates:", newDates);
+    console.log("New time ranges:", newTimeRanges);
+
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
         ...prev[leave],
-        dates: newDates || [],
+        dates: newDates,
+        timeRanges: newTimeRanges,
       },
     }));
+    togglePopover(leave, false);
   };
 
   const removeDate = (leave, dateToRemove) => {
+    const dateStr = getDateString(dateToRemove);
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
         ...prev[leave],
         dates: prev[leave].dates.filter(
-          (date) => date.getTime() !== dateToRemove.getTime()
+          (date) => getDateString(date) !== dateStr
         ),
+        timeRanges: Object.keys(prev[leave].timeRanges || {})
+          .filter((key) => key !== dateStr)
+          .reduce((obj, key) => {
+            obj[key] = prev[leave].timeRanges[key];
+            return obj;
+          }, {}),
       },
     }));
   };
@@ -77,10 +136,94 @@ export const LeaveForm = () => {
     }));
   };
 
+  // Handle time change in temporary state
+  const handleTempTimeChange = (leave, date, field, value) => {
+    const key = `${leave}-${getDateString(date)}`;
+    setTempTimeRanges((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Apply time changes
+  const applyTimeChanges = (leave, date) => {
+    const key = `${leave}-${getDateString(date)}`;
+    const tempTimeRange = tempTimeRanges[key];
+
+    if (tempTimeRange) {
+      setLeaveDetails((prev) => ({
+        ...prev,
+        [leave]: {
+          ...prev[leave],
+          timeRanges: {
+            ...prev[leave].timeRanges,
+            [getDateString(date)]: {
+              startTime: tempTimeRange.startTime || null,
+              endTime: tempTimeRange.endTime || null,
+            },
+          },
+        },
+      }));
+    }
+
+    // Close popover and clear temp state
+    toggleTimePopover(leave, date, false);
+    setTempTimeRanges((prev) => {
+      const newTemp = { ...prev };
+      delete newTemp[key];
+      return newTemp;
+    });
+  };
+
+  // Clear time for a specific date
+  const clearTime = (leave, date) => {
+    const dateStr = getDateString(date);
+    setLeaveDetails((prev) => ({
+      ...prev,
+      [leave]: {
+        ...prev[leave],
+        timeRanges: {
+          ...prev[leave].timeRanges,
+          [dateStr]: {
+            startTime: null,
+            endTime: null,
+          },
+        },
+      },
+    }));
+    toggleTimePopover(leave, date, false);
+  };
+
   const togglePopover = (leave, isOpen) => {
     setOpenPopovers((prev) => ({
       ...prev,
       [leave]: isOpen,
+    }));
+  };
+
+  const toggleTimePopover = (leave, date, isOpen) => {
+    const key = `${leave}-${getDateString(date)}`;
+
+    if (isOpen) {
+      // Initialize temp state with current values when opening
+      const currentTimeRange = leaveDetails[leave]?.timeRanges?.[
+        getDateString(date)
+      ] || {
+        startTime: null,
+        endTime: null,
+      };
+      setTempTimeRanges((prev) => ({
+        ...prev,
+        [key]: { ...currentTimeRange },
+      }));
+    }
+
+    setTimePopovers((prev) => ({
+      ...prev,
+      [key]: isOpen,
     }));
   };
 
@@ -97,7 +240,9 @@ export const LeaveForm = () => {
   ];
 
   const requiresAdditionalDetails = (leave) =>
-    leave === "Without Pay Leave" || leave === "Others";
+    leave === "Sick Leave" ||
+    leave === "Without Pay Leave" ||
+    leave === "Others";
 
   const formatDate = (date) => {
     return date.toLocaleDateString("en-US", {
@@ -105,6 +250,153 @@ export const LeaveForm = () => {
       day: "numeric",
       year: "numeric",
     });
+  };
+
+  // Format time display
+  const formatTimeDisplay = (timeRange) => {
+    if (!timeRange.startTime && !timeRange.endTime) {
+      return "Set time";
+    }
+    return `${timeRange.startTime || "--:--"} - ${
+      timeRange.endTime || "--:--"
+    }`;
+  };
+
+  // Save leave configuration
+  const handleSave = async () => {
+    if (Employees.length === 0) {
+      toast.error("Please select at least one employee!");
+      return;
+    }
+    try {
+      const updatePromises = Employees.map(async (selectedEmployee) => {
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+        const salaryRules = selectedEmployee.salaryRules;
+        const existingRules = salaryRules.rules || [];
+        const empId = selectedEmployee.employeeId.toString();
+
+        // Prepare leave arrays for each type
+        const updatedLeaveData = {};
+
+        Object.entries(leaveMappings).forEach(([leaveName, fieldName]) => {
+          if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
+            const leaveData = leaveDetails[leaveName].dates.map(
+              (date, index) => {
+                const dateStr = getDateString(date);
+                const timeRange = leaveDetails[leaveName].timeRanges?.[
+                  dateStr
+                ] || {
+                  startTime: null,
+                  endTime: null,
+                };
+
+                console.log(
+                  `Creating object for ${leaveName}, date ${dateStr}:`,
+                  timeRange
+                );
+
+                const correctDateStr = formatDateForStorage(date);
+
+                // Base object for all leave types
+                const baseLeaveObject = {
+                  id: index + 1,
+                  empId: Number(empId),
+                  date: JSON.stringify({
+                    date: `${correctDateStr}T00:00:00.000`,
+                    start: timeRange.startTime,
+                    end: timeRange.endTime,
+                  }),
+                };
+
+                console.log("Base leave object:", baseLeaveObject);
+
+                // For Maternity Leave, For Marriage, Paternity Leave - no deduct fields
+                if (
+                  leaveName === "Maternity Leave" ||
+                  leaveName === "For Marriage" ||
+                  leaveName === "Paternity Leave"
+                ) {
+                  return baseLeaveObject;
+                }
+
+                return {
+                  ...baseLeaveObject,
+                  deductDay: "0",
+                  deductMoney: "0",
+                };
+              }
+            );
+            updatedLeaveData[fieldName] = leaveData;
+          } else {
+            updatedLeaveData[fieldName] = [];
+          }
+        });
+
+        console.log("Final updated leave data:", updatedLeaveData);
+
+        // Prepare ruleId === 10 data
+        const ruleTenData = Array(9)
+          .fill(null)
+          .map(() => ({ dayCount: "", cost: "" }));
+
+        Object.entries(ruleTenMappings).forEach(([leaveName, index]) => {
+          if (selectedLeaves.includes(leaveName) && leaveDetails[leaveName]) {
+            ruleTenData[index - 1] = {
+              dayCount: leaveDetails[leaveName].days || "",
+              cost: leaveDetails[leaveName].cost || "",
+            };
+          }
+        });
+
+        // Find or create rule with ruleId = 10
+        let ruleTen = existingRules.find(
+          (rule) => rule.ruleId === 10 || rule.ruleId === "10"
+        );
+
+        if (!ruleTen) {
+          ruleTen = {
+            id: Math.floor(10 + Math.random() * 90),
+            empId: empId,
+            ruleId: "10",
+            ruleStatus: 1,
+            param1: JSON.stringify(ruleTenData),
+            param2: "",
+            param3: "",
+            param4: "",
+            param5: "",
+            param6: "",
+          };
+        } else {
+          ruleTen.empId = empId;
+          ruleTen.param1 = JSON.stringify(ruleTenData);
+        }
+
+        // Generate final JSON
+        const updatedJSON = finalJsonForUpdate(salaryRules, {
+          empId: empId,
+          rules: {
+            filter: (r) => r.ruleId === 10 || r.ruleId === "10",
+            newValue: ruleTen,
+          },
+          ...updatedLeaveData,
+        });
+
+        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+        await updateEmployee({
+          mac: selectedEmployee?.deviceMAC || "",
+          id: selectedEmployee?.employeeId,
+          payload,
+        });
+      });
+      await Promise.all(updatePromises);
+      toast.success("Leave configuration updated successfully!");
+    } catch (error) {
+      console.error("Error saving leave configuration:", error);
+      toast.error("Failed to update leave configuration.");
+    }
   };
 
   return (
@@ -127,16 +419,10 @@ export const LeaveForm = () => {
                 </span>
               </label>
 
-              {/* Date Picker for selected leaves */}
               {selectedLeaves.includes(leave) && (
                 <div className="ml-7 space-y-3">
                   <div className="flex items-start gap-3">
-                    <Label
-                      htmlFor={`${leave}-date`}
-                      className="text-sm min-w-[60px] pt-2"
-                    >
-                      Dates
-                    </Label>
+                    <Label className="text-sm min-w-[60px] pt-2">Dates</Label>
                     <div className="flex-1 space-y-2">
                       <Popover
                         open={openPopovers[leave]}
@@ -179,35 +465,127 @@ export const LeaveForm = () => {
                         </PopoverContent>
                       </Popover>
 
-                      {/* Selected dates list */}
                       {leaveDetails[leave]?.dates?.length > 0 && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <p className="text-xs text-gray-500">
                             Selected dates:
                           </p>
-                          <div className="flex flex-wrap gap-1">
-                            {leaveDetails[leave].dates.map((date, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs"
-                              >
-                                <span>{formatDate(date)}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removeDate(leave, date)}
-                                  className="text-blue-500 hover:text-blue-700"
+                          <div className="space-y-2">
+                            {leaveDetails[leave].dates.map((date, index) => {
+                              const dateStr = getDateString(date);
+                              const timeRange = leaveDetails[leave]
+                                .timeRanges?.[dateStr] || {
+                                startTime: null,
+                                endTime: null,
+                              };
+                              const tempKey = `${leave}-${dateStr}`;
+                              const tempTimeRange =
+                                tempTimeRanges[tempKey] || timeRange;
+
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded"
                                 >
-                                  <XIcon className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
+                                  <span className="flex-1 text-sm">
+                                    {formatDate(date)}
+                                  </span>
+                                  <Popover
+                                    open={timePopovers[tempKey]}
+                                    onOpenChange={(isOpen) =>
+                                      toggleTimePopover(leave, date, isOpen)
+                                    }
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-xs"
+                                      >
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        {formatTimeDisplay(timeRange)}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-64 p-3">
+                                      <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                          <Label className="text-xs w-16">
+                                            Start
+                                          </Label>
+                                          <input
+                                            type="time"
+                                            value={
+                                              tempTimeRange.startTime || ""
+                                            }
+                                            onChange={(e) =>
+                                              handleTempTimeChange(
+                                                leave,
+                                                date,
+                                                "startTime",
+                                                e.target.value
+                                              )
+                                            }
+                                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Label className="text-xs w-16">
+                                            End
+                                          </Label>
+                                          <input
+                                            type="time"
+                                            value={tempTimeRange.endTime || ""}
+                                            onChange={(e) =>
+                                              handleTempTimeChange(
+                                                leave,
+                                                date,
+                                                "endTime",
+                                                e.target.value
+                                              )
+                                            }
+                                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 pt-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              clearTime(leave, date)
+                                            }
+                                            variant="outline"
+                                            className="flex-1 text-xs"
+                                          >
+                                            Clear
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              applyTimeChanges(leave, date)
+                                            }
+                                            className="flex-1 text-xs bg-[#004368] text-white"
+                                          >
+                                            Apply
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeDate(leave, date)}
+                                    className="text-blue-500 hover:text-blue-700"
+                                  >
+                                    <XIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Additional details for specific leave types */}
                   {requiresAdditionalDetails(leave) && (
                     <div className="ml-7 flex flex-wrap gap-4 items-center">
                       <div className="flex items-center gap-2">
@@ -249,7 +627,6 @@ export const LeaveForm = () => {
         </div>
       </div>
 
-      {/* Selected leaves summary */}
       {selectedLeaves.length > 0 && (
         <div className="p-4 bg-gray-50 rounded-lg">
           <h4 className="text-sm font-semibold mb-2">
@@ -270,12 +647,23 @@ export const LeaveForm = () => {
                 </div>
                 {leaveDetails[leave]?.dates?.length > 0 && (
                   <div className="mt-1 text-xs text-gray-500">
-                    {leaveDetails[leave].dates.map((date, idx) => (
-                      <span key={idx} className="mr-2">
-                        {formatDate(date)}
-                        {idx < leaveDetails[leave].dates.length - 1 ? "," : ""}
-                      </span>
-                    ))}
+                    {leaveDetails[leave].dates.map((date, idx) => {
+                      const dateStr = getDateString(date);
+                      const timeRange = leaveDetails[leave].timeRanges?.[
+                        dateStr
+                      ] || {
+                        startTime: null,
+                        endTime: null,
+                      };
+                      return (
+                        <span key={idx} className="block">
+                          {formatDate(date)}{" "}
+                          {timeRange.startTime && timeRange.endTime
+                            ? `(${timeRange.startTime} - ${timeRange.endTime})`
+                            : "(No time set)"}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -290,34 +678,33 @@ export const LeaveForm = () => {
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <p>
-                {" "}
-                you can select national or company-specific holidays
-                (e.g,marriage leave),check the corresponding holiday,and select
-                the date.The selected date will turn ble and be saved, allowing
-                the employee to enjoy the holiday without a salary deduction.
-              </p>
+              You can select national or company-specific holidays (e.g,marriage
+              leave),check the corresponding holiday,and select the date.The
+              selected date will turn ble and be saved, allowing the employee to
+              enjoy the holiday without a salary deduction.
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <p>
-                You can also set sick leave and other options, and you can set
-                either a fixed deduction amount or a proportional deduction of
-                daily salary.For example, if a fixed amount is checked and set
-                to 200, the deduction will be 200.if a proportional amount is
-                checked and set to 0.5, 0.5 days of salary will be deducted.
-                Based on company policy, this can also be set to 0, indicating
-                no deduction.
-              </p>
+              You can also set sick leave and other options, and you can set
+              either a fixed deduction amount or a proportional deduction of
+              daily salary.For example, if a fixed amount is checked and set to
+              200, the deduction will be 200.if a proportional amount is checked
+              and set to 0.5, 0.5 days of salary will be deducted. Based on
+              company policy, this can also be set to 0, indicating no
+              deduction.
             </span>
           </li>
         </ul>
       </div>
 
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium">
-        Save Configuration
+      <button
+        onClick={handleSave}
+        disabled={updating}
+        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {updating ? "Saving..." : "Save Configuration"}
       </button>
     </div>
   );

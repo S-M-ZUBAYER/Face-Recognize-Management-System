@@ -1,11 +1,10 @@
-// components/EmployeeAttendance.jsx - OPTIMIZED
+import { useEffect, useState } from "react";
 import AttendanceTable from "./AttendanceTable";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useEmployeeAttendanceData } from "@/hook/useEmployeeAttendanceData";
-import { useEffect, useState } from "react";
 
 const EmployeeAttendance = () => {
-  const { isProcessing, refresh } = useEmployeeAttendanceData();
+  const { refresh } = useEmployeeAttendanceData();
   const {
     allEmployees,
     presentEmployees,
@@ -17,7 +16,6 @@ const EmployeeAttendance = () => {
   const [displayedEmployees, setDisplayedEmployees] = useState([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Optimize filter switching with debounce
   useEffect(() => {
     const getFilteredEmployees = () => {
       switch (activeFilter) {
@@ -32,17 +30,12 @@ const EmployeeAttendance = () => {
       }
     };
 
-    // Debounce filter changes for better performance
-    const timer = setTimeout(
-      () => {
-        const filtered = getFilteredEmployees();
-        setDisplayedEmployees(filtered);
-        setIsInitialLoad(false);
-      },
-      isInitialLoad ? 0 : 150
-    );
+    setDisplayedEmployees(getFilteredEmployees());
 
-    return () => clearTimeout(timer);
+    // Only show loading on very first load when there's no data
+    if (isInitialLoad && allEmployees.length > 0) {
+      setIsInitialLoad(false);
+    }
   }, [
     activeFilter,
     allEmployees,
@@ -56,21 +49,23 @@ const EmployeeAttendance = () => {
     refresh();
   }, []);
 
+  // Only show loading on initial load when processing AND no data yet
+  // if (isProcessing && isInitialLoad && allEmployees.length === 0) {
+  //   return (
+  //     <div className="p-6 space-y-4">
+  //       <div className="flex justify-center items-center h-[65vh] ">
+  //         <div className="text-center">
+  //           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+  //           <p className="text-gray-600">Loading attendance data...</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
   return (
     <div className="p-6 space-y-4">
-      {isProcessing && isInitialLoad ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading attendance data...</p>
-            <p className="text-sm text-gray-500 mt-2">
-              Processing {allEmployees.length} records
-            </p>
-          </div>
-        </div>
-      ) : (
-        <AttendanceTable employees={displayedEmployees} />
-      )}
+      <AttendanceTable employees={displayedEmployees} />
     </div>
   );
 };

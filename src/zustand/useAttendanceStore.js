@@ -163,6 +163,9 @@ export const useAttendanceStore = create((set, get) => ({
       employees: employees?.length,
       attendance: attendance?.length,
       overTime: overTime?.length,
+      overTimeData: overTime,
+      startDate,
+      endDate,
     });
 
     const today = new Date().toISOString().split("T")[0];
@@ -205,10 +208,16 @@ export const useAttendanceStore = create((set, get) => ({
             .get(empId)
             .set(date, parseCheckInData(checkIn, empId, date));
         });
-
+        const toDate = (d) => new Date(d.split("T")[0]);
         const overtimeEmployeeIds = new Set(
-          overTimeData.map((r) => r.empId) || []
+          overTimeData
+            .filter((r) => {
+              const d = toDate(r.date);
+              return d >= toDate(startDate) && d <= toDate(endDate);
+            })
+            .map((r) => r.employeeId)
         );
+
         console.timeEnd("🕐 Building lookup maps");
 
         // FIXED: Leave types mapping with full names

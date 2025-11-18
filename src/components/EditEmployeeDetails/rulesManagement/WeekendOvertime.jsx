@@ -145,6 +145,25 @@ export const WeekendOvertime = () => {
       setter(value);
     }
   };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 8,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -221,15 +240,27 @@ export const WeekendOvertime = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={
-          updating || !weekendOvertimePercent || !weekendWorkingTimePercent
-        }
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={
+            updating || !weekendOvertimePercent || !weekendWorkingTimePercent
+          }
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

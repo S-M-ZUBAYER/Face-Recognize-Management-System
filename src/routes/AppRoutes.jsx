@@ -15,6 +15,7 @@ import AttendancePage from "@/pages/AttendancePage";
 import RulesPage from "@/pages/RulesPage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
 import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
+import PayPeriodPage from "@/pages/PayPeriodPage";
 
 const AppLayout = () => {
   return (
@@ -57,6 +58,7 @@ const AppRoutes = () => {
           <Route path="task-management" element={<TaskManagementPage />} />
           <Route path="leave-approval" element={<LeaveApprovalPage />} />
           <Route path="rules" element={<RulesPage />} />
+          <Route path="pay-period" element={<PayPeriodPage />} />
           <Route path="*" element={<Animated404 />} />
         </Route>
       </Route>

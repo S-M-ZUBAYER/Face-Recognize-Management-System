@@ -1,23 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useDeviceMACs } from "./useDeviceMACs";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
+import { INFINITE_QUERY_CONFIG } from "./queryConfig";
 
 export const useOverTimeData = () => {
   const queryClient = useQueryClient();
-  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
+  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
 
   // Fetch overtime data
   const fetchOverTime = async () => {
     if (!deviceMACs || deviceMACs.length === 0) return [];
-    const response = await Promise.all(
-      deviceMACs.map((mac) =>
-        axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/overtime/${
-            mac.deviceMAC ?? mac
-          }`
+
+    try {
+      const response = await Promise.all(
+        deviceMACs.map((mac) =>
+          apiClient
+            .get(getApiUrl(`/overtime/${mac.deviceMAC}`))
+            .catch((error) => {
+              console.error(
+                `❌ Failed to fetch overtime for device ${mac.deviceMAC}:`,
+                error
+              );
+              return { data: [] }; // Return empty array for failed requests
+            })
         )
-      )
-    );
-    return response.flatMap((res) => res.data);
+      );
+      return response.flatMap((res) => res.data || []);
+    } catch (error) {
+      console.error("❌ Failed to fetch overtime data:", error);
+      return [];
+    }
   };
 
   const {
@@ -25,30 +38,22 @@ export const useOverTimeData = () => {
     isLoading,
     isError,
     isFetching,
+    refetch: queryRefetch,
   } = useQuery({
-    queryKey: ["overtime", deviceMACs],
+    queryKey: ["overtime", deviceMACs.map((mac) => mac.deviceMAC)],
     queryFn: fetchOverTime,
-    enabled: !!deviceMACs && deviceMACs.length > 0,
-    staleTime: Infinity, // never auto refetch
-    cacheTime: Infinity, // keep in memory
-    refetchOnWindowFocus: false, // disable auto refetch
-    refetchOnReconnect: false, // disable auto refetch
+    enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
+    ...INFINITE_QUERY_CONFIG,
   });
 
   // ✅ Manual refresh: forces a new API call
   const refresh = async () => {
-    const promises = deviceMACs.map((mac) =>
-      queryClient.refetchQueries(["employees", mac.deviceMAC])
-    );
-    await Promise.all(promises);
+    await queryRefetch();
   };
 
   // Create overtime
   const createOverTime = async (newOverTime) => {
-    const response = await axios.post(
-      "https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/overtime",
-      newOverTime
-    );
+    const response = await apiClient.post(getApiUrl("/overtime"), newOverTime);
     return response.data;
   };
 
@@ -56,18 +61,25 @@ export const useOverTimeData = () => {
     mutationFn: createOverTime,
     onSuccess: () => {
       // ✅ Force refetch after creation
-      queryClient.invalidateQueries(["overtime", deviceMACs]);
+      queryClient.invalidateQueries({
+        queryKey: ["overtime", deviceMACs.map((mac) => mac.deviceMAC)],
+      });
+    },
+    onError: (error) => {
+      console.error("❌ Failed to create overtime:", error);
     },
   });
 
   return {
     overTime,
-    isLoading, // first-time load only
+    isLoading: isLoading || macsLoading, // Combined loading state
     isError,
-    isFetching, // any background refetch
-    refresh, // manual refresh
+    isFetching,
+    refresh,
     createOverTime: mutation.mutate,
+    createOverTimeAsync: mutation.mutateAsync, // For async/await usage
     createLoading: mutation.isLoading,
     createError: mutation.error,
+    isCreateSuccess: mutation.isSuccess,
   };
 };

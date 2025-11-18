@@ -18,13 +18,7 @@ const LeaveApplicationsList = ({ applications, selectedId, onSelect }) => {
               }`}
             >
               <Avatar className="w-10 h-10 flex-shrink-0">
-                <AvatarImage
-                  src={
-                    app.employeeImage ||
-                    `https://i.pravatar.cc/150?img=${app.id}`
-                  }
-                  alt={app.name}
-                />
+                <AvatarImage src={app.employeeImage} alt={app.name} />
                 <AvatarFallback>
                   {app.employeeName
 
@@ -37,7 +31,7 @@ const LeaveApplicationsList = ({ applications, selectedId, onSelect }) => {
               </Avatar>
               <div className="flex flex-col flex-1 min-w-0">
                 <p className="font-semibold text-sm text-gray-800 truncate">
-                  {app.employeeName}
+                  {app.employeeName.split("<")[0]}
                 </p>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-gray-500 truncate">

@@ -1,37 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
+import { useDeviceMACs } from "./useDeviceMACs";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
 
 export const useUserData = (values) => {
+  const { deviceMACs: storedMACs, setDeviceMACs } = useDeviceMACs();
+
   const fetchUserData = async () => {
     try {
-      //  Read from localStorage
       const storedUser = localStorage.getItem("user");
-      const storedDeviceMACs = localStorage.getItem("deviceMACs");
 
       let parsedUser = storedUser ? JSON.parse(storedUser) : null;
-      let parsedDeviceMACs = storedDeviceMACs
-        ? JSON.parse(storedDeviceMACs)
-        : [];
+      let parsedDeviceMACs = storedMACs || [];
 
-      //  If we have an email, fetch latest from API
       if (values?.userEmail) {
-        const response = await fetch(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/admin/admin-info?email=${values.userEmail}`
-        );
-        const userInfo = await response.json();
+        const response = await apiClient.get(getApiUrl("/admin/admin-info"), {
+          params: { email: values.userEmail },
+        });
+        const userInfo = response.data;
 
         if (userInfo?.id) {
-          // Format deviceMACs
           const deviceMACs =
             userInfo.devices?.map((device) => ({
               deviceMAC: device.deviceMAC,
               deviceName: device.deviceName,
             })) ?? [];
 
-          // Update localStorage with fresh values
           localStorage.setItem("user", JSON.stringify(userInfo));
-          localStorage.setItem("deviceMACs", JSON.stringify(deviceMACs));
+          setDeviceMACs(deviceMACs);
 
-          // Overwrite parsed values with latest
           parsedUser = userInfo;
           parsedDeviceMACs = deviceMACs;
         }
@@ -45,9 +42,9 @@ export const useUserData = (values) => {
   };
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["userData"],
+    queryKey: ["userData", values?.userEmail],
     queryFn: fetchUserData,
-    staleTime: 0, // 👈 always check for fresh data on mount
+    staleTime: 0,
     cacheTime: 0,
   });
 
@@ -56,6 +53,6 @@ export const useUserData = (values) => {
     deviceMACs: data?.deviceMACs ?? [],
     loading: isLoading,
     error: isError,
-    refreshUserData: refetch, // 👈 expose refetch for manual refresh if needed
+    refreshUserData: refetch,
   };
 };

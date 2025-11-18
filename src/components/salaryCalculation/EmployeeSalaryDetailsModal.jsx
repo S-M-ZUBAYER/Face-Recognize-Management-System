@@ -106,7 +106,9 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               </p>
               <p>
                 <strong>Hourly Rate:</strong>{" "}
-                {selectedEmp.salaryInfo?.overtimeSalary}
+                {selectedEmp.salaryInfo.isSelectedFixedHourlyRate === true
+                  ? selectedEmp.salaryInfo.overtimeFixed
+                  : selectedEmp.salaryInfo?.overtimeSalary}
               </p>
               <p>
                 <strong>Shift:</strong> {selectedEmp.salaryInfo?.shift}

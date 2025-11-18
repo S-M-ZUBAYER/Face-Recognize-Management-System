@@ -1,4 +1,117 @@
+import { useEffect } from "react";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+
 export const LateArrivalPenalty2 = () => {
+  const { selectedEmployee } = useEmployeeStore();
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  // Check if ruleId === 17 already exists
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleSeventeen = existingRules.find(
+          (rule) => rule.ruleId === 17 || rule.ruleId === "17"
+        );
+
+        // Rule 17 exists, no need to do anything on load
+        if (ruleSeventeen) {
+          console.log("Rule 17 already exists:", ruleSeventeen);
+        }
+      } catch (error) {
+        console.error("Error checking rule 17:", error);
+      }
+    }
+  }, [selectedEmployee]);
+
+  // Save rule configuration
+  const handleSave = async () => {
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
+      return;
+    }
+
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
+
+      // Find or create rule with ruleId = 17
+      let ruleSeventeen = existingRules.find(
+        (rule) => rule.ruleId === 17 || rule.ruleId === "17"
+      );
+
+      if (!ruleSeventeen) {
+        // Create new rule with ruleId = 17 if it doesn't exist
+        ruleSeventeen = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "17", // string
+          ruleStatus: 1, // number
+          param1: null,
+          param2: null,
+          param3: null,
+          param4: null,
+          param5: null,
+          param6: null,
+        };
+      } else {
+        // Rule already exists, just ensure empId is correct
+        ruleSeventeen.empId = empId; // string
+        // Keep all other properties as they are
+      }
+
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 17 || r.ruleId === "17",
+          newValue: ruleSeventeen, // update ruleId=17 object
+        },
+      });
+
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      console.log("Late arrival penalty rule 17 updated successfully");
+      toast.success("Late arrival penalty rule activated successfully!");
+    } catch (error) {
+      console.error("Error saving late arrival penalty rule:", error);
+      toast.error("Failed to activate late arrival penalty rule.");
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 17,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -39,9 +152,26 @@ export const LateArrivalPenalty2 = () => {
         </p>
       </div>
 
-      <button className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium">
-        Save
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

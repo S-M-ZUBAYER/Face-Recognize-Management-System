@@ -1,80 +1,119 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { useUserData } from "./useUserData";
+import { useDeviceMACs } from "./useDeviceMACs";
 import { useEmployees } from "./useEmployees";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
+import { INFINITE_QUERY_CONFIG } from "./queryConfig";
 
 export const useLeaveData = () => {
-  const { deviceMACs } = useUserData();
+  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
   const { Employees, isLoading: employeesLoading } = useEmployees();
   const queryClient = useQueryClient();
 
   const fetchLeaves = async () => {
     if (!deviceMACs || deviceMACs.length === 0) return [];
-    const response = await Promise.all(
-      deviceMACs.map((mac) =>
-        axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/leave/all/by-mac/${
-            mac.deviceMAC ?? mac
-          }`
-        )
-      )
-    );
 
-    return response
-      .flatMap((res) => res.data)
-      .map((leave) => {
+    try {
+      const response = await Promise.all(
+        deviceMACs.map((mac) =>
+          apiClient
+            .get(getApiUrl(`/leave/all/by-mac/${mac.deviceMAC}`))
+            .catch((error) => {
+              console.error(
+                `❌ Failed to fetch leaves for device ${mac.deviceMAC}:`,
+                error
+              );
+              return { data: [] }; // Return empty array for failed requests
+            })
+        )
+      );
+
+      const leavesData = response.flatMap((res) => res.data || []);
+
+      // Process leaves with employee data
+      return leavesData.map((leave) => {
         // Find matching employee by employeeId
         const matchingEmployee = Employees?.find(
           (emp) => emp.employeeId === leave.employeeId
         );
 
+        // Safe JSON parsing with fallbacks
+        let approverName = {};
+        let description = {};
+
+        try {
+          approverName = JSON.parse(leave.approverName || "{}");
+        } catch (parseError) {
+          console.warn(
+            `Failed to parse approverName for leave ${leave.id}:`,
+            parseError
+          );
+        }
+
+        try {
+          description = JSON.parse(leave.description || "{}");
+        } catch (parseError) {
+          console.warn(
+            `Failed to parse description for leave ${leave.id}:`,
+            parseError
+          );
+        }
+
         return {
           ...leave,
-          approverName: JSON.parse(leave.approverName || "{}"),
-          description: JSON.parse(leave.description || "{}"),
+          approverName,
+          description,
           // Add employee image if found
           employeeImage: matchingEmployee?.image || null,
+          employeeName: matchingEmployee?.name || leave.employeeName, // Fallback to leave data
         };
       });
+    } catch (error) {
+      console.error("❌ Failed to fetch leave data:", error);
+      return [];
+    }
   };
 
   const {
     data: leaves = [],
     isLoading: leavesLoading,
+    isError,
     error,
     refetch,
+    isFetching,
   } = useQuery({
-    queryKey: ["leaves", deviceMACs],
+    queryKey: [
+      "leaves",
+      deviceMACs.map((mac) => mac.deviceMAC),
+      Employees?.length,
+    ],
     queryFn: fetchLeaves,
-    enabled: !!deviceMACs && deviceMACs.length > 0,
-    staleTime: 0,
-    cacheTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    select: (data) => data.sort((a, b) => b.id - a.id),
+    enabled:
+      !!deviceMACs &&
+      deviceMACs.length > 0 &&
+      !macsLoading &&
+      !employeesLoading,
+    ...INFINITE_QUERY_CONFIG,
+    select: (data) => data.sort((a, b) => (b.id || 0) - (a.id || 0)),
   });
 
   // Update leave mutation
   const updateLeaveMutation = useMutation({
     mutationFn: async (updatedLeave) => {
-      const response = await axios.put(
-        "https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/leave/update",
-        updatedLeave,
-        {
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
+      const response = await apiClient.put(
+        getApiUrl("/leave/update"),
+        updatedLeave
       );
       return response.data;
     },
     onSuccess: () => {
       // Invalidate and refetch leaves data after successful update
-      queryClient.invalidateQueries({ queryKey: ["leaves"] });
+      queryClient.invalidateQueries({
+        queryKey: ["leaves", deviceMACs.map((mac) => mac.deviceMAC)],
+      });
     },
     onError: (error) => {
-      console.error("Error updating leave:", error);
+      console.error("❌ Error updating leave:", error);
     },
   });
 
@@ -83,24 +122,28 @@ export const useLeaveData = () => {
     return updateLeaveMutation.mutateAsync(leaveData);
   };
 
-  //  Count leave categories for today's date
+  // Count leave categories for today's date
   const today = new Date().toISOString().split("T")[0];
 
   const leaveCategoryCounts = leaves.reduce((acc, leave) => {
     if (leave.startDate && leave.endDate) {
-      const start = new Date(leave.startDate);
-      const end = new Date(leave.endDate);
-      const current = new Date(today);
+      try {
+        const start = new Date(leave.startDate);
+        const end = new Date(leave.endDate);
+        const current = new Date(today);
 
-      if (current >= start && current <= end) {
-        const category = leave.leaveCategory || "Unknown";
-        acc[category] = (acc[category] || 0) + 1;
+        if (current >= start && current <= end) {
+          const category = leave.leaveCategory || "Unknown";
+          acc[category] = (acc[category] || 0) + 1;
+        }
+      } catch (dateError) {
+        console.warn(`Invalid date range for leave ${leave.id}:`, dateError);
       }
     }
     return acc;
   }, {});
 
-  // Convert counts into array if you prefer
+  // Convert counts into array
   const leaveCategoryArray = Object.entries(leaveCategoryCounts).map(
     ([category, count]) => ({
       category,
@@ -108,19 +151,24 @@ export const useLeaveData = () => {
     })
   );
 
-  const isLoading = leavesLoading || employeesLoading;
+  const isLoading = leavesLoading || employeesLoading || macsLoading;
+  const isRefetching = isFetching || employeesLoading;
 
   return {
     leaves,
     isLoading,
+    isError,
     error,
+    isFetching: isRefetching,
     refetch,
-    leaveCategoryCounts, // { "Sick Leave": 2, "Casual Leave": 1, ... }
-    leaveCategoryArray, // [ { category: "Sick Leave", count: 2 }, ... ]
+    leaveCategoryCounts,
+    leaveCategoryArray,
 
     // Update functionality
     updateLeave,
+    updateLeaveDirect: updateLeaveMutation.mutate, // Fire-and-forget version
     isUpdating: updateLeaveMutation.isPending,
     updateError: updateLeaveMutation.error,
+    isUpdateSuccess: updateLeaveMutation.isSuccess,
   };
 };
