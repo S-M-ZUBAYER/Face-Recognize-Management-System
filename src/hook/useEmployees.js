@@ -1,40 +1,50 @@
+// Updated: useEmployees.js
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { usePayPeriod } from "./usePayPeriod";
 import { useGlobalSalary } from "./useGlobalSalary";
+import { useDeviceMACs } from "./useDeviceMACs";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
+import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
 
 export const useEmployees = () => {
   const queryClient = useQueryClient();
-  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
-  const { payPeriodData } = usePayPeriod();
-  const { globalSalaryRules } = useGlobalSalary();
+  const { deviceMACs } = useDeviceMACs();
+  const { payPeriodData, isLoading: payPeriodLoading } = usePayPeriod();
+  const { globalSalaryRules, isLoading: rulesLoading } = useGlobalSalary();
 
   const employeeQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
       queryKey: ["employees", mac.deviceMAC],
       queryFn: async () => {
-        const res = await axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/employee/all/${mac.deviceMAC}`
-        );
-        return res.data.map((emp) => ({
-          name: emp.name,
-          employeeId: emp.employeeId,
-          companyEmployeeId: emp.email?.split("|")[1],
-          department: emp.department,
-          email: emp.email?.split("|")[0],
-          image: `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/media/${emp.imageFile}`,
-          designation: emp.designation,
-          deviceMAC: mac.deviceMAC,
-          salaryRules: emp.salaryRules,
-          salaryInfo: JSON.parse(emp.payPeriod),
-        }));
+        try {
+          const res = await apiClient.get(
+            getApiUrl(`/employee/all/${mac.deviceMAC}`)
+          );
+
+          return res.data.map((emp) => ({
+            name: emp.name,
+            employeeId: emp.employeeId,
+            companyEmployeeId: emp.email?.split("|")[1],
+            department: emp.department,
+            email: emp.email?.split("|")[0],
+            image: getApiUrl(`/media/${emp.imageFile}`),
+            designation: emp.designation,
+            deviceMAC: mac.deviceMAC,
+            salaryRules: emp.salaryRules,
+            salaryInfo: JSON.parse(emp.payPeriod || "{}"),
+          }));
+        } catch (error) {
+          console.error(
+            `Failed to fetch employees for ${mac.deviceMAC}:`,
+            error
+          );
+          return []; // Return empty array instead of failing
+        }
       },
-      staleTime: 0,
-      cacheTime: Infinity,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      enabled: payPeriodData?.length >= 0 && globalSalaryRules?.length >= 0,
+      ...DEFAULT_QUERY_CONFIG,
+      enabled: deviceMACs.length > 0 && !payPeriodLoading && !rulesLoading,
     })),
   });
 
@@ -68,7 +78,6 @@ export const useEmployees = () => {
     );
   };
 
-  // FIXED: Handle both number 999 and string "999"
   const isInvalidSalaryRules = (salaryRules) => {
     return (
       salaryRules === 999 ||
@@ -86,22 +95,9 @@ export const useEmployees = () => {
     const hasInvalidSalaryInfo = isInvalidSalaryInfo(emp.salaryInfo);
     const hasInvalidSalaryRules = isInvalidSalaryRules(emp.salaryRules);
 
-    // if (emp.employeeId === "44141318") {
-    //   console.log("Employee 44141318 salary check:", {
-    //     hasInvalidSalaryInfo,
-    //     hasInvalidSalaryRules,
-    //     salaryInfo: emp.salaryInfo,
-    //     salaryRules: emp.salaryRules,
-    //     salaryRulesType: typeof emp.salaryRules,
-    //     isInvalidSalaryRulesResult: isInvalidSalaryRules(emp.salaryRules),
-    //   });
-    // }
-
-    // If either is 999 (number or string) or invalid, use fallback data
     if (hasInvalidSalaryInfo || hasInvalidSalaryRules) {
       const { SalaryRules, PayPeriod } = getPayInfoByDevice(emp.deviceMAC);
 
-      // Use fallback data for invalid fields
       payPeriod =
         hasInvalidSalaryInfo && !isInvalidSalaryInfo(PayPeriod)
           ? PayPeriod
@@ -111,7 +107,6 @@ export const useEmployees = () => {
           ? SalaryRules
           : emp.salaryRules;
 
-      // If fallback is also invalid, use empty object as last resort
       if (hasInvalidSalaryInfo && isInvalidSalaryInfo(payPeriod)) {
         payPeriod = {};
       }
@@ -119,7 +114,6 @@ export const useEmployees = () => {
         salaryRules = {};
       }
     } else {
-      // Both are valid
       payPeriod = emp.salaryInfo;
       salaryRules = emp.salaryRules;
     }
@@ -151,7 +145,10 @@ export const useEmployees = () => {
     );
   };
 
-  const isDependencyLoading = !payPeriodData || !globalSalaryRules;
+  const isDependencyLoading = payPeriodLoading || rulesLoading;
+  const isLoading =
+    employeeQueries.some((q) => q.isLoading) || isDependencyLoading;
+  const isError = employeeQueries.some((q) => q.isError);
 
   return {
     Employees,
@@ -159,7 +156,8 @@ export const useEmployees = () => {
       deviceMAC: mac.deviceMAC,
       count: employeeQueries[idx].data?.length || 0,
     })),
-    isLoading: employeeQueries.some((q) => q.isLoading) || isDependencyLoading,
+    isLoading,
+    isError,
     isFetching: employeeQueries.some((q) => q.isFetching),
     refetch: refresh,
   };

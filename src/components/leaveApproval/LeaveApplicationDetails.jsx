@@ -123,7 +123,9 @@ const LeaveApplicationDetails = ({ data }) => {
         {/* Applicant Name */}
         <div className="space-y-2">
           <p className="text-sm font-semibold text-gray-900">Applicant Name</p>
-          <p className="text-sm text-gray-600">{data.employeeName}</p>
+          <p className="text-sm text-gray-600">
+            {data.employeeName.split("<")[0]}
+          </p>
         </div>
 
         {/* Description */}

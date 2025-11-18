@@ -88,7 +88,7 @@ const AttendanceTable = ({ employees = [] }) => {
     if (selectedEmployees.length > 0) {
       setSelectedEmployees([]);
     }
-  }, [activeFilter, startDate, endDate, searchQuery, selectedEmployees.length]);
+  }, [activeFilter, startDate, endDate, searchQuery]);
 
   // Search handlers
   const handleSearch = useCallback(() => {
@@ -171,41 +171,49 @@ const AttendanceTable = ({ employees = [] }) => {
     return [...baseColumns, ...punchColumns];
   }, [maxPunchCount]);
 
-  // Selection logic
+  // Selection logic - FIXED
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
     [selectedEmployees]
   );
 
   const isAllSelected = useMemo(() => {
-    return (
-      filteredData.length > 0 &&
-      filteredData.every((emp) => {
-        const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-        return selectedEmployees.includes(id);
-      })
-    );
-  }, [filteredData, selectedEmployees]);
+    if (filteredData.length === 0) return false;
+
+    return filteredData.every((emp) => {
+      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+      return selectedEmployeeIdsSet.has(id);
+    });
+  }, [filteredData, selectedEmployeeIdsSet]);
 
   const isIndeterminate = useMemo(() => {
-    return (
-      selectedEmployees.length > 0 &&
-      !isAllSelected &&
-      filteredData.some((emp) => {
-        const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-        return selectedEmployees.includes(id);
-      })
-    );
-  }, [selectedEmployees, isAllSelected, filteredData]);
+    if (filteredData.length === 0) return false;
 
+    const hasSelected = filteredData.some((emp) => {
+      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+      return selectedEmployeeIdsSet.has(id);
+    });
+
+    return hasSelected && !isAllSelected;
+  }, [filteredData, selectedEmployeeIdsSet, isAllSelected]);
+
+  // FIXED: Individual selection
   const toggleSelectEmployee = useCallback((id) => {
-    setSelectedEmployees((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
-    );
+    setSelectedEmployees((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return Array.from(newSet);
+    });
   }, []);
 
+  // FIXED: Select all functionality
   const handleSelectAll = useCallback(() => {
     if (isAllSelected) {
+      // Deselect all filtered employees
       const filteredIds = new Set(
         filteredData.map(
           (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
@@ -213,10 +221,15 @@ const AttendanceTable = ({ employees = [] }) => {
       );
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
+      // Select all filtered employees
       const newIds = filteredData.map(
         (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
       );
-      setSelectedEmployees((prev) => [...new Set([...prev, ...newIds])]);
+      setSelectedEmployees((prev) => {
+        const newSet = new Set(prev);
+        newIds.forEach((id) => newSet.add(id));
+        return Array.from(newSet);
+      });
     }
   }, [filteredData, isAllSelected]);
 
@@ -230,11 +243,11 @@ const AttendanceTable = ({ employees = [] }) => {
     [employees, selectedEmployees]
   );
 
-  // Cell renderer
+  // FIXED: Cell renderer with ORIGINAL CSS
   const cellRenderer = useCallback(
     ({ columnIndex, key, rowIndex, style }) => {
       const isHeader = rowIndex === 0;
-      const isSticky = columnIndex < 4;
+      const isSticky = columnIndex < 4; // Original sticky columns logic
 
       if (isHeader) {
         return (
@@ -347,7 +360,7 @@ const AttendanceTable = ({ employees = [] }) => {
     [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee]
   );
 
-  // Loading and empty states - FIXED LOGIC
+  // Loading and empty states
   const isLoading =
     isProcessing || isFilterLoading || isRefreshing || isInitialLoad;
   const hasData = employees.length > 0;
@@ -438,7 +451,7 @@ const AttendanceTable = ({ employees = [] }) => {
             {({ height, width }) => (
               <MultiGrid
                 fixedRowCount={1}
-                fixedColumnCount={4}
+                fixedColumnCount={4} // Original fixed column count
                 rowCount={filteredData.length + 1}
                 columnCount={columns.length}
                 columnWidth={({ index }) => columns[index].width}

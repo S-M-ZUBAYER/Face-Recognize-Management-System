@@ -1,40 +1,58 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { useUserData } from "./useUserData";
+import { useDeviceMACs } from "./useDeviceMACs";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
+import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
 
 export const useDailyActivityData = () => {
-  const { deviceMACs } = useUserData();
+  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
 
   const fetchDailyActivities = async () => {
     if (!deviceMACs || deviceMACs.length === 0) return [];
-    const response = await Promise.all(
-      deviceMACs.map((mac) =>
-        axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/tasks/getTask/${
-            mac.deviceMAC ?? mac
-          }`
+
+    try {
+      const response = await Promise.all(
+        deviceMACs.map((mac) =>
+          apiClient
+            .get(getApiUrl(`/tasks/getTask/${mac.deviceMAC}`))
+            .catch((error) => {
+              console.error(
+                `❌ Failed to fetch daily activities for device ${mac.deviceMAC}:`,
+                error
+              );
+              return { data: [] }; // Return empty array for failed requests
+            })
         )
-      )
-    );
-    return response.flatMap((res) => res.data);
+      );
+
+      return response.flatMap((res) => res.data || []);
+    } catch (error) {
+      console.error("❌ Failed to fetch daily activities:", error);
+      return [];
+    }
   };
 
   const {
     data: dailyActivities = [],
     isLoading,
+    isError,
     error,
     refetch,
+    isFetching,
   } = useQuery({
-    queryKey: ["dailyActivities", deviceMACs],
+    queryKey: ["dailyActivities", deviceMACs.map((mac) => mac.deviceMAC)],
     queryFn: fetchDailyActivities,
-    enabled: !!deviceMACs && deviceMACs.length > 0,
-    staleTime: 1000 * 60, // 1 minute
+    enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
+    staleTime: 60 * 1000, // 1 minute
+    ...DEFAULT_QUERY_CONFIG,
   });
 
   return {
     dailyActivities,
-    isLoading,
+    isLoading: isLoading || macsLoading,
+    isError,
     error,
+    isFetching,
     refetch,
   };
 };

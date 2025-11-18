@@ -171,62 +171,122 @@ function SalaryTable({ employees }) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E6ECF0]">
-            {filteredEmployees.map((emp, idx) => {
-              const empId = emp.employeeId || emp.id;
-              return (
-                <tr
-                  key={`employee-${empId}-${idx}`} // Fixed unique key
-                  className="border-b hover:bg-gray-50"
-                >
-                  <td className="p-3">
-                    <Checkbox
-                      checked={selectedEmployees.includes(empId)}
-                      onCheckedChange={() => handleSelectEmployee(empId)}
-                    />
-                  </td>
-                  <td className="p-3">{emp.name?.split("<")[0] || ""}</td>
-                  <td className="p-3">{emp?.companyEmployeeId}</td>
-                  <td className="p-3">{emp.designation}</td>
-                  <td className="p-3">{emp.department}</td>
-                  <td className="p-3">{emp.salary || 0}</td>
-                  <td className="p-3">
-                    {emp?.salaryDetails?.workingDays || 0}
-                  </td>
-                  <td className="p-3">
-                    {Object.values(emp?.salaryDetails?.Present || {}).reduce(
-                      (sum, val) => sum + (val || 0),
-                      0
+          <tbody>
+            {filteredEmployees.length === 0 ? (
+              <tr>
+                <td colSpan="11" className="p-8 text-center">
+                  <div className="flex flex-col items-center justify-center text-gray-500">
+                    <div className="text-lg font-medium mb-2">
+                      {searchQuery
+                        ? "No employees found matching your search"
+                        : "No employees available"}
+                    </div>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="text-[#004368] hover:text-[#003652] text-sm font-medium mt-2"
+                      >
+                        Clear search
+                      </button>
                     )}
-                  </td>
-                  <td className="p-3">{emp?.salaryDetails?.absent || 0}</td>
-                  <td className="p-3">
-                    {showSalary[empId] ? (
-                      <span className="font-bold text-green-700">
-                        {emp.salaryDetails?.totalPay || 0}
-                      </span>
-                    ) : (
-                      <EyeClosed
-                        className="cursor-pointer text-gray-600 hover:text-gray-800"
-                        onClick={() => toggleSalary(empId)}
-                      />
-                    )}
-                  </td>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filteredEmployees.map((emp, idx) => {
+                const empId = emp.employeeId || emp.id;
+                const presentDays = Object.values(
+                  emp?.salaryDetails?.Present || {}
+                ).reduce((sum, val) => sum + (val || 0), 0);
 
-                  <td className="p-3">
-                    <button
-                      onClick={() => {
-                        console.log("Clicking view for:", emp);
-                        setSelectedEmp(emp);
-                      }}
-                      className="bg-[#004368] hover:bg-[#003652] text-[#EAEAEA] px-4 py-1 rounded-lg font-semibold"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                return (
+                  <tr
+                    key={`employee-${empId}-${idx}`}
+                    className="border-b hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    {/* Checkbox */}
+                    <td className="p-3">
+                      <Checkbox
+                        checked={selectedEmployees.includes(empId)}
+                        onCheckedChange={() => handleSelectEmployee(empId)}
+                        className="data-[state=checked]:bg-[#004368]"
+                      />
+                    </td>
+
+                    {/* Name */}
+                    <td className="p-3 font-medium text-gray-900">
+                      {emp.name?.split("<")[0]?.trim() || "N/A"}
+                    </td>
+
+                    {/* Employee ID */}
+                    <td className="p-3 text-gray-600 font-mono text-sm">
+                      {emp?.companyEmployeeId || "N/A"}
+                    </td>
+
+                    {/* Designation */}
+                    <td className="p-3 text-gray-700">
+                      {emp.designation || "N/A"}
+                    </td>
+
+                    {/* Department */}
+                    <td className="p-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                        {emp.department || "N/A"}
+                      </span>
+                    </td>
+
+                    {/* Salary */}
+                    <td className="p-3 text-right font-medium text-gray-900">
+                      {emp.salary?.toLocaleString() || "0"}
+                    </td>
+
+                    {/* Working Days */}
+                    <td className="p-3 text-center text-gray-700">
+                      {emp?.salaryDetails?.workingDays || 0}
+                    </td>
+
+                    {/* Present Days */}
+                    <td className="p-3 text-center">
+                      <span className={`font-medium `}>{presentDays}</span>
+                    </td>
+
+                    {/* Absent Days */}
+                    <td className="p-3 text-center">
+                      <span className={`font-medium `}>
+                        {emp?.salaryDetails?.absent || 0}
+                      </span>
+                    </td>
+
+                    {/* Salary Visibility */}
+                    <td className="p-3">
+                      {showSalary[empId] ? (
+                        <span className="font-bold text-green-700">
+                          {emp.salaryDetails?.totalPay || 0}
+                        </span>
+                      ) : (
+                        <EyeClosed
+                          className="cursor-pointer text-gray-600 hover:text-gray-800"
+                          onClick={() => toggleSalary(empId)}
+                        />
+                      )}
+                    </td>
+
+                    {/* Action Button */}
+                    <td className="p-3">
+                      <button
+                        onClick={() => {
+                          console.log("Viewing employee details:", emp);
+                          setSelectedEmp(emp);
+                        }}
+                        className="bg-[#004368] hover:bg-[#003652] text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 hover:shadow-md active:scale-95 min-w-[80px]"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

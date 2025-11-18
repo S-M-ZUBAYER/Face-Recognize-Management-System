@@ -406,7 +406,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const dailyWorkingHours = Number(payPeriod.name || 8);
   const isFixedHourlyRate = payPeriod.isSelectedFixedHourlyRate || false;
   const overtimeSalaryRate = isFixedHourlyRate
-    ? Number(payPeriod.overtimeFixed || 0) * dailyWorkingHours
+    ? Number(payPeriod.overtimeFixed || 0)
     : Number(payPeriod.overtimeSalary || 0);
 
   let year, month;

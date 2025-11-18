@@ -1,24 +1,37 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useDeviceMACs } from "./useDeviceMACs";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
+import { ALWAYS_FRESH_CONFIG } from "./queryConfig";
 
 export const useAttendanceData = () => {
   const queryClient = useQueryClient();
-  const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs") || "[]");
+  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
 
   // Attendance per deviceMAC
   const attendanceQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
-      queryKey: ["attendance", mac.deviceMAC],
+      queryKey: ["attendance-data", mac.deviceMAC], // Changed key to avoid conflicts
       queryFn: async () => {
-        const res = await axios.get(
-          `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/attendance/attendance-by-device?deviceId=${mac.deviceMAC}`
-        );
-        return res.data;
+        try {
+          const res = await apiClient.get(
+            getApiUrl("/attendance/attendance-by-device"),
+            {
+              params: { deviceId: mac.deviceMAC },
+            }
+          );
+          return res.data;
+        } catch (error) {
+          console.error(
+            `❌ Failed to fetch attendance data for device ${mac.deviceMAC}:`,
+            error
+          );
+          // Return empty array instead of failing completely
+          return [];
+        }
       },
-      // 👇 ensures fresh fetch on reload / remount
-      refetchOnMount: "always",
-      refetchOnWindowFocus: true, // optional: refetch when tab is focused
-      staleTime: 0, // data is immediately stale, so refetch triggers
+      ...ALWAYS_FRESH_CONFIG,
+      enabled: deviceMACs.length > 0 && !macsLoading,
     })),
   });
 
@@ -27,7 +40,7 @@ export const useAttendanceData = () => {
     .filter(Boolean)
     .flat();
 
-  const isLoading = attendanceQueries.some((q) => q.isLoading);
+  const isLoading = attendanceQueries.some((q) => q.isLoading) || macsLoading;
   const isError = attendanceQueries.some((q) => q.isError);
   const isFetching = attendanceQueries.some((q) => q.isFetching);
 
@@ -35,7 +48,7 @@ export const useAttendanceData = () => {
   const refresh = async () => {
     const refreshPromises = deviceMACs.map((mac) =>
       queryClient.refetchQueries({
-        queryKey: ["attendance", mac.deviceMAC],
+        queryKey: ["attendance-data", mac.deviceMAC],
         exact: true,
       })
     );

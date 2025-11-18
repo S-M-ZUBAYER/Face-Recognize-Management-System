@@ -8,7 +8,7 @@ const LeaveApprovalPage = () => {
   const { leaves, isLoading } = useLeaveData();
   const [selectedId, setSelectedId] = useState(null);
 
-  console.log(leaves);
+  // console.log(leaves);
   // Set first leave as selected when data loads
   useEffect(() => {
     if (leaves.length > 0) {
@@ -21,9 +21,9 @@ const LeaveApprovalPage = () => {
   if (isLoading) {
     return (
       <div className="p-6">
-        <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
+        {/* <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
           Leave approval
-        </p>
+        </p> */}
         <FancyLoader />
       </div>
     );

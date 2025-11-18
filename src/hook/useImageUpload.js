@@ -1,5 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
 
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -27,75 +29,57 @@ export const useImageUpload = () => {
     try {
       setUploading(true);
 
-      const response = await fetch(
-        "https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/api/files/upload",
+      // Use apiClient for consistent error handling and timeouts
+      const response = await apiClient.post(
+        getApiUrl("/api/files/upload"),
+        formData,
         {
-          method: "POST",
-          body: formData,
-          // Browser automatically sets Content-Type with boundary
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          timeout: 60000, // 60 seconds for file uploads
         }
       );
 
-      // Read as text first to handle non-JSON responses
-      const responseText = await response.text();
+      // apiClient automatically handles response parsing and errors
+      const responseData = response.data;
 
-      // Check status code
-      if (!response.ok) {
-        console.error("Upload failed with status:", response.status);
-        console.error("Response:", responseText);
-
-        // Try to parse error as JSON
-        if (responseText.startsWith("{")) {
-          try {
-            const errorData = JSON.parse(responseText);
-            throw new Error(
-              errorData.message ||
-                `Upload failed with status ${response.status}`
-            );
-          } catch {
-            throw new Error(`Upload failed with status ${response.status}`);
-          }
-        }
-        throw new Error(`Upload failed with status ${response.status}`);
-      }
-
-      // Validate response is not empty
-      if (!responseText) {
-        throw new Error("Empty response from server");
-      }
-
-      // Check if response is plain text URL or JSON
-      let fileUrl;
-
-      if (
-        responseText.startsWith("http://") ||
-        responseText.startsWith("https://")
-      ) {
-        // API returns direct URL as plain text
-        fileUrl = responseText.trim();
-      } else {
-        // Try to parse as JSON
-        try {
-          const data = JSON.parse(responseText);
-          fileUrl =
-            data.fileUrl || data.url || data.data?.url || data.data?.fileUrl;
-        } catch (parseError) {
-          console.error("Failed to parse response as JSON:", parseError);
-          console.error("Raw response:", responseText);
-          throw new Error("Server returned invalid response format");
-        }
-      }
+      // Extract file URL from various possible response structures
+      let fileUrl =
+        responseData?.fileUrl ||
+        responseData?.url ||
+        responseData?.data?.url ||
+        responseData?.data?.fileUrl ||
+        responseData; // In case response is direct URL string
 
       if (!fileUrl) {
-        console.error("No file URL in response");
+        console.error("No file URL in response:", responseData);
         throw new Error("No file URL returned from server");
+      }
+
+      // Ensure URL is absolute (prepend base URL if relative)
+      if (fileUrl.startsWith("/")) {
+        fileUrl = `${getApiUrl("")}${fileUrl}`;
       }
 
       toast.success("Image uploaded successfully!");
       return fileUrl;
     } catch (error) {
-      console.error("Image upload error:", error.message);
-      toast.error(error.message || "Failed to upload image");
+      console.error("Image upload error:", error);
+
+      let errorMessage = "Failed to upload image";
+
+      if (error.code === "ECONNABORTED") {
+        errorMessage = "Upload timeout - please try again";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (!navigator.onLine) {
+        errorMessage = "Network connection lost - please check your internet";
+      }
+
+      toast.error(errorMessage);
       return null;
     } finally {
       setUploading(false);

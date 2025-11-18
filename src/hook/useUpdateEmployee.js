@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { toast } from "react-hot-toast";
+import apiClient from "@/config/apiClient";
+import { getApiUrl } from "@/config/config";
 
 const updateEmployeeData = async ({ employeeId, companyId, data }) => {
-  const url = `https://grozziie.zjweiting.com:3091/grozziie-attendance-debug/employee/update/${companyId}/${employeeId}`;
+  const url = getApiUrl(`/employee/update/${companyId}/${employeeId}`);
 
   // Only include non-empty fields
   const payload = {};
@@ -16,7 +18,13 @@ const updateEmployeeData = async ({ employeeId, companyId, data }) => {
     payload.visibleDataTypes = data.visibleDataTypes;
   }
 
-  return axios.patch(url, payload).then((res) => res.data);
+  // Validate that we have at least one field to update
+  if (Object.keys(payload).length === 0) {
+    throw new Error("No valid fields provided for update");
+  }
+
+  const response = await apiClient.patch(url, payload);
+  return response.data;
 };
 
 export function useUpdateEmployee() {
@@ -24,8 +32,42 @@ export function useUpdateEmployee() {
 
   return useMutation({
     mutationFn: updateEmployeeData,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["employeeData"]);
+    onMutate: (variables) => {
+      // Optional: Optimistic update
+      console.log("🔄 Starting employee update:", variables);
+    },
+    onSuccess: (data, variables) => {
+      console.log("✅ Employee updated successfully:", data);
+
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["employeeData"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "employee-details",
+          variables.employeeId,
+          variables.companyId,
+        ],
+      });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+
+      toast.success("Employee updated successfully!");
+    },
+    onError: (error) => {
+      console.error("❌ Failed to update employee:", error);
+
+      let errorMessage = "Failed to update employee";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
+    },
+    onSettled: () => {
+      // Any cleanup after mutation completes
+      console.log("Update employee mutation settled");
     },
   });
 }

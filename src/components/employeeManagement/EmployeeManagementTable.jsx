@@ -214,14 +214,14 @@ const EmployeeManagementTable = ({ employees = [] }) => {
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500 border-b sticky top-0 z-10 bg-[#E6ECF0]">
             <tr>
-              <th className="p-3">Select</th>
-              <th className="p-3">Name</th>
-              <th className="p-3">Employee ID</th>
-              <th className="p-3">Designation</th>
-              <th className="p-3">Department</th>
-              <th className="p-3">Overtime</th>
-              <th className="p-3">Edit</th>
-              <th className="p-3">Details</th>
+              <th className="py-2 px-1">Select</th>
+              <th className="py-2 px-1">Name</th>
+              <th className="py-2 px-1">Employee ID</th>
+              <th className="py-2 px-1">Designation</th>
+              <th className="py-2 px-1">Department</th>
+              <th className="py-2 px-1">Overtime</th>
+              <th className="py-2 px-1">Edit</th>
+              <th className="py-2 px-1">Details</th>
             </tr>
           </thead>
           <tbody>
