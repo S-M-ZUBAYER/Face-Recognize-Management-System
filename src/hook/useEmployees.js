@@ -7,6 +7,7 @@ import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
+import parseAddress from "@/lib/parseAddress";
 
 export const useEmployees = () => {
   const queryClient = useQueryClient();
@@ -32,6 +33,7 @@ export const useEmployees = () => {
             image: getApiUrl(`/media/${emp.imageFile}`),
             designation: emp.designation,
             deviceMAC: mac.deviceMAC,
+            address: parseAddress(emp.address),
             salaryRules: emp.salaryRules,
             salaryInfo: JSON.parse(emp.payPeriod || "{}"),
           }));
@@ -89,7 +91,7 @@ export const useEmployees = () => {
     );
   };
 
-  const Employees = employees.map((emp) => {
+  const EmployeesArray = employees.map((emp) => {
     let payPeriod, salaryRules;
 
     const hasInvalidSalaryInfo = isInvalidSalaryInfo(emp.salaryInfo);
@@ -145,6 +147,13 @@ export const useEmployees = () => {
     );
   };
 
+  const Employees = EmployeesArray.filter(
+    (e) => e.address?.type !== "resigned"
+  );
+  const resignedEmployees = EmployeesArray.filter(
+    (e) => e.address?.type === "resigned"
+  );
+
   const isDependencyLoading = payPeriodLoading || rulesLoading;
   const isLoading =
     employeeQueries.some((q) => q.isLoading) || isDependencyLoading;
@@ -152,6 +161,7 @@ export const useEmployees = () => {
 
   return {
     Employees,
+    resignedEmployees,
     employeeCounts: deviceMACs.map((mac, idx) => ({
       deviceMAC: mac.deviceMAC,
       count: employeeQueries[idx].data?.length || 0,

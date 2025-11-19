@@ -16,6 +16,7 @@ import RulesPage from "@/pages/RulesPage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
 import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
 import PayPeriodPage from "@/pages/PayPeriodPage";
+import ResignedEmployeePage from "@/pages/ResignedEmployeePage";
 
 const AppLayout = () => {
   return (
@@ -39,6 +40,7 @@ const AppRoutes = () => {
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="employee" element={<EmployeePage />} />
+          <Route path="resigned-employee" element={<ResignedEmployeePage />} />
           <Route
             path="salary-calculation"
             element={<SalaryCalculationPage />}

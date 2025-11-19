@@ -7,16 +7,20 @@ import { useDesignation } from "../hook/useDesignation";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { Employees, isLoading } = useEmployees();
+  const { Employees, isLoading: EmployeesLoading } = useEmployees();
 
   console.log(Employees);
 
-  const { designation } = useDesignation();
+  const { designation, isLoading: designationLoading } = useDesignation();
 
   const getFilteredEmployees = () => {
     if (activeFilter === "All Employees") return Employees;
     return Employees.filter((emp) => emp.department === activeFilter);
   };
+
+  if (EmployeesLoading || designationLoading) {
+    <FancyLoader />;
+  }
 
   return (
     <div className="p-4 space-y-4">
@@ -28,11 +32,7 @@ function EmployeePage() {
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
       />
-      {isLoading ? (
-        <FancyLoader />
-      ) : (
-        <EmployeeTable employees={getFilteredEmployees()} />
-      )}
+      <EmployeeTable employees={getFilteredEmployees()} />
     </div>
   );
 }

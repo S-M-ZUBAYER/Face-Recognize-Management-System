@@ -1,10 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import ExportButton from "../ExportButton";
-import { ShowQrCodeModal } from "./ShowQrcodeModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeModal from "../EmployeeModal";
 
-function EmployeeTable({ employees = [] }) {
+function ResignedEmployeeTable({ employees = [] }) {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [searchInput, setSearchInput] = useState("");
@@ -51,44 +50,44 @@ function EmployeeTable({ employees = [] }) {
     [selectedEmployees]
   );
 
-  const isAllSelected = useMemo(() => {
-    if (filteredEmployees.length === 0) return false;
-    return filteredEmployees.every((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
-  }, [filteredEmployees, selectedEmployees]);
+  // const isAllSelected = useMemo(() => {
+  //   if (filteredEmployees.length === 0) return false;
+  //   return filteredEmployees.every((emp) => {
+  //     const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+  //     return selectedEmployees.includes(id);
+  //   });
+  // }, [filteredEmployees, selectedEmployees]);
 
-  const isIndeterminate = useMemo(() => {
-    if (selectedEmployees.length === 0) return false;
-    if (isAllSelected) return false;
-    return filteredEmployees.some((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
-  }, [selectedEmployees, isAllSelected, filteredEmployees]);
+  // const isIndeterminate = useMemo(() => {
+  //   if (selectedEmployees.length === 0) return false;
+  //   if (isAllSelected) return false;
+  //   return filteredEmployees.some((emp) => {
+  //     const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+  //     return selectedEmployees.includes(id);
+  //   });
+  // }, [selectedEmployees, isAllSelected, filteredEmployees]);
 
-  const handleSelectAll = useCallback(() => {
-    if (isAllSelected) {
-      const filteredIds = new Set(
-        filteredEmployees.map(
-          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-        )
-      );
-      setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
-    } else {
-      const filteredIds = filteredEmployees.map(
-        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-      );
-      setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
-    }
-  }, [filteredEmployees, isAllSelected]);
+  // const handleSelectAll = useCallback(() => {
+  //   if (isAllSelected) {
+  //     const filteredIds = new Set(
+  //       filteredEmployees.map(
+  //         (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
+  //       )
+  //     );
+  //     setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
+  //   } else {
+  //     const filteredIds = filteredEmployees.map(
+  //       (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
+  //     );
+  //     setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
+  //   }
+  // }, [filteredEmployees, isAllSelected]);
 
-  const toggleSelectEmployee = useCallback((id) => {
-    setSelectedEmployees((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
-    );
-  }, []);
+  // const toggleSelectEmployee = useCallback((id) => {
+  //   setSelectedEmployees((prev) =>
+  //     prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+  //   );
+  // }, []);
 
   const handleSearch = useCallback(() => {
     if (searchInput.trim()) {
@@ -121,12 +120,12 @@ function EmployeeTable({ employees = [] }) {
   }, []);
 
   // Get selected employee data to pass to ExportButton (from all employees, not just filtered)
-  const selectedEmployeeData = useMemo(() => {
-    return employees.filter((emp) => {
-      const id = emp.companyEmployeeId || emp.employeeId || emp.id;
-      return selectedEmployees.includes(id);
-    });
-  }, [employees, selectedEmployees]);
+  // const selectedEmployeeData = useMemo(() => {
+  //   return employees.filter((emp) => {
+  //     const id = emp.companyEmployeeId || emp.employeeId || emp.id;
+  //     return selectedEmployees.includes(id);
+  //   });
+  // }, [employees, selectedEmployees]);
 
   // Loading state
   if (!employees) {
@@ -141,8 +140,8 @@ function EmployeeTable({ employees = [] }) {
   return (
     <>
       {/* Search and Select All */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex justify-end items-center mb-4">
+        {/* <div className="flex items-center gap-2">
           <Checkbox
             checked={isAllSelected}
             indeterminate={isIndeterminate}
@@ -152,7 +151,7 @@ function EmployeeTable({ employees = [] }) {
           <p className="text-[#8AA9BA] font-semibold">
             Select All ({selectedEmployees.length} selected)
           </p>
-        </div>
+        </div> */}
 
         <div className="flex items-center gap-2">
           <input
@@ -191,12 +190,11 @@ function EmployeeTable({ employees = [] }) {
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500 border-b sticky top-0 z-10">
             <tr className="bg-[#E6ECF0]">
-              <th className="p-3">Select</th>
+              {/* <th className="p-3">Select</th> */}
               <th className="p-3">Name</th>
               <th className="p-3">Employee ID</th>
               <th className="p-3">Designation</th>
               <th className="p-3">Department</th>
-              <th className="p-3">QR Code</th>
               <th className="p-3">Details</th>
             </tr>
           </thead>
@@ -221,13 +219,13 @@ function EmployeeTable({ employees = [] }) {
                       isSelected ? "bg-blue-50" : "hover:bg-gray-50"
                     }`}
                   >
-                    <td className="p-2">
+                    {/* <td className="p-2">
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelectEmployee(empId)}
                         className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                       />
-                    </td>
+                    </td> */}
                     <td className="p-2 font-medium">
                       {emp?.name ? emp.name.split("<")[0] : "N/A"}
                     </td>
@@ -239,12 +237,6 @@ function EmployeeTable({ employees = [] }) {
                     </td>
                     <td className="p-2">{emp?.designation || "N/A"}</td>
                     <td className="p-2">{emp?.department || "N/A"}</td>
-                    <td className="p-2">
-                      <ShowQrCodeModal
-                        deviceMAC={emp?.deviceMAC}
-                        employeeId={emp?.employeeId || emp?.id}
-                      />
-                    </td>
                     <td className="p-2">
                       <button
                         onClick={() => handleViewEmployee(emp)}
@@ -262,7 +254,7 @@ function EmployeeTable({ employees = [] }) {
       </div>
 
       {/* Results Info and Export */}
-      {employees.length > 0 && (
+      {/* {employees.length > 0 && (
         <div className="flex justify-between items-center mt-4">
           <p className="text-sm text-gray-500">
             Showing {filteredEmployees.length} of {employees.length} employees
@@ -279,7 +271,7 @@ function EmployeeTable({ employees = [] }) {
             />
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Employee Modal */}
       {selectedEmp && (
@@ -292,4 +284,4 @@ function EmployeeTable({ employees = [] }) {
   );
 }
 
-export default EmployeeTable;
+export default ResignedEmployeeTable;

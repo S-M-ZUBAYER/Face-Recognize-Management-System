@@ -716,3 +716,36 @@ export const PayPeriodIcon = () => {
     </svg>
   );
 };
+
+export const ResignedEmployeeIcon = () => {
+  return (
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 19 19"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12.1057 6.21043C12.1057 3.88507 10.2205 2 7.89511 2C5.5697 2 3.68457 3.88507 3.68457 6.21043C3.68457 8.53576 5.5697 10.4209 7.89511 10.4209C10.2205 10.4209 12.1057 8.53576 12.1057 6.21043Z"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M2 16.3152C2 13.0597 4.63918 10.4207 7.89476 10.4207C8.79885 10.4207 9.65535 10.6242 10.4211 10.9879"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <path
+        d="M13.0527 17C13.6595 16.4102 16.0527 14.8403 16.0527 14C16.0527 13.1597 13.6595 11.5898 13.0527 11M15.0527 14H7"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+};
