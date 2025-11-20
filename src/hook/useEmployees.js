@@ -147,11 +147,14 @@ export const useEmployees = () => {
     );
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   const Employees = EmployeesArray.filter(
-    (e) => e.address?.type !== "resigned"
+    (e) => e.address?.type !== "resigned" || e.address?.r_date >= today
   );
+
   const resignedEmployees = EmployeesArray.filter(
-    (e) => e.address?.type === "resigned"
+    (e) => e.address?.type === "resigned" && e.address?.r_date < today
   );
 
   const isDependencyLoading = payPeriodLoading || rulesLoading;

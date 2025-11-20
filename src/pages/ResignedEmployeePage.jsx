@@ -4,6 +4,7 @@ import { useEmployees } from "@/hook/useEmployees";
 
 const ResignedEmployeePage = () => {
   const { resignedEmployees, isLoading } = useEmployees();
+  console.log(resignedEmployees);
 
   if (isLoading) {
     <FancyLoader />;
