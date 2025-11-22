@@ -4,18 +4,21 @@ import EmployeeTable from "@/components/employee/EmployeeTable";
 import FancyLoader from "@/components/FancyLoader";
 import { useEmployees } from "@/hook/useEmployees";
 import { useDesignation } from "../hook/useDesignation";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { Employees, isLoading: EmployeesLoading } = useEmployees();
+  const { isLoading: EmployeesLoading } = useEmployees();
 
-  console.log(Employees);
+  const { employees } = useEmployeeStore();
+
+  console.log(employees());
 
   const { designation, isLoading: designationLoading } = useDesignation();
 
   const getFilteredEmployees = () => {
-    if (activeFilter === "All Employees") return Employees;
-    return Employees.filter((emp) => emp.department === activeFilter);
+    if (activeFilter === "All Employees") return employees();
+    return employees().filter((emp) => emp.department === activeFilter);
   };
 
   if (EmployeesLoading || designationLoading) {

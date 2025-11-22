@@ -1,10 +1,12 @@
 import FancyLoader from "@/components/FancyLoader";
 import ResignedEmployeeTable from "@/components/resignedEmployee/ResignedEmployeeTable";
 import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const ResignedEmployeePage = () => {
-  const { resignedEmployees, isLoading } = useEmployees();
-  console.log(resignedEmployees);
+  const { isLoading } = useEmployees();
+  const { resignedEmployees } = useEmployeeStore();
+  console.log(resignedEmployees());
 
   if (isLoading) {
     <FancyLoader />;
@@ -14,7 +16,7 @@ const ResignedEmployeePage = () => {
       <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">
         Resigned Employee List
       </p>
-      <ResignedEmployeeTable employees={resignedEmployees} />
+      <ResignedEmployeeTable employees={resignedEmployees()} />
     </div>
   );
 };

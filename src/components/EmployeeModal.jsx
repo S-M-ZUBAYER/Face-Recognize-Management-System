@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "./ui/label";
@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 // Animation variants
 const backdropVariants = {
@@ -86,8 +87,15 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
   );
   const [effectiveDate, setEffectiveDate] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const { updateEmployee: updateEmployeeField } = useEmployeeStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  useEffect(() => {
+    if (selectedEmp.address?.r_date) {
+      setEffectiveDate(new Date(selectedEmp.address?.r_date));
+    }
+  }, [selectedEmp.address?.r_date]);
 
   if (!selectedEmp) return null;
 
@@ -144,7 +152,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         type: selectedStatus,
         r_date:
           effectiveDate && selectedStatus === "resigned"
-            ? effectiveDate.toISOString().split("T")[0]
+            ? format(effectiveDate, "yyyy-MM-dd")
             : "",
       }),
     };
@@ -156,7 +164,9 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         payload: payload,
       });
       // console.log(payload);
-
+      updateEmployeeField(selectedEmp.employeeId || selectedEmp.id, {
+        address: JSON.parse(payload.address),
+      });
       setSaveSuccess(true);
       // setTimeout(() => {
       //   setSaveSuccess(false);
@@ -520,7 +530,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                             selected={effectiveDate}
                             onSelect={setEffectiveDate}
                             initialFocus
-                            disabled={(date) => date < new Date()}
+                            // disabled={(date) => date < new Date()}
                             className="rounded-md border"
                           />
                         </PopoverContent>

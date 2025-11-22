@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import FancyLoader from "../FancyLoader";
 import PayPeriodSettings from "./PayPeriodSettings";
 import EditRules from "./EditRules";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import toast from "react-hot-toast";
 import getUpdatedName from "@/lib/getUpdatedName";
 import parseAddress from "@/lib/parseAddress";
@@ -13,7 +13,7 @@ const EditEmployeeDetails = () => {
   const { id, deviceMac } = useParams();
   const { data, isLoading, isError, error, updateEmployee, updating } =
     useSingleEmployeeDetails(id, deviceMac);
-  const { setSelectedEmployee } = useEmployeeStore();
+  const { setSelectedEmployee } = useEditEmployeeStore();
   const navigate = useNavigate();
 
   const [employeeData, setEmployeeData] = useState({

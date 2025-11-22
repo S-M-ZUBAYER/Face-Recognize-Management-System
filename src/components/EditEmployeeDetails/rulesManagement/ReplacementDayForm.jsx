@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronDownIcon } from "lucide-react";
 import image from "@/constants/image";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
@@ -18,7 +18,7 @@ export const ReplacementDayForm = () => {
   const [replacementDays, setReplacementDays] = useState([]);
   const [openPopovers, setOpenPopovers] = useState({});
   const [selectedDates, setSelectedDates] = useState({});
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Load existing replacement days from selectedEmployee
