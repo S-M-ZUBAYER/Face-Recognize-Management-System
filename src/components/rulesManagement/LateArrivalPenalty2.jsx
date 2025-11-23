@@ -1,12 +1,13 @@
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LateArrivalPenalty2 = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   // Save rule configuration
   const handleSave = async () => {

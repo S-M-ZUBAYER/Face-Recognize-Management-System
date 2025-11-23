@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDeviceMACs } from "./useDeviceMACs";
-import { useEmployees } from "./useEmployees";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { INFINITE_QUERY_CONFIG } from "./queryConfig";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const useLeaveData = () => {
   const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
-  const { Employees, isLoading: employeesLoading } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const queryClient = useQueryClient();
 
   const fetchLeaves = async () => {
@@ -88,11 +89,7 @@ export const useLeaveData = () => {
       Employees?.length,
     ],
     queryFn: fetchLeaves,
-    enabled:
-      !!deviceMACs &&
-      deviceMACs.length > 0 &&
-      !macsLoading &&
-      !employeesLoading,
+    enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
     ...INFINITE_QUERY_CONFIG,
     select: (data) => data.sort((a, b) => (b.id || 0) - (a.id || 0)),
   });
@@ -151,8 +148,8 @@ export const useLeaveData = () => {
     })
   );
 
-  const isLoading = leavesLoading || employeesLoading || macsLoading;
-  const isRefetching = isFetching || employeesLoading;
+  const isLoading = leavesLoading || macsLoading;
+  const isRefetching = isFetching;
 
   return {
     leaves,

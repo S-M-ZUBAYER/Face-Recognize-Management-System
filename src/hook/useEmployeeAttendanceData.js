@@ -5,22 +5,22 @@ import { useOverTimeData } from "./useOverTimeData";
 import { useAttendanceData } from "./useAttendanceData";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useEmployees } from "./useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const useEmployeeAttendanceData = () => {
   const { startDate, endDate } = useDateRangeStore();
-
-  // USE OPTIMIZED HOOK
-  const {
-    Employees,
-    refetch: refetchEmployees,
-    isFetching: isEmployeesFetching,
-  } = useEmployees();
-
   const {
     Attendance,
     refetch: refetchAttendance,
     isFetching: isAttendanceFetching,
   } = useAttendanceData();
+
+  // USE OPTIMIZED HOOK
+  const { refetch: refetchEmployees, isFetching: isEmployeesFetching } =
+    useEmployees();
+
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   const {
     overTime,

@@ -580,7 +580,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
           .filter((p) => p === "00:00").length;
         missedPunch += missedCount;
 
-        // if (id === "3531774237") {
+        // if (id === "70709903") {
         //   console.log("Missed punch on", date, missedCount, punches);
         // }
       }
@@ -734,9 +734,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         ? (monthlySalary / workingDaysConfigured) * normalPresent
         : 0;
     earnedSalary = presentDaysSalary + uncheckedTotal;
+    // if (id === "70709903") {
+    //   console.log(earnedSalary);
+    // }
   } else {
     presentDaysSalary = monthlySalary;
     earnedSalary = standardPay;
+    // if (id === "70709903") {
+    //   console.log(earnedSalary);
+    // }
   }
 
   const sickLeaveDays = Number(rule11?.param3 || 0);
@@ -778,15 +784,24 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   if (rule16 && latePenaltyPerOcc > 0)
     deductions += lateCount * latePenaltyPerOcc;
+  // if (id === "70709903") {
+  //   console.log(deductions);
+  // }
 
   if (rule17 && earlyPenaltyPerOcc > 0)
     deductions += earlyDepartureCount * earlyPenaltyPerOcc;
+  // if (id === "70709903") {
+  //   console.log(deductions);
+  // }
 
   if (rule18) {
     const dailySalary = dailyRate;
     deductions +=
       halfDayLateCount * (0.5 * dailySalary) + fullDayLateCount * dailySalary;
   }
+  // if (id === "70709903") {
+  //   console.log(deductions);
+  // }
 
   if (rule19 && perHourLatePenalty > 0)
     deductions += toHours(totalLatenessMinutes) * perHourLatePenalty;
@@ -895,7 +910,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     overtimePay
   ).toFixed(2);
 
-  // if (id === "2109058927") {
+  // if (id === "70709903") {
   //   console.log(
   //     earnedSalary,
   //     deductions,

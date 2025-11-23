@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const UseOverTimeLateness = () => {
   const [lateTime, setLateTime] = useState("");
   const [costOverTime, setCostOverTime] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   // Save overtime lateness configuration
   const handleSave = async () => {

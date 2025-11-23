@@ -1,11 +1,14 @@
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
-import { useEmployees } from "./useEmployees";
 import { useAttendance } from "./useAttendance";
 import { useMemo } from "react";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
-  const { Employees = [], isLoading: employeesLoading } = useEmployees();
+
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
+  const employeesLoading = false; // Assuming employees are already loaded in useEmployeeStore
   const { attendanceData = [], isLoading: attendanceLoading } =
     useAttendance(selectedDate);
 

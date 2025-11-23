@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const SALARY_SECTION_TYPES = {
   BASED_HOUR: "based-hour",
@@ -21,7 +21,8 @@ function FlexibleWorkForm() {
   });
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   const salarySections = useMemo(
     () => [

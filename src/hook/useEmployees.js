@@ -177,7 +177,7 @@ export const useEmployees = () => {
   const isError = employeeQueries.some((q) => q.isError);
 
   return {
-    Employees: EmployeesArray,
+    // Employees: EmployeesArray,
     // resignedEmployees,
     employeeCounts: deviceMACs.map((mac, idx) => ({
       deviceMAC: mac.deviceMAC,

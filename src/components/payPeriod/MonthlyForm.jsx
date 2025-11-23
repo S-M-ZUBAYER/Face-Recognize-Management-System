@@ -8,7 +8,7 @@ import image from "@/constants/image";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -40,7 +40,8 @@ function MonthlyForm() {
     selectedDate: "",
   });
 
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
