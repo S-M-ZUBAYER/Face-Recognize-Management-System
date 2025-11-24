@@ -195,18 +195,51 @@ function parseOtherSalary(otherSalary) {
   return { checkedTotal: 0, uncheckedTotal: 0 };
 }
 
-function getWorkingDaysInMonth(year, month, weekendDayNames) {
-  const weekends = new Set(weekendDayNames);
+function getWorkingDaysInMonth(
+  year,
+  month,
+  weekendDayNames,
+  holidaysSet, // Fixed parameter order
+  generalDaysSet,
+  replaceDaysSet
+  // id
+) {
   let workingDays = 0;
+  const weekends = Array.from(weekendDayNames);
+  // Fixed month indexing - months are 0-based in JavaScript Date
   const daysInMonth = new Date(year, month, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
+    const monthStr = String(month).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    const date = new Date(dateStr);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-    if (!weekends.has(dayName)) {
+    // Check replacement days first (these override everything)
+    if (replaceDaysSet.has(dateStr)) {
       workingDays++;
+      continue;
     }
+
+    // Check holidays
+    if (holidaysSet.has(dateStr)) {
+      continue;
+    }
+
+    // Check general working days
+    if (generalDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
+
+    // Check weekends
+    if (weekends.includes(dayName)) {
+      continue;
+    }
+
+    // Normal working day
+    workingDays++;
   }
 
   return workingDays;
@@ -220,6 +253,7 @@ function getWorkingDaysUpToDate(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet
+  // id
 ) {
   let workingDays = 0;
   const weekends = Array.from(weekendDayNames);
@@ -227,32 +261,36 @@ function getWorkingDaysUpToDate(
   for (let d = 1; d <= currentDay; d++) {
     const monthStr = String(month).padStart(2, "0");
     const dayStr = String(d).padStart(2, "0");
-
     const dateStr = `${year}-${monthStr}-${dayStr}`;
     const date = new Date(dateStr);
-
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
+    // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
       workingDays++;
       continue;
     }
 
+    // Check holidays
     if (holidaysSet.has(dateStr)) {
       continue;
     }
 
+    // Check general working days
     if (generalDaysSet.has(dateStr)) {
       workingDays++;
       continue;
     }
 
+    // Check weekends
     if (weekends.includes(dayName)) {
       continue;
     }
 
+    // Normal working day
     workingDays++;
   }
+
   return workingDays;
 }
 
@@ -282,9 +320,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  // if (id === "3531774237") {
-  //   console.log(attendanceRecords);
-  // }
+  if (id === "70709904") {
+    console.log(attendanceRecords);
+  }
 
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
@@ -412,7 +450,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let year, month;
 
   // NEW: Get reconciled punch and shift details
+
   const punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
+  // let punchDetails = [];
+  // try {
+  //    punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
+  // } catch  {
+  //   console.log(id,salaryRules)
+  // }
 
   if (punchDetails.length > 0) {
     const [y, m] = punchDetails[0].date.split("-");
@@ -424,11 +469,18 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     month = now.getMonth();
   }
 
-  const workingDaysConfigured = getWorkingDaysInMonth(
-    year,
-    month,
-    weekendDayNames
-  );
+  // const workingDaysConfigured = getWorkingDaysInMonth(
+  //   year,
+  //   month,
+  //   weekendDayNames,
+  //   holidaysSet,
+  //   generalDaysSet,
+  //   replaceDaysSet,
+  //   id
+  // );
+  // if (id === "70709904") {
+  //   console.log(holidaysArr);
+  // }
 
   const now = new Date();
   const currentDay = now.getDate();
@@ -437,7 +489,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   // console.log(currentMonth, currentYear, month, year);
 
-  let workingDaysUpToCurrent = workingDaysConfigured;
+  let workingDaysUpToCurrent;
   if (year === currentYear && month === currentMonth) {
     workingDaysUpToCurrent = getWorkingDaysUpToDate(
       year,
@@ -446,13 +498,24 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       weekendDayNames,
       holidaysSet,
       generalDaysSet,
-      replaceDaysSet
+      replaceDaysSet,
+      id
+    );
+  } else {
+    workingDaysUpToCurrent = getWorkingDaysInMonth(
+      year,
+      month,
+      weekendDayNames,
+      holidaysSet, // Fixed parameter order
+      generalDaysSet,
+      replaceDaysSet,
+      id
     );
   }
 
   const standardPay = monthlySalary + uncheckedTotal;
   const dailyRate =
-    workingDaysConfigured > 0 ? monthlySalary / workingDaysConfigured : 0;
+    workingDaysUpToCurrent > 0 ? monthlySalary / workingDaysUpToCurrent : 0;
 
   const punchDocs = Array.isArray(salaryRules.punchDocuments)
     ? salaryRules.punchDocuments
@@ -731,7 +794,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   if (rule14 && daysPenaltyPerAbsence > 0) {
     presentDaysSalary =
       normalPresent > 0
-        ? (monthlySalary / workingDaysConfigured) * normalPresent
+        ? (monthlySalary / workingDaysUpToCurrent) * normalPresent
         : 0;
     earnedSalary = presentDaysSalary + uncheckedTotal;
     // if (id === "70709903") {
@@ -879,19 +942,19 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   }
 
   const weekendNormalShiftPay =
-    (monthlySalary / workingDaysConfigured) *
+    (monthlySalary / workingDaysUpToCurrent) *
     weekendNormalShiftMultiplier *
     weekendPresent;
   // if (id === "2109058929") {
   //   console.log(
   //     monthlySalary,
-  //     workingDaysConfigured,
+  //     workingDaysUpToCurrent,
   //     weekendNormalShiftMultiplier,
   //     weekendPresent
   //   );
   // }
   const holidayNormalShiftPay =
-    (monthlySalary / workingDaysConfigured) *
+    (monthlySalary / workingDaysUpToCurrent) *
     holidayNormalShiftMultiplier *
     holidayPresent;
 
@@ -947,7 +1010,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     totalPay,
     Present: { normalPresent, holidayPresent, weekendPresent },
     absent,
-    workingDays: workingDaysConfigured,
+    workingDays: workingDaysUpToCurrent,
     workingDaysUpToCurrent,
     replaceDaysArr,
     otherSalaryBreakdown: {

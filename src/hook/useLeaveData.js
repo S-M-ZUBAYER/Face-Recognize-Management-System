@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
-import { INFINITE_QUERY_CONFIG } from "./queryConfig";
+import { DEFAULT_QUERY_CONFIG, INFINITE_QUERY_CONFIG } from "./queryConfig";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const useLeaveData = () => {
@@ -32,7 +32,7 @@ export const useLeaveData = () => {
       const leavesData = response.flatMap((res) => res.data || []);
 
       // Process leaves with employee data
-      return leavesData.map((leave) => {
+      return leavesData.map((leave, index) => {
         // Find matching employee by employeeId
         const matchingEmployee = Employees?.find(
           (emp) => emp.employeeId === leave.employeeId
@@ -62,6 +62,7 @@ export const useLeaveData = () => {
 
         return {
           ...leave,
+          id: leavesData.length - index,
           approverName,
           description,
           // Add employee image if found
@@ -90,7 +91,7 @@ export const useLeaveData = () => {
     ],
     queryFn: fetchLeaves,
     enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
-    ...INFINITE_QUERY_CONFIG,
+    ...DEFAULT_QUERY_CONFIG,
     select: (data) => data.sort((a, b) => (b.id || 0) - (a.id || 0)),
   });
 

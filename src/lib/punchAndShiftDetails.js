@@ -35,7 +35,7 @@ function inclusiveInorNot(startTime, endTime, punchTime) {
   return punch >= start && punch <= end;
 }
 
-function convertPunchesWithStrictRules(
+function convertPunchesWithSpecialRules(
   punchesAsStrings,
   rulesModel,
   date,
@@ -45,37 +45,21 @@ function convertPunchesWithStrictRules(
   let punches = [...punchesAsStrings].sort();
   let normalAllRules = [];
 
-  // Build normalAllRules depending on rulesModel type
-  if (rulesModel.param3 === "normal" || rulesModel.param3 === "special") {
-    let workingDecoded =
-      rulesModel.param3 === "normal" ? rulesModel.param1 : [];
-    let overtimeDecoded =
-      rulesModel.param3 === "normal" ? rulesModel.param2 : [];
+  // ONLY SPECIAL LOGIC - no normal condition
+  let workingDecoded = [];
+  let overtimeDecoded = [];
 
-    if (rulesModel.param3 === "special") {
-      const found = oneEmployeeData.find((item) => item.date === date);
-      if (found) {
-        workingDecoded = found.param1 || [];
-        overtimeDecoded = found.param2 || [];
-      }
-    }
+  const found = oneEmployeeData.find((item) => item.date === date);
+  if (found) {
+    workingDecoded = found.param1 || [];
+    overtimeDecoded = found.param2 || [];
+  }
 
-    for (const shift of workingDecoded) {
-      normalAllRules.push(shift.start, shift.end);
-    }
-    for (const shift of overtimeDecoded) {
-      normalAllRules.push(shift.start, shift.end);
-    }
-  } else {
-    // Fixed string case
-    normalAllRules.push(
-      rulesModel.param1 || "00:00",
-      rulesModel.param2 || "00:00",
-      rulesModel.param3 || "00:00",
-      rulesModel.param4 || "00:00",
-      rulesModel.param5 || "00:00",
-      rulesModel.param6 || "00:00"
-    );
+  for (const shift of workingDecoded) {
+    normalAllRules.push(shift.start, shift.end);
+  }
+  for (const shift of overtimeDecoded) {
+    normalAllRules.push(shift.start, shift.end);
   }
 
   // PROPERLY IMPLEMENTED OVERNIGHT SHIFT LOGIC
@@ -99,15 +83,6 @@ function convertPunchesWithStrictRules(
       const oneHourBefore = targetMinutes - 60;
       const oneHourAfter = targetMinutes + 60;
 
-      //   console.log(
-      //     `Overnight shift detected: ${normalAllRules[0]} > ${normalAllRules[lastRuleIndex]}`
-      //   );
-      //   console.log(
-      //     `Target: ${normalAllRules[0]}, Window: ${oneHourBefore / 60}:${
-      //       oneHourBefore % 60
-      //     } to ${oneHourAfter / 60}:${oneHourAfter % 60}`
-      //   );
-
       // Remove closest punch from current day within the window
       let closestPunchToRemove = null;
       let minDiffRemove = Infinity;
@@ -124,7 +99,6 @@ function convertPunchesWithStrictRules(
       }
 
       if (closestPunchToRemove) {
-        // console.log("Closest Punch Remove: " + closestPunchToRemove);
         const index = punches.indexOf(closestPunchToRemove);
         if (index > -1) {
           punches.splice(index, 1);
@@ -149,12 +123,7 @@ function convertPunchesWithStrictRules(
       // Prepend the Found Punch
       if (closestPreviousPunch) {
         punches.unshift(closestPreviousPunch);
-        // console.log("Closest previous punch: " + closestPreviousPunch);
       }
-      // Optional: uncomment if you want to insert '00:00' when no previous punch found
-      // else {
-      //   punches.unshift('00:00');
-      // }
     }
   }
 
@@ -166,24 +135,78 @@ function convertPunchesWithStrictRules(
     const leftBorder = findMiddleTime(previousTime, currentTime);
     const rightBorder = findMiddleTime(currentTime, nextTime);
 
-    // console.log(
-    //   `Shift ${i} (${currentTime}): leftBorder=${leftBorder}, rightBorder=${rightBorder}`
-    // );
-    // console.log(`Available punches: ${punches.join(", ")}`);
-
     // Only use the precise border logic
     for (let j = 0; j < punches.length; j++) {
       if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
         const punch = punches.splice(j, 1)[0];
-        // console.log(`✓ Assigned ${punch} to shift ${currentTime}`);
         return punch;
       }
     }
 
-    // console.log(`✗ No punch found for shift ${currentTime}, using 00:00`);
     return "00:00";
   });
 
+  return {
+    punches: takenPunches,
+    date,
+    shift: normalAllRules,
+  };
+}
+
+function convertPunchesWithNormalRules(punchesAsStrings, rulesModel, date) {
+  let punches = [...punchesAsStrings].sort();
+  let normalAllRules = [];
+
+  if (Array.isArray(rulesModel.param1) && Array.isArray(rulesModel.param2)) {
+    // ONLY NORMAL LOGIC - no special condition
+    let workingDecoded = rulesModel.param1 || [];
+    let overtimeDecoded = rulesModel.param2 || [];
+
+    for (const shift of workingDecoded) {
+      normalAllRules.push(shift.start, shift.end);
+    }
+    for (const shift of overtimeDecoded) {
+      normalAllRules.push(shift.start, shift.end);
+    }
+  } else {
+    normalAllRules.push(
+      rulesModel.param1 || "00:00",
+      rulesModel.param2 || "00:00",
+      rulesModel.param3 || "00:00",
+      rulesModel.param4 || "00:00",
+      rulesModel.param5 || "00:00",
+      rulesModel.param6 || "00:00"
+    );
+  }
+
+  // Match punches against the time points
+  const takenPunches = normalAllRules.map((currentTime, i, arr) => {
+    const previousTime = arr[(i - 1 + arr.length) % arr.length];
+    const nextTime = arr[(i + 1) % arr.length];
+
+    const leftBorder = findMiddleTime(previousTime, currentTime);
+    const rightBorder = findMiddleTime(currentTime, nextTime);
+
+    // Check punches within the interval
+    for (let j = 0; j < punches.length; j++) {
+      if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
+        const punch = punches.splice(j, 1)[0];
+        return punch;
+      }
+    }
+
+    // Second chance: between previousTime and currentTime
+    for (let j = punches.length - 1; j >= 0; j--) {
+      if (inclusiveInorNot(previousTime, currentTime, punches[j])) {
+        const punch = punches.splice(j, 1)[0];
+        return punch;
+      }
+    }
+
+    return "00:00";
+  });
+
+  // Return all matched punches including overtime
   return {
     punches: takenPunches,
     date,
@@ -201,6 +224,11 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
   const punchesDetails = [];
   const specialEmployeeData = rulesModel.param3 === "special" ? table : [];
 
+  // ADD THIS LOGIC for special rules with empty table
+  if (rulesModel.param3 === "special" && table.length === 0) {
+    return [];
+  }
+
   // Sort by date once
   const sortedAttendance = [...monthlyAttendance].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
@@ -214,13 +242,16 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
     const previousDayPunches =
       i > 0 ? JSON.parse(sortedAttendance[i - 1].checkIn) : [];
 
-    const overtime = convertPunchesWithStrictRules(
-      punches,
-      rulesModel,
-      date,
-      specialEmployeeData,
-      previousDayPunches
-    );
+    const overtime =
+      rulesModel.param3 === "special"
+        ? convertPunchesWithSpecialRules(
+            punches,
+            rulesModel,
+            date,
+            specialEmployeeData,
+            previousDayPunches
+          )
+        : convertPunchesWithNormalRules(punches, rulesModel, date);
 
     if (overtime.punches.length > 0) {
       punchesDetails.push(overtime);
