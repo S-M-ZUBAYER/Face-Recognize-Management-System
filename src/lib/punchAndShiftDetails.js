@@ -228,6 +228,14 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
   if (rulesModel.param3 === "special" && table.length === 0) {
     return [];
   }
+  // console.log(rulesModel);
+  // if (rulesModel.empId === 70709906) {
+  //   console.log(rulesModel);
+  // }
+
+  if ([rulesModel.param1, rulesModel.param2].every((v) => v === null)) {
+    return [];
+  }
 
   // Sort by date once
   const sortedAttendance = [...monthlyAttendance].sort(
