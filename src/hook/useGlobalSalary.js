@@ -5,9 +5,14 @@ import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { INFINITE_QUERY_CONFIG } from "./queryConfig";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
+import { useEffect, useRef } from "react";
+import isEqual from "lodash.isequal";
 
 export const useGlobalSalary = () => {
   const { deviceMACs } = useDeviceMACs();
+  const { setGlobalRules } = useGlobalStore();
+  const prevRef = useRef([]);
 
   const globalSalaryQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
@@ -35,6 +40,15 @@ export const useGlobalSalary = () => {
 
   const isLoading = globalSalaryQueries.some((q) => q.isLoading);
   const isError = globalSalaryQueries.some((q) => q.isError);
+
+  // ✅ FIX: update Zustand AFTER render
+  useEffect(() => {
+    // avoid unnecessary updates
+    if (!isEqual(prevRef.current, globalSalaryRules)) {
+      prevRef.current = globalSalaryRules;
+      setGlobalRules(globalSalaryRules);
+    }
+  }, [globalSalaryRules, setGlobalRules]);
 
   return {
     globalSalaryRules,

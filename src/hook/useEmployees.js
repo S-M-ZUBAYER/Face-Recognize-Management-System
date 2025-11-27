@@ -20,6 +20,8 @@ export const useEmployees = () => {
   const { setEmployeesArray } = useEmployeeStore();
   const prevRef = useRef([]);
 
+  console.log(globalSalaryRules);
+
   const employeeQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
       queryKey: ["employees", mac.deviceMAC],

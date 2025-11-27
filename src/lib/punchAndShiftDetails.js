@@ -1,3 +1,4 @@
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 import fastKeepHighMonth from "./fastKeepHighMonth";
 
 function findMiddleTime(startTime, endTime) {
@@ -37,11 +38,12 @@ function inclusiveInorNot(startTime, endTime, punchTime) {
 
 function convertPunchesWithSpecialRules(
   punchesAsStrings,
-  rulesModel,
+  mac,
   date,
   oneEmployeeData,
   previousDayPunchesAsStrings = []
 ) {
+  const rules = useGlobalStore.getState().globalRules;
   let punches = [...punchesAsStrings].sort();
   let normalAllRules = [];
 
@@ -53,6 +55,17 @@ function convertPunchesWithSpecialRules(
   if (found) {
     workingDecoded = found.param1 || [];
     overtimeDecoded = found.param2 || [];
+  } else {
+    const generalRule = rules.find((rule) => rule.deviceMAC === mac);
+    if (generalRule) {
+      const generalFound = generalRule.salaryRules.rules.find(
+        (item) => item.ruleId === 0
+      );
+      if (generalFound) {
+        workingDecoded = generalFound.param1 || [];
+        overtimeDecoded = generalFound.param2 || [];
+      }
+    }
   }
 
   for (const shift of workingDecoded) {
@@ -246,6 +259,7 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
     const record = sortedAttendance[i];
     const punches = JSON.parse(record.checkIn);
     const date = record.date;
+    const mac = record.macId;
 
     const previousDayPunches =
       i > 0 ? JSON.parse(sortedAttendance[i - 1].checkIn) : [];
@@ -254,7 +268,7 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
       rulesModel.param3 === "special"
         ? convertPunchesWithSpecialRules(
             punches,
-            rulesModel,
+            mac,
             date,
             specialEmployeeData,
             previousDayPunches
