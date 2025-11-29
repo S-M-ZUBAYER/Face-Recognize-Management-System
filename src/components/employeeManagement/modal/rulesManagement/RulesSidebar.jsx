@@ -53,7 +53,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
 
     // // Condition 1: Rules 6-9 require rule 24 to be set
     if (isDependencyRule(rule.id)) {
-      if (!hasRuleId(existingRuleIds, 24)) {
+      if (!hasRuleId(existingRuleIds, 23)) {
         openDialog(
           `Rule ${
             rule.id + 1

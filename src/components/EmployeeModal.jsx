@@ -241,7 +241,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden z-10 flex flex-col"
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden z-10 flex flex-col custom-scrollbar"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
