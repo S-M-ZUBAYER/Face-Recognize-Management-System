@@ -75,7 +75,7 @@ function convertPunchesWithSpecialRules(
     normalAllRules.push(shift.start, shift.end);
   }
 
-  // PROPERLY IMPLEMENTED OVERNIGHT SHIFT LOGIC
+  // FIXED OVERNIGHT SHIFT LOGIC WITH ALL CONDITIONS
   if (normalAllRules.length > 0) {
     const isTimeGreater = (time1, time2) => {
       const [h1, m1] = time1.split(":").map(Number);
@@ -96,51 +96,83 @@ function convertPunchesWithSpecialRules(
       const oneHourBefore = targetMinutes - 60;
       const oneHourAfter = targetMinutes + 60;
 
-      // Remove closest punch from current day within the window
-      let closestPunchToRemove = null;
-      let minDiffRemove = Infinity;
+      // CASE 1: Current day HAS multiple punches (active overnight shift)
+      if (punches.length > 1) {
+        // Handle duplicate punches around shift start time
+        let eveningPunches = [];
+        let otherPunches = [];
 
-      for (let i = 0; i < punches.length; i++) {
-        const punchMinutes = parseTimeToMinutes(punches[i]);
-        if (punchMinutes >= oneHourBefore && punchMinutes <= oneHourAfter) {
-          const diff = Math.abs(targetMinutes - punchMinutes);
-          if (diff < minDiffRemove) {
-            minDiffRemove = diff;
-            closestPunchToRemove = punches[i];
+        // Separate evening punches (near shift start) from other punches
+        for (let i = 0; i < punches.length; i++) {
+          const punchMinutes = parseTimeToMinutes(punches[i]);
+          if (punchMinutes >= oneHourBefore && punchMinutes <= oneHourAfter) {
+            eveningPunches.push(punches[i]);
+          } else {
+            otherPunches.push(punches[i]);
           }
         }
-      }
 
-      if (closestPunchToRemove) {
-        const index = punches.indexOf(closestPunchToRemove);
-        if (index > -1) {
-          punches.splice(index, 1);
+        // If multiple evening punches, take the closest one to shift start
+        if (eveningPunches.length > 0) {
+          let closestEveningPunch = eveningPunches[0];
+          let minDiff = Infinity;
+
+          for (const punch of eveningPunches) {
+            const punchMinutes = parseTimeToMinutes(punch);
+            const diff = Math.abs(targetMinutes - punchMinutes);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closestEveningPunch = punch;
+            }
+          }
+
+          // Keep only the closest evening punch
+          punches = [closestEveningPunch, ...otherPunches];
         }
-      }
 
-      // Find closest punch from previous day within the window
-      let closestPreviousPunch = null;
-      let minDiffPrevious = Infinity;
+        // Find closest early morning punch from previous day
+        let closestPreviousPunch = null;
+        let minDiffPrevious = Infinity;
 
-      for (let i = 0; i < previousDayPunchesAsStrings.length; i++) {
-        const punchMinutes = parseTimeToMinutes(previousDayPunchesAsStrings[i]);
-        if (punchMinutes >= oneHourBefore && punchMinutes <= oneHourAfter) {
-          const diff = Math.abs(targetMinutes - punchMinutes);
-          if (diff < minDiffPrevious) {
-            minDiffPrevious = diff;
-            closestPreviousPunch = previousDayPunchesAsStrings[i];
+        for (let i = 0; i < previousDayPunchesAsStrings.length; i++) {
+          const punchMinutes = parseTimeToMinutes(
+            previousDayPunchesAsStrings[i]
+          );
+
+          // Only consider punches from previous day that are in early morning (00:00 - 06:00)
+          const isEarlyMorningPunch = punchMinutes >= 0 && punchMinutes <= 360;
+
+          if (
+            isEarlyMorningPunch &&
+            punchMinutes >= oneHourBefore &&
+            punchMinutes <= oneHourAfter
+          ) {
+            const diff = Math.abs(targetMinutes - punchMinutes);
+            if (diff < minDiffPrevious) {
+              minDiffPrevious = diff;
+              closestPreviousPunch = previousDayPunchesAsStrings[i];
+            }
           }
         }
-      }
 
-      // Prepend the Found Punch
-      if (closestPreviousPunch) {
-        punches.unshift(closestPreviousPunch);
+        // Prepend the found punch from previous day
+        if (closestPreviousPunch) {
+          punches.unshift(closestPreviousPunch);
+        }
+      }
+      // CASE 2: Current day has NO punches or only ONE punch - RETURN EMPTY
+      else if (punches.length <= 1) {
+        // For overnight shift days with 0 or 1 punch, return all "00:00"
+        return {
+          punches: normalAllRules.map(() => "00:00"),
+          date,
+          shift: normalAllRules,
+        };
       }
     }
   }
 
-  // CORRECTED matching logic (without the problematic "second chance")
+  // FIXED: Use the same improved matching logic as normal rules
   const takenPunches = normalAllRules.map((currentTime, i, arr) => {
     const previousTime = arr[(i - 1 + arr.length) % arr.length];
     const nextTime = arr[(i + 1) % arr.length];
@@ -148,11 +180,45 @@ function convertPunchesWithSpecialRules(
     const leftBorder = findMiddleTime(previousTime, currentTime);
     const rightBorder = findMiddleTime(currentTime, nextTime);
 
-    // Only use the precise border logic
+    // First: Try exact border match
     for (let j = 0; j < punches.length; j++) {
       if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
         const punch = punches.splice(j, 1)[0];
         return punch;
+      }
+    }
+
+    // Second: Try expanded range (previousTime to nextTime) - MORE LENIENT
+    for (let j = 0; j < punches.length; j++) {
+      if (inclusiveInorNot(previousTime, nextTime, punches[j])) {
+        const punch = punches.splice(j, 1)[0];
+        return punch;
+      }
+    }
+
+    // Third: If still no match, find closest punch within reasonable time
+    let closestPunch = null;
+    let minDiff = Infinity;
+
+    const [currentH, currentM] = currentTime.split(":").map(Number);
+    const currentMinutes = currentH * 60 + currentM;
+
+    for (let j = 0; j < punches.length; j++) {
+      const [punchH, punchM] = punches[j].split(":").map(Number);
+      const punchMinutes = punchH * 60 + punchM;
+      const diff = Math.abs(punchMinutes - currentMinutes);
+
+      // Consider punches within 2 hours as potential matches
+      if (diff <= 120 && diff < minDiff) {
+        minDiff = diff;
+        closestPunch = punches[j];
+      }
+    }
+
+    if (closestPunch) {
+      const index = punches.indexOf(closestPunch);
+      if (index > -1) {
+        return punches.splice(index, 1)[0];
       }
     }
 

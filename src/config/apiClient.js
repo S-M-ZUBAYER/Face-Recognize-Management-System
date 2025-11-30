@@ -1,6 +1,7 @@
-// Create: lib/apiClient.js
+// lib/apiClient.js
 import axios from "axios";
 import { API_CONFIG } from "./config";
+import useErrorStore from "@/zustand/useErrorStore";
 
 const apiClient = axios.create({
   timeout: API_CONFIG.TIMEOUT,
@@ -17,6 +18,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     console.error("❌ Request Error:", error);
+    useErrorStore.getState().showError("Request failed - please try again");
     return Promise.reject(error);
   }
 );
@@ -33,20 +35,22 @@ apiClient.interceptors.response.use(
       message: error.message,
     });
 
-    // Enhanced error handling
+    let errorMessage = "An unexpected error occurred";
+
     if (error.code === "ECONNABORTED") {
-      throw new Error("Request timeout - please check your connection");
+      errorMessage = "Request timeout - please check your connection";
+    } else if (!error.response) {
+      errorMessage = "Network error - please check your internet connection";
+    } else if (error.response.status >= 500) {
+      errorMessage = "Server error - please try again later";
+    } else if (error.response.data?.message) {
+      errorMessage = error.response.data.message;
     }
 
-    if (!error.response) {
-      throw new Error("Network error - please check your internet connection");
-    }
+    // Show error modal
+    useErrorStore.getState().showError(errorMessage);
 
-    if (error.response.status >= 500) {
-      throw new Error("Server error - please try again later");
-    }
-
-    throw error;
+    return Promise.reject(error);
   }
 );
 

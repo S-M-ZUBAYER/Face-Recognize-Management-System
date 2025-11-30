@@ -378,9 +378,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  // if (id === "70709904") {
-  //   console.log(attendanceRecords);
-  // }
+  if (id === "70709910") {
+    console.log(attendanceRecords);
+  }
 
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
@@ -743,9 +743,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
           .filter((p) => p === "00:00").length;
         missedPunch += missedCount;
 
-        // if (id === "70709903") {
-        //   console.log("Missed punch on", date, missedCount, punches);
-        // }
+        if (id === "70709910") {
+          console.log("Missed punch on", date, missedCount, punches);
+        }
       }
     }
 
@@ -868,23 +868,40 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     if (shift.length >= 6 && punches.length >= 6) {
       // Has overtime shift (index 4-5)
       const otStart = toMinutes(shift[4]);
-      const otEnd = toMinutes(shift[5]);
-      const punchOut =
-        punches[5] !== "00:00" ? toMinutes(punches[5]) : toMinutes(punches[3]);
-
-      if (punchOut > otStart) {
-        const otMinutes = Math.max(0, Math.min(punchOut, otEnd) - otStart);
-
-        if (isHoliday) {
-          overtimeHoliday += otMinutes;
-        } else if (isWeekend) {
-          overtimeWeekend += otMinutes;
-        } else {
-          overtimeNormal += otMinutes;
-          // if (id === "70709903") {
-          //   console.log(otMinutes, date);
-          // }
-        }
+      // const otEnd = toMinutes(shift[5]);
+      // const punchOut =
+      //   punches[5] !== "00:00" ? toMinutes(punches[5]) : toMinutes(punches[3]);
+      let otMinutes = 0;
+      if (punches[4] !== "00:00" && punches[5] !== "00:00") {
+        const p4 = toMinutes(punches[4]);
+        const p5 = toMinutes(punches[5]);
+        otMinutes = Math.max(0, p5 - p4); // prevent negative OT
+      } else if (punches[5] !== "00:00") {
+        // Your previous logic: use shift OT start time
+        const punchOut = toMinutes(punches[5]);
+        otMinutes = Math.max(0, punchOut - otStart);
+      }
+      if (isHoliday) {
+        overtimeHoliday += otMinutes;
+      } else if (isWeekend) {
+        overtimeWeekend += otMinutes;
+      } else {
+        overtimeNormal += otMinutes;
+      }
+      if (rule8 && minOTUnit > 0) {
+        overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
+        overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
+        overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
+        // if (id === "70709908") {
+        //   console.log(
+        //     otMinutes,
+        //     overtimeNormal,
+        //     toMinutes(punches[5]),
+        //     toMinutes(punches[4]),
+        //     toMinutes(punches[5]) - toMinutes(punches[4]),
+        //     date
+        //   );
+        // }
       }
     }
   });
@@ -978,12 +995,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //   console.log(overtimeNormal);
   // }
 
-  if (rule8 && minOTUnit > 0) {
-    overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
-    overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
-    overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
-  }
-
   if (rule16 && latePenaltyPerOcc > 0) {
     lateDeductions += lateCount * latePenaltyPerOcc;
     // if (id === "70709904") {
@@ -1002,9 +1013,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     lateDeductions +=
       halfDayLateCount * (0.5 * dailySalary) + fullDayLateCount * dailySalary;
   }
-  if (id === "2109058928") {
-    console.log(halfDayLateCount, fullDayLateCount, lateDeductions, lateCount);
-  }
+  // if (id === "2109058928") {
+  //   console.log(halfDayLateCount, fullDayLateCount, lateDeductions, lateCount);
+  // }
 
   if (rule19 && perHourLatePenalty > 0)
     lateDeductions += toHours(totalLatenessMinutes) * perHourLatePenalty;
@@ -1114,17 +1125,17 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     overtimePay
   ).toFixed(2);
 
-  if (id === "2109058928") {
-    console.log(
-      earnedSalary,
-      deductions,
-      otherLeaveDeduction,
-      totalLeaveDeductions,
-      overtimePay,
-      weekendNormalShiftPay,
-      holidayNormalShiftPay
-    );
-  }
+  // if (id === "2109058928") {
+  //   console.log(
+  //     earnedSalary,
+  //     deductions,
+  //     otherLeaveDeduction,
+  //     totalLeaveDeductions,
+  //     overtimePay,
+  //     weekendNormalShiftPay,
+  //     holidayNormalShiftPay
+  //   );
+  // }
 
   return {
     attendanceStats: {
