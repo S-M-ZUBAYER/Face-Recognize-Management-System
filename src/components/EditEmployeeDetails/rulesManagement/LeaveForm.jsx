@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/popover";
 import image from "@/constants/image";
 import { Label } from "@/components/ui/label";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
@@ -23,7 +23,7 @@ export const LeaveForm = () => {
   const [timePopovers, setTimePopovers] = useState({});
   const [tempTimeRanges, setTempTimeRanges] = useState({});
   const [totalLeaveDays, setTotalLeaveDays] = useState(0);
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Helper function to get consistent date string

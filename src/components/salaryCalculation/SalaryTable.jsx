@@ -8,6 +8,7 @@ function SalaryTable({ employees }) {
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [showSalary, setShowSalary] = useState({});
+  const [additionalAmounts, setAdditionalAmounts] = useState({});
 
   // --- Search States ---
   const [searchInput, setSearchInput] = useState("");
@@ -32,13 +33,29 @@ function SalaryTable({ employees }) {
     );
   };
 
+  // --- Additional Amount Handler ---
+  const handleAdditionalAmountChange = (employeeId, amount) => {
+    setAdditionalAmounts((prev) => ({
+      ...prev,
+      [employeeId]: parseFloat(amount) || 0,
+    }));
+  };
+
+  // --- Calculate Total Amount ---
+  const calculateTotalAmount = (emp) => {
+    const baseAmount = parseFloat(emp.salaryDetails?.totalPay) || 0;
+    const additionalAmount = additionalAmounts[emp.employeeId || emp.id] || 0;
+    const total = baseAmount + additionalAmount;
+    return Math.round(total); // Remove decimals
+  };
+
   // --- Search Handlers ---
   const handleSearch = () => {
     setIsSearching(true);
     setSearchQuery(searchInput.trim());
     setTimeout(() => {
       setIsSearching(false);
-    }, 500); // simulate async search
+    }, 500);
   };
 
   const handleKeyDown = (e) => {
@@ -58,10 +75,14 @@ function SalaryTable({ employees }) {
   const isIndeterminate =
     selectedEmployees.length > 0 && selectedEmployees.length < employees.length;
 
-  // --- Get selected employee data ---
-  const selectedEmployeeData = employees.filter((emp) =>
-    selectedEmployees.includes(emp.employeeId || emp.id)
-  );
+  // --- Get selected employee data with additional amounts ---
+  const selectedEmployeeData = employees
+    .filter((emp) => selectedEmployees.includes(emp.employeeId || emp.id))
+    .map((emp) => ({
+      ...emp,
+      additionalAmount: additionalAmounts[emp.employeeId || emp.id] || 0,
+      totalAmount: calculateTotalAmount(emp),
+    }));
 
   // --- Filter Employees by Search ---
   const filteredEmployees = employees.filter((emp) => {
@@ -134,7 +155,7 @@ function SalaryTable({ employees }) {
       {/* Table */}
       <div className="overflow-x-auto bg-white h-[62vh] overflow-y-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-[#E6ECF0] sticky top-0 z-10">
+          <thead className="bg-[#E6ECF0] sticky top-0 z-10 whitespace-nowrap">
             <tr>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Select
@@ -154,7 +175,8 @@ function SalaryTable({ employees }) {
               <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Salary
               </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
+
+              <th className="text-left p-3 text-sm font-medium text-gray-700 ">
                 Working Days
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
@@ -164,7 +186,14 @@ function SalaryTable({ employees }) {
                 Absent
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
+                Additional Amount
+              </th>
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Salary Calc
+              </th>
+
+              <th className="text-left p-3 text-sm font-medium text-gray-700">
+                Total Amount
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Details
@@ -174,7 +203,7 @@ function SalaryTable({ employees }) {
           <tbody>
             {filteredEmployees.length === 0 ? (
               <tr>
-                <td colSpan="11" className="p-8 text-center">
+                <td colSpan="13" className="p-8 text-center">
                   <div className="flex flex-col items-center justify-center text-gray-500">
                     <div className="text-lg font-medium mb-2">
                       {searchQuery
@@ -198,6 +227,7 @@ function SalaryTable({ employees }) {
                 const presentDays = Object.values(
                   emp?.salaryDetails?.Present || {}
                 ).reduce((sum, val) => sum + (val || 0), 0);
+                const totalAmount = calculateTotalAmount(emp);
 
                 return (
                   <tr
@@ -256,6 +286,19 @@ function SalaryTable({ employees }) {
                         {emp?.salaryDetails?.absent || 0}
                       </span>
                     </td>
+                    {/* Additional Amount Input */}
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={additionalAmounts[empId] || ""}
+                        onChange={(e) =>
+                          handleAdditionalAmountChange(empId, e.target.value)
+                        }
+                        className="w-24 no-spinner border rounded-md px-2 py-1 text-sm focus:outline-none border-gray-300"
+                      />
+                    </td>
 
                     {/* Salary Visibility */}
                     <td className="p-3">
@@ -269,6 +312,11 @@ function SalaryTable({ employees }) {
                           onClick={() => toggleSalary(empId)}
                         />
                       )}
+                    </td>
+
+                    {/* Total Amount */}
+                    <td className="p-3 text-right font-bold text-green-700">
+                      {totalAmount.toLocaleString()}
                     </td>
 
                     {/* Action Button */}
@@ -296,7 +344,7 @@ function SalaryTable({ employees }) {
         <SalaryExportMonthly selectedEmployeeData={selectedEmployeeData} />
       </div>
 
-      {/* Modal - MOVED OUTSIDE table container */}
+      {/* Modal */}
       {selectedEmp && (
         <EmployeeSalaryDetailsModal
           selectedEmp={selectedEmp}

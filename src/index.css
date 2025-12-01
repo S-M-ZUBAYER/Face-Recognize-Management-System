@@ -243,3 +243,17 @@ input:-webkit-autofill {
 .rdp-day {
   margin: 0 2px !important; /* small margin around each date button */
 }
+
+@layer utilities {
+  /* Chrome, Safari, Edge */
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  .no-spinner {
+    -moz-appearance: textfield;
+  }
+}

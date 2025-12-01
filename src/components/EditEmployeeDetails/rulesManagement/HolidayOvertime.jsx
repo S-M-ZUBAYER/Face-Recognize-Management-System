@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
@@ -8,7 +8,7 @@ export const HolidayOvertime = () => {
   const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
   const [holidayWorkingTimePercent, setHolidayWorkingTimePercent] =
     useState("");
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Load existing holiday overtime values from selectedEmployee

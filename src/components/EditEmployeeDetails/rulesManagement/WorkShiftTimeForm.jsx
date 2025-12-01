@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ExcelFormatExample from "./ExcelFormatExample";
 import toast from "react-hot-toast";
 import { Calendar } from "@/components/ui/calendar";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 
@@ -15,7 +15,7 @@ export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const [workingTimes, setWorkingTimes] = useState([

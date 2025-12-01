@@ -5,8 +5,8 @@ import { saveAs } from "file-saver";
 import { useDateStore } from "@/zustand/useDateStore";
 
 function SalaryExportMonthly({ selectedEmployeeData }) {
+  // console.log(selectedEmployeeData);
   const { selectedMonth, selectedYear } = useDateStore();
-
   const getMonthInfo = (month, year) => {
     const months = [
       "January",
@@ -73,6 +73,7 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
       "Standard Pay",
       "Earned Salary",
       "Present Days Salary",
+      "additionalAmount",
       "Total Pay",
       "Normal Present",
       "Weekend Present",
@@ -180,7 +181,8 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
         emp.salaryDetails?.standardPay ?? 0,
         emp.salaryDetails?.earnedSalary ?? 0,
         emp.salaryDetails?.presentDaysSalary ?? 0,
-        emp.salaryDetails?.totalPay ?? 0,
+        emp?.additionalAmount ?? 0,
+        emp?.totalAmount ?? 0,
         present.normalPresent ?? 0,
         present.weekendPresent ?? 0,
         present.holidayPresent ?? 0,

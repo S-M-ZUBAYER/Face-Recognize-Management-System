@@ -2,15 +2,14 @@ function extractDepartments(designationArray) {
   const departments = new Set();
 
   designationArray.forEach((item) => {
-    try {
-      const deptArr = item.department;
+    const deptArr = item?.department;
+
+    // Only process if department is an array
+    if (Array.isArray(deptArr)) {
       deptArr.forEach((d) => departments.add(d));
-    } catch {
-      console.error("Invalid department format:", item.department);
     }
   });
 
-  // Convert Set to Array and add "All Employees" at the beginning
   return ["All Employees", ...Array.from(departments)];
 }
 

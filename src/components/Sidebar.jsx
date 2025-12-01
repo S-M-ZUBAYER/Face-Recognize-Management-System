@@ -19,6 +19,7 @@ import {
   RulesIcon,
   LogoutIcon,
   PayPeriodIcon,
+  ResignedEmployeeIcon,
 } from "@/constants/icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,6 +29,11 @@ import { base64ToImage } from "@/lib/base64Toimage";
 const LINKS = [
   { label: "Dashboard", icon: DashboardIcon, path: "/" },
   { label: "Employee", icon: EmployeeIcon, path: "/employee" },
+  {
+    label: "Resigned Employee",
+    icon: ResignedEmployeeIcon,
+    path: "/resigned-employee",
+  },
   { label: "Attendance", icon: AttendanceIcon, path: "/attendance" },
   {
     label: "Salary calculation",

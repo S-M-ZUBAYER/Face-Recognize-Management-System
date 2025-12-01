@@ -1,9 +1,9 @@
 import React, { useMemo, useCallback, memo } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeManagementTable from "@/components/employeeManagement/EmployeeManagementTable";
-import { useEmployees } from "@/hook/useEmployees";
 import { useDesignation } from "@/hook/useDesignation";
 import FancyLoader from "@/components/FancyLoader";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 // Constants
 const ALL_EMPLOYEES_FILTER = "All Employees";
@@ -35,7 +35,8 @@ EmployeeManagementContent.displayName = "EmployeeManagementContent";
 function EmployeeManagementPage() {
   const [activeFilter, setActiveFilter] = React.useState(ALL_EMPLOYEES_FILTER);
 
-  const { Employees, isLoading: employeesLoading } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const { designation, isLoading: managementLoading } = useDesignation();
 
   // Memoized filter handler
@@ -53,10 +54,7 @@ function EmployeeManagementPage() {
   }, [Employees, activeFilter]);
 
   // Memoized loading state
-  const isLoading = useMemo(
-    () => employeesLoading || managementLoading,
-    [employeesLoading, managementLoading]
-  );
+  const isLoading = useMemo(() => managementLoading, [managementLoading]);
 
   // Early return for loading state
   if (isLoading) {

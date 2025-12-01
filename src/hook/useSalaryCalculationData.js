@@ -1,10 +1,11 @@
-import { useEmployees } from "./useEmployees";
 import { calculateSalary } from "@/lib/calculateSalary";
 import { useDateStore } from "@/zustand/useDateStore";
 import { useAttendanceData } from "./useAttendanceData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const useSalaryCalculationData = () => {
-  const { isLoading: employeesLoading, Employees = [] } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const { selectedMonth, selectedYear } = useDateStore();
   const { isLoading: attendanceLoading, Attendance = [] } = useAttendanceData();
 
@@ -78,6 +79,6 @@ export const useSalaryCalculationData = () => {
 
   return {
     enrichedEmployees,
-    isLoading: employeesLoading || attendanceLoading,
+    isLoading: attendanceLoading,
   };
 };

@@ -16,8 +16,11 @@ import RulesPage from "@/pages/RulesPage";
 import PrivateRoute from "./PrivateRoute"; // ✅ import
 import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
 import PayPeriodPage from "@/pages/PayPeriodPage";
+import ResignedEmployeePage from "@/pages/ResignedEmployeePage";
+import { useEmployees } from "@/hook/useEmployees";
 
 const AppLayout = () => {
+  useEmployees(); // Fetch and set employees data
   return (
     <div className="flex h-[100vh] w-[100vw] font-poppins-regular ">
       <Sidebar />
@@ -39,6 +42,7 @@ const AppRoutes = () => {
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="employee" element={<EmployeePage />} />
+          <Route path="resigned-employee" element={<ResignedEmployeePage />} />
           <Route
             path="salary-calculation"
             element={<SalaryCalculationPage />}

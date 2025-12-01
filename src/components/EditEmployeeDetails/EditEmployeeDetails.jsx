@@ -4,15 +4,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import FancyLoader from "../FancyLoader";
 import PayPeriodSettings from "./PayPeriodSettings";
 import EditRules from "./EditRules";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import toast from "react-hot-toast";
 import getUpdatedName from "@/lib/getUpdatedName";
+import parseAddress from "@/lib/parseAddress";
 
 const EditEmployeeDetails = () => {
   const { id, deviceMac } = useParams();
   const { data, isLoading, isError, error, updateEmployee, updating } =
     useSingleEmployeeDetails(id, deviceMac);
-  const { setSelectedEmployee } = useEmployeeStore();
+  const { setSelectedEmployee } = useEditEmployeeStore();
   const navigate = useNavigate();
 
   const [employeeData, setEmployeeData] = useState({
@@ -32,18 +33,6 @@ const EditEmployeeDetails = () => {
     employeeImage: "",
   });
 
-  // Helper function to parse address
-  const parseAddress = (address) => {
-    if (typeof address === "string") {
-      try {
-        return JSON.parse(address).des || address;
-      } catch {
-        return address;
-      }
-    }
-    return address?.des || "";
-  };
-
   // Initialize employee data when data is loaded
   useEffect(() => {
     if (data) {
@@ -57,7 +46,7 @@ const EditEmployeeDetails = () => {
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
         employeeName: data.name?.split("<")[0] || "",
-        address: parseAddress(data.address),
+        address: parseAddress(data.address)?.des,
         department: data.department || "",
         email: emailParts[0] || "",
         deviceName: data.deviceName || "",

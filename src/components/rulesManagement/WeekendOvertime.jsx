@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WeekendOvertime = () => {
   const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
   const [weekendWorkingTimePercent, setWeekendWorkingTimePercent] =
     useState("");
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Save weekend overtime configuration
