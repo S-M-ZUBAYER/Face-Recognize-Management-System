@@ -112,17 +112,17 @@ function roundOvertime(minutes, minUnit) {
   return minutes - rem; // round down
 }
 
-function getLeaveForDate(leavesArray, targetDate) {
-  if (!Array.isArray(leavesArray)) return null;
+// function getLeaveForDate(leavesArray, targetDate) {
+//   if (!Array.isArray(leavesArray)) return null;
 
-  const normalizedTarget = normalizeDate(targetDate);
-  return leavesArray.find((leave) => {
-    if (leave && leave.date && leave.date.date) {
-      return normalizeDate(leave.date.date) === normalizedTarget;
-    }
-    return false;
-  });
-}
+//   const normalizedTarget = normalizeDate(targetDate);
+//   return leavesArray.find((leave) => {
+//     if (leave && leave.date && leave.date.date) {
+//       return normalizeDate(leave.date.date) === normalizedTarget;
+//     }
+//     return false;
+//   });
+// }
 
 function parseOtherSalary(otherSalary) {
   let checkedTotal = 0;
@@ -203,7 +203,7 @@ function getWorkingDaysInMonth(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet,
-  fullDayLeaveDates // Add this parameter
+  fullDayLeaveDates
 ) {
   let workingDays = 0;
   let thisMonthLeave = 0;
@@ -378,7 +378,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  if (id === "70709910") {
+  if (id === "70709913") {
     console.log(attendanceRecords);
   }
 
@@ -458,13 +458,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule11 = getRule(11);
 
-  const mLeaves = salaryRules.m_leaves || [];
-  const marLeaves = salaryRules.mar_leaves || [];
-  const pLeaves = salaryRules.p_leaves || [];
+  // const mLeaves = salaryRules.m_leaves || [];
+  // const marLeaves = salaryRules.mar_leaves || [];
+  // const pLeaves = salaryRules.p_leaves || [];
   const sLeaves = salaryRules.s_leaves || [];
-  const cLeaves = salaryRules.c_leaves || [];
-  const eLeaves = salaryRules.e_leaves || [];
-  const rLeaves = salaryRules.r_leaves || [];
+  // const cLeaves = salaryRules.c_leaves || [];
+  // const eLeaves = salaryRules.e_leaves || [];
+  // const rLeaves = salaryRules.r_leaves || [];
   const wLeaves = salaryRules.w_leaves || [];
   const oLeaves = salaryRules.o_leaves || [];
 
@@ -656,7 +656,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let wLeaveDeduction = 0;
   let oLeaveDeduction = 0;
   let sLeaveDeduction = 0;
-  const nonDeductibleLeaveDates = new Set();
+  // const nonDeductibleLeaveDates = new Set();
 
   if (rule11) {
     const { s_deduction, o_deduction, w_deduction } = calculateLeaveDeductions(
@@ -677,6 +677,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   punchDetails.forEach((dayData) => {
     const { punches, shift, date } = dayData;
 
+    if (fullDayLeaveDates.includes(date)) {
+      return;
+    }
+
     const isHoliday = holidaysSet.has(date);
     const dayName = new Date(date).toLocaleDateString("en-US", {
       weekday: "long",
@@ -686,33 +690,33 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     const isGeneralDay = generalDaysSet.has(date);
     const isWeekend = weekendByName && !isGeneralDay;
     // const isReplacedWorkday = replaceDaysSet.has(date);
-
+    // const isLeaveDay = fullDayLeaveDates.includes(date);
     const isWorkingDay = isGeneralDay || (!isHoliday && !isWeekend);
 
-    const mLeave = getLeaveForDate(mLeaves, date);
-    const marLeave = getLeaveForDate(marLeaves, date);
-    const pLeave = getLeaveForDate(pLeaves, date);
-    const sLeave = getLeaveForDate(sLeaves, date);
-    const cLeave = getLeaveForDate(cLeaves, date);
-    const eLeave = getLeaveForDate(eLeaves, date);
-    const rLeave = getLeaveForDate(rLeaves, date);
-    const wLeave = getLeaveForDate(wLeaves, date);
-    const oLeave = getLeaveForDate(oLeaves, date);
+    // const mLeave = getLeaveForDate(mLeaves, date);
+    // const marLeave = getLeaveForDate(marLeaves, date);
+    // const pLeave = getLeaveForDate(pLeaves, date);
+    // const sLeave = getLeaveForDate(sLeaves, date);
+    // const cLeave = getLeaveForDate(cLeaves, date);
+    // const eLeave = getLeaveForDate(eLeaves, date);
+    // const rLeave = getLeaveForDate(rLeaves, date);
+    // const wLeave = getLeaveForDate(wLeaves, date);
+    // const oLeave = getLeaveForDate(oLeaves, date);
 
-    const hasFullDayLeave =
-      (mLeave && !mLeave.date.start && !mLeave.date.end) ||
-      (marLeave && !marLeave.date.start && !marLeave.date.end) ||
-      (pLeave && !pLeave.date.start && !pLeave.date.end) ||
-      (sLeave && !sLeave.date.start && !sLeave.date.end) ||
-      (cLeave && !cLeave.date.start && !cLeave.date.end) ||
-      (eLeave && !eLeave.date.start && !eLeave.date.end) ||
-      (rLeave && !rLeave.date.start && !rLeave.date.end) ||
-      (wLeave && !wLeave.date.start && !wLeave.date.end) ||
-      (oLeave && !oLeave.date.start && !oLeave.date.end);
+    // const hasFullDayLeave =
+    //   (mLeave && !mLeave.date.start && !mLeave.date.end) ||
+    //   (marLeave && !marLeave.date.start && !marLeave.date.end) ||
+    //   (pLeave && !pLeave.date.start && !pLeave.date.end) ||
+    //   (sLeave && !sLeave.date.start && !sLeave.date.end) ||
+    //   (cLeave && !cLeave.date.start && !cLeave.date.end) ||
+    //   (eLeave && !eLeave.date.start && !eLeave.date.end) ||
+    //   (rLeave && !rLeave.date.start && !rLeave.date.end) ||
+    //   (wLeave && !wLeave.date.start && !wLeave.date.end) ||
+    //   (oLeave && !oLeave.date.start && !oLeave.date.end);
 
-    if (hasFullDayLeave) {
-      nonDeductibleLeaveDates.add(date);
-    }
+    // if (hasFullDayLeave) {
+    //   nonDeductibleLeaveDates.add(date);
+    // }
 
     if (isHoliday) {
       holidayPresent += 1;
@@ -720,6 +724,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       weekendPresent += 1;
     } else if (isWorkingDay) {
       normalPresent += 1;
+      // if (id === "70709913") {
+      //   console.log(date, normalPresent);
+      // }
     }
     // if (id === "2109058927") {
     //   console.log(
@@ -743,7 +750,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
           .filter((p) => p === "00:00").length;
         missedPunch += missedCount;
 
-        if (id === "70709910") {
+        if (id === "70709928") {
           console.log("Missed punch on", date, missedCount, punches);
         }
       }
@@ -907,10 +914,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   });
 
   // Calculate absent days
-  absent = Math.max(
-    0,
-    workingDaysUpToCurrent - normalPresent - nonDeductibleLeaveDates.size
-  );
+  absent = Math.max(0, workingDaysUpToCurrent - normalPresent);
+
+  if (id === "70709913") {
+    console.log(workingDaysUpToCurrent, normalPresent);
+  }
 
   let presentDaysSalary = 0;
   let earnedSalary = 0;
@@ -1067,11 +1075,17 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   }
 
   if (rule14 && daysPenaltyPerAbsence > 0 && absent > 0) {
-    const extraPenaltyDaysPerAbsence = Math.max(0, daysPenaltyPerAbsence - 1);
-    if (extraPenaltyDaysPerAbsence > 0) {
-      const additionalPenaltyDays = extraPenaltyDaysPerAbsence * absent;
-      absentDeductions += additionalPenaltyDays * dailyRate;
-    }
+    // if (id === "70709917") {
+    //   console.log(
+    //     absentDeductions,
+    //     absent,
+    //     dailyRate,
+    //     daysPenaltyPerAbsence,
+    //     extraPenaltyDaysPerAbsence
+    //   );
+    // }
+    const additionalPenaltyDays = daysPenaltyPerAbsence * absent;
+    absentDeductions += additionalPenaltyDays * dailyRate;
   }
 
   let overtimePay = 0;
@@ -1183,7 +1197,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     },
     rule11LeaveInfo: {
       hasRule11: !!rule11,
-      nonDeductibleLeaveDays: nonDeductibleLeaveDates.size,
+      // nonDeductibleLeaveDays: nonDeductibleLeaveDates.size,
       wLeaveDeduction: wLeaveDeduction,
       oLeaveDeduction: oLeaveDeduction,
       sLeaveDeduction,

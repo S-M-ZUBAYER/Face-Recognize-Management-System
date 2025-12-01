@@ -4,6 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const salaryDetails = selectedEmp?.salaryDetails;
 
+  // Format number to 2 decimal places
+  const formatNumber = (num) => {
+    if (num === undefined || num === null) return "0.00";
+    return parseFloat(num).toFixed(2);
+  };
+
   // Calculate total deductions
   const totalDeductions =
     (salaryDetails?.deductions?.absentDeductions || 0) +
@@ -37,7 +43,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
           {/* Modal Container */}
           <motion.div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden custom-scrollbar"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -106,7 +112,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <p className="text-xs text-gray-500">Base salary</p>
                         </div>
                         <span className="text-lg font-bold text-gray-900">
-                          {salaryDetails?.standardPay || 0}
+                          {formatNumber(salaryDetails?.standardPay)}
                         </span>
                       </div>
 
@@ -125,11 +131,12 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             holiday
                           </p>
                           <p className="text-xs text-gray-500">
-                            Rate: {salaryDetails?.overtimeSalary || 0}/hour
+                            Rate: {formatNumber(salaryDetails?.overtimeSalary)}
+                            /hour
                           </p>
                         </div>
                         <span className="text-lg font-bold text-blue-600">
-                          +{salaryDetails?.overtimePay || 0}
+                          +{formatNumber(salaryDetails?.overtimePay)}
                         </span>
                       </div>
 
@@ -142,15 +149,17 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             </p>
                             <p className="text-xs text-gray-500">
                               Weekend:{" "}
-                              {salaryDetails?.extraPay?.weekendNormalShiftPay ||
-                                0}{" "}
+                              {formatNumber(
+                                salaryDetails?.extraPay?.weekendNormalShiftPay
+                              )}{" "}
                               • Holiday:{" "}
-                              {salaryDetails?.extraPay?.holidayNormalShiftPay ||
-                                0}
+                              {formatNumber(
+                                salaryDetails?.extraPay?.holidayNormalShiftPay
+                              )}
                             </p>
                           </div>
                           <span className="text-lg font-bold text-green-600">
-                            +{totalExtraPay}
+                            +{formatNumber(totalExtraPay)}
                           </span>
                         </div>
                       )}
@@ -166,7 +175,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </p>
                         </div>
                         <span className="text-lg font-bold text-red-600">
-                          -{totalDeductions}
+                          -{formatNumber(totalDeductions)}
                         </span>
                       </div>
 
@@ -179,7 +188,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <p className="text-xs text-gray-600">Final amount</p>
                         </div>
                         <span className="text-xl font-bold text-gray-900">
-                          {salaryDetails?.totalPay || 0}
+                          {formatNumber(salaryDetails?.totalPay)}
                         </span>
                       </div>
                     </div>
@@ -198,7 +207,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             {salaryDetails?.overtimeDetails?.normal || 0}h
                           </span>
                           <p className="text-xs text-gray-500">
-                            Rate: {salaryDetails?.overtimeSalary || 0}
+                            Rate: {formatNumber(salaryDetails?.overtimeSalary)}
                           </p>
                         </div>
                       </div>
@@ -209,7 +218,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             {salaryDetails?.overtimeDetails?.weekend || 0}h
                           </span>
                           <p className="text-xs text-gray-500">
-                            Rate: {salaryDetails?.overtimeSalary || 0}
+                            Rate: {formatNumber(salaryDetails?.overtimeSalary)}
                           </p>
                         </div>
                       </div>
@@ -220,7 +229,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             {salaryDetails?.overtimeDetails?.holiday || 0}h
                           </span>
                           <p className="text-xs text-gray-500">
-                            Rate: {salaryDetails?.overtimeSalary || 0}
+                            Rate: {formatNumber(salaryDetails?.overtimeSalary)}
                           </p>
                         </div>
                       </div>
@@ -228,7 +237,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="flex justify-between items-center text-sm font-medium">
                           <span>Total Overtime Pay</span>
                           <span className="text-blue-600">
-                            {salaryDetails?.overtimePay || 0}
+                            {formatNumber(salaryDetails?.overtimePay)}
                           </span>
                         </div>
                       </div>
@@ -342,8 +351,9 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </span>
                           <span className="font-medium text-green-600">
                             +
-                            {salaryDetails?.extraPay?.weekendNormalShiftPay ||
-                              0}
+                            {formatNumber(
+                              salaryDetails?.extraPay?.weekendNormalShiftPay
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
@@ -352,15 +362,16 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </span>
                           <span className="font-medium text-green-600">
                             +
-                            {salaryDetails?.extraPay?.holidayNormalShiftPay ||
-                              0}
+                            {formatNumber(
+                              salaryDetails?.extraPay?.holidayNormalShiftPay
+                            )}
                           </span>
                         </div>
                         <div className="border-t pt-2 mt-1">
                           <div className="flex justify-between items-center text-sm font-medium">
                             <span>Total Extra Pay</span>
                             <span className="text-green-600">
-                              +{totalExtraPay}
+                              +{formatNumber(totalExtraPay)}
                             </span>
                           </div>
                         </div>
@@ -390,21 +401,28 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="flex justify-between items-center text-sm py-1">
                           <span className="text-gray-600">Absent</span>
                           <span className="text-red-600">
-                            -{salaryDetails?.deductions?.absentDeductions || 0}
+                            -
+                            {formatNumber(
+                              salaryDetails?.deductions?.absentDeductions
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                           <span className="text-gray-600">Missed Punches</span>
                           <span className="text-red-600">
                             -
-                            {salaryDetails?.deductions?.missedPunchDeductions ||
-                              0}
+                            {formatNumber(
+                              salaryDetails?.deductions?.missedPunchDeductions
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                           <span className="text-gray-600">Late Arrivals</span>
                           <span className="text-red-600">
-                            -{salaryDetails?.deductions?.lateDeductions || 0}
+                            -
+                            {formatNumber(
+                              salaryDetails?.deductions?.lateDeductions
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
@@ -412,7 +430,10 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             Early Departures
                           </span>
                           <span className="text-red-600">
-                            -{salaryDetails?.deductions?.earlyDeductions || 0}
+                            -
+                            {formatNumber(
+                              salaryDetails?.deductions?.earlyDeductions
+                            )}
                           </span>
                         </div>
                       </div>
@@ -426,24 +447,27 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-gray-600">W Leave</span>
                           <span className="text-red-600">
                             -
-                            {salaryDetails?.LeaveDeduction?.wLeaveDeduction ||
-                              0}
+                            {formatNumber(
+                              salaryDetails?.LeaveDeduction?.wLeaveDeduction
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                           <span className="text-gray-600">O Leave</span>
                           <span className="text-red-600">
                             -
-                            {salaryDetails?.LeaveDeduction?.oLeaveDeduction ||
-                              0}
+                            {formatNumber(
+                              salaryDetails?.LeaveDeduction?.oLeaveDeduction
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                           <span className="text-gray-600">S Leave</span>
                           <span className="text-red-600">
                             -
-                            {salaryDetails?.LeaveDeduction?.sLeaveDeduction ||
-                              0}
+                            {formatNumber(
+                              salaryDetails?.LeaveDeduction?.sLeaveDeduction
+                            )}
                           </span>
                         </div>
                       </div>
@@ -453,7 +477,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="flex justify-between items-center text-sm font-medium">
                           <span>Total Deductions</span>
                           <span className="text-red-600">
-                            -{totalDeductions}
+                            -{formatNumber(totalDeductions)}
                           </span>
                         </div>
                       </div>
