@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
@@ -29,7 +29,7 @@ function BiWeeklyForm() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedWeekday, setSelectedWeekday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {

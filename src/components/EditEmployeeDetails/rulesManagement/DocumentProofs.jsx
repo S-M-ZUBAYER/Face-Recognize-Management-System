@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/popover";
 import image from "@/constants/image";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 
 import toast from "react-hot-toast";
@@ -35,7 +35,7 @@ export default function DocumentProofs() {
   const [missedPunchDocuments, setMissedPunchDocuments] = useState([]);
   const [latePunchDocuments, setLatePunchDocuments] = useState([]);
 
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { uploadImage, uploading } = useImageUpload();
 

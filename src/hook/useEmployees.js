@@ -7,12 +7,20 @@ import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
+import parseAddress from "@/lib/parseAddress";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEffect, useRef } from "react";
+import isEqual from "lodash.isequal";
 
 export const useEmployees = () => {
   const queryClient = useQueryClient();
   const { deviceMACs } = useDeviceMACs();
   const { payPeriodData, isLoading: payPeriodLoading } = usePayPeriod();
   const { globalSalaryRules, isLoading: rulesLoading } = useGlobalSalary();
+  const { setEmployeesArray } = useEmployeeStore();
+  const prevRef = useRef([]);
+
+  // console.log(globalSalaryRules);
 
   const employeeQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
@@ -32,6 +40,7 @@ export const useEmployees = () => {
             image: getApiUrl(`/media/${emp.imageFile}`),
             designation: emp.designation,
             deviceMAC: mac.deviceMAC,
+            address: parseAddress(emp.address),
             salaryRules: emp.salaryRules,
             salaryInfo: JSON.parse(emp.payPeriod || "{}"),
           }));
@@ -89,7 +98,7 @@ export const useEmployees = () => {
     );
   };
 
-  const Employees = employees.map((emp) => {
+  const EmployeesArray = employees.map((emp) => {
     let payPeriod, salaryRules;
 
     const hasInvalidSalaryInfo = isInvalidSalaryInfo(emp.salaryInfo);
@@ -139,11 +148,30 @@ export const useEmployees = () => {
     };
   });
 
+  // ✅ FIX: update Zustand AFTER render
+  useEffect(() => {
+    // avoid unnecessary updates
+    if (!isEqual(prevRef.current, EmployeesArray)) {
+      prevRef.current = EmployeesArray;
+      setEmployeesArray(EmployeesArray);
+    }
+  }, [EmployeesArray, setEmployeesArray]);
+
   const refresh = () => {
     deviceMACs.forEach((mac) =>
       queryClient.invalidateQueries(["employees", mac.deviceMAC])
     );
   };
+
+  // const today = new Date().toISOString().split("T")[0];
+
+  // const Employees = EmployeesArray.filter(
+  //   (e) => e.address?.type !== "resigned" || e.address?.r_date >= today
+  // );
+
+  // const resignedEmployees = EmployeesArray.filter(
+  //   (e) => e.address?.type === "resigned" && e.address?.r_date < today
+  // );
 
   const isDependencyLoading = payPeriodLoading || rulesLoading;
   const isLoading =
@@ -151,7 +179,8 @@ export const useEmployees = () => {
   const isError = employeeQueries.some((q) => q.isError);
 
   return {
-    Employees,
+    // Employees: EmployeesArray,
+    // resignedEmployees,
     employeeCounts: deviceMACs.map((mac, idx) => ({
       deviceMAC: mac.deviceMAC,
       count: employeeQueries[idx].data?.length || 0,

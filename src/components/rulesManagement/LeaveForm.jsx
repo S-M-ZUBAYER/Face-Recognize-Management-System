@@ -14,7 +14,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import formatDateForStorage from "@/lib/formatDateForStorage";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
@@ -23,7 +23,8 @@ export const LeaveForm = () => {
   const [timePopovers, setTimePopovers] = useState({});
   const [tempTimeRanges, setTempTimeRanges] = useState({});
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   // Helper function to get consistent date string
   const getDateString = (date) => {

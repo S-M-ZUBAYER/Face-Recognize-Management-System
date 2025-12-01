@@ -16,7 +16,7 @@ import {
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -62,7 +62,8 @@ function BiWeeklyForm() {
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 

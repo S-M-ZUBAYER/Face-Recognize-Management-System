@@ -10,10 +10,11 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { TimeRangePicker } from "@/components/TimePicker";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useUserStore } from "@/zustand/useUserStore";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WorkShiftTimeForm = () => {
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDateForConfig, setSelectedDateForConfig] = useState(null);

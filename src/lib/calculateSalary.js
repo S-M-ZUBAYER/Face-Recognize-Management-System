@@ -1,4 +1,5 @@
 import calculateLeaveDeductions from "./calculateLeaveDeductions";
+import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 
 function toMinutes(time) {
@@ -106,9 +107,9 @@ function roundOvertime(minutes, minUnit) {
   const unit = Number(minUnit || 0);
   if (!unit) return minutes;
   if (minutes <= 0) return 0;
-  if (minutes < unit) return 0;
+
   const rem = minutes % unit;
-  return rem === 0 ? minutes : minutes + (unit - rem);
+  return minutes - rem; // round down
 }
 
 function getLeaveForDate(leavesArray, targetDate) {
@@ -195,21 +196,65 @@ function parseOtherSalary(otherSalary) {
   return { checkedTotal: 0, uncheckedTotal: 0 };
 }
 
-function getWorkingDaysInMonth(year, month, weekendDayNames) {
-  const weekends = new Set(weekendDayNames);
+function getWorkingDaysInMonth(
+  year,
+  month,
+  weekendDayNames,
+  holidaysSet,
+  generalDaysSet,
+  replaceDaysSet,
+  fullDayLeaveDates // Add this parameter
+) {
   let workingDays = 0;
+  let thisMonthLeave = 0;
+  let thisMonthHolidays = 0;
+  let thisMonthWeekends = 0;
+  const weekends = Array.from(weekendDayNames);
+  // Fixed month indexing - months are 0-based in JavaScript Date
   const daysInMonth = new Date(year, month, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
+    const monthStr = String(month).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    const date = new Date(dateStr);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-    if (!weekends.has(dayName)) {
-      workingDays++;
+    // Check if it's a full day leave - skip this day
+    if (fullDayLeaveDates.includes(dateStr)) {
+      thisMonthLeave++;
+      continue;
     }
+
+    // Check replacement days first (these override everything)
+    if (replaceDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
+
+    // Check holidays
+    if (holidaysSet.has(dateStr)) {
+      thisMonthHolidays++;
+      continue;
+    }
+
+    // Check general working days
+    if (generalDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
+
+    // Check weekends
+    if (weekends.includes(dayName)) {
+      thisMonthWeekends++;
+      continue;
+    }
+
+    // Normal working day
+    workingDays++;
   }
 
-  return workingDays;
+  return { workingDays, thisMonthLeave, thisMonthHolidays, thisMonthWeekends };
 }
 
 function getWorkingDaysUpToDate(
@@ -219,41 +264,92 @@ function getWorkingDaysUpToDate(
   weekendDayNames,
   holidaysSet,
   generalDaysSet,
-  replaceDaysSet
+  replaceDaysSet,
+  fullDayLeaveDates // Add this parameter
+  // id
 ) {
   let workingDays = 0;
+  let thisMonthLeave = 0;
+  let thisMonthHolidays = 0;
+  let thisMonthWeekends = 0;
+  let futureAbsent = 0;
   const weekends = Array.from(weekendDayNames);
 
-  for (let d = 1; d <= currentDay; d++) {
+  const monthDays = new Date(year, month, 0).getDate();
+
+  for (let d = currentDay + 1; d <= monthDays; d++) {
     const monthStr = String(month).padStart(2, "0");
     const dayStr = String(d).padStart(2, "0");
-
     const dateStr = `${year}-${monthStr}-${dayStr}`;
     const date = new Date(dateStr);
-
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-
-    if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
-      continue;
-    }
-
-    if (holidaysSet.has(dateStr)) {
-      continue;
-    }
-
-    if (generalDaysSet.has(dateStr)) {
-      workingDays++;
-      continue;
-    }
 
     if (weekends.includes(dayName)) {
       continue;
     }
 
+    // Check holidays
+    if (holidaysSet.has(dateStr)) {
+      continue;
+    }
+    futureAbsent++;
+  }
+
+  for (let d = 1; d <= currentDay; d++) {
+    const monthStr = String(month).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    const date = new Date(dateStr);
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+
+    // Check if it's a full day leave - skip this day
+    if (fullDayLeaveDates.includes(dateStr)) {
+      thisMonthLeave++;
+      continue;
+    }
+    // if (id === "70709903") {
+    //   console.log(
+    //     fullDayLeaveDates,
+    //     fullDayLeaveDates.includes(dateStr),
+    //     dateStr
+    //   );
+    // }
+
+    // Check replacement days first (these override everything)
+    if (replaceDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
+
+    // Check holidays
+    if (holidaysSet.has(dateStr)) {
+      thisMonthHolidays++;
+      continue;
+    }
+
+    // Check general working days
+    if (generalDaysSet.has(dateStr)) {
+      workingDays++;
+      continue;
+    }
+
+    // Check weekends
+    if (weekends.includes(dayName)) {
+      thisMonthWeekends++;
+      continue;
+    }
+
+    // Normal working day
     workingDays++;
   }
-  return workingDays;
+
+  return {
+    workingDays,
+    thisMonthLeave,
+    thisMonthHolidays,
+    thisMonthWeekends,
+    futureAbsent,
+  };
 }
 
 export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
@@ -282,9 +378,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  // if (id === "3531774237") {
-  //   console.log(attendanceRecords);
-  // }
+  if (id === "70709910") {
+    console.log(attendanceRecords);
+  }
 
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
@@ -328,7 +424,18 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const getRule = (n) => getRuleByNumber(filteredRules, n);
 
   const rule5 = getRule(5);
-  const latenessGraceMin = Number(firstNumericParam(rule5) || 0);
+  let latenessGraceMin = 0;
+
+  if (rule5 && rule5.param1 != null) {
+    const value = String(rule5.param1).trim();
+
+    // Accept only pure numbers (integer)
+    const isPureNumber = /^[0-9]+$/.test(value);
+
+    if (isPureNumber) {
+      latenessGraceMin = Number(value);
+    }
+  }
 
   const rule6 = getRule(6);
   const flexLateUnit = Number(rule6?.param1 || 0);
@@ -342,11 +449,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const minOTUnit = Number(firstNumericParam(rule8) || 0);
 
   const rule9 = getRule(9);
-  const weekendMultiplier = Number(firstNumericParam(rule9) || 1);
+  const weekendMultiplier = Number(firstNumericParam(rule9) || 0);
   const weekendNormalShiftMultiplier = Number(secondNumericParam(rule9) || 1);
 
   const rule10 = getRule(10);
-  const holidayMultiplier = Number(firstNumericParam(rule10) || 1);
+  const holidayMultiplier = Number(firstNumericParam(rule10) || 0);
   const holidayNormalShiftMultiplier = Number(secondNumericParam(rule10) || 1);
 
   const rule11 = getRule(11);
@@ -412,7 +519,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let year, month;
 
   // NEW: Get reconciled punch and shift details
+
   const punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
+  // let punchDetails = [];
+  // try {
+  //    punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
+  // } catch  {
+  //   console.log(id,salaryRules)
+  // }
 
   if (punchDetails.length > 0) {
     const [y, m] = punchDetails[0].date.split("-");
@@ -424,35 +538,82 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     month = now.getMonth();
   }
 
-  const workingDaysConfigured = getWorkingDaysInMonth(
-    year,
-    month,
-    weekendDayNames
-  );
+  // const workingDaysConfigured = getWorkingDaysInMonth(
+  //   year,
+  //   month,
+  //   weekendDayNames,
+  //   holidaysSet,
+  //   generalDaysSet,
+  //   replaceDaysSet,
+  //   id
+  // );
+  // if (id === "70709904") {
+  //   console.log(holidaysArr);
+  // }
 
   const now = new Date();
   const currentDay = now.getDate();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
+  const fullDayLeaveDates = getFullDayLeaveDates([
+    salaryRules.m_leaves,
+    salaryRules.mar_leaves,
+    salaryRules.p_leaves,
+    salaryRules.s_leaves,
+    salaryRules.c_leaves,
+    salaryRules.e_leaves,
+    salaryRules.r_leaves,
+    salaryRules.w_leaves,
+    salaryRules.o_leaves,
+  ]);
+
   // console.log(currentMonth, currentYear, month, year);
 
-  let workingDaysUpToCurrent = workingDaysConfigured;
+  let workingDaysUpToCurrent;
+  let thisMonthLeave = 0;
+  let thisMonthHolidays = 0;
+  let thisMonthWeekends = 0;
+  let futureAbsent = 0;
   if (year === currentYear && month === currentMonth) {
-    workingDaysUpToCurrent = getWorkingDaysUpToDate(
+    const details = getWorkingDaysUpToDate(
       year,
       month,
       currentDay,
       weekendDayNames,
       holidaysSet,
       generalDaysSet,
-      replaceDaysSet
+      replaceDaysSet,
+      fullDayLeaveDates,
+      id
     );
+    workingDaysUpToCurrent = details.workingDays;
+    thisMonthLeave = details.thisMonthLeave;
+    thisMonthHolidays = details.thisMonthHolidays;
+    thisMonthWeekends = details.thisMonthWeekends;
+    futureAbsent = details.futureAbsent;
+  } else {
+    const details = getWorkingDaysInMonth(
+      year,
+      month,
+      weekendDayNames,
+      holidaysSet, // Fixed parameter order
+      generalDaysSet,
+      replaceDaysSet,
+      fullDayLeaveDates,
+      id
+    );
+    workingDaysUpToCurrent = details.workingDays;
+    thisMonthLeave = details.thisMonthLeave;
+    thisMonthHolidays = details.thisMonthHolidays;
+    thisMonthWeekends = details.thisMonthWeekends;
   }
 
   const standardPay = monthlySalary + uncheckedTotal;
-  const dailyRate =
-    workingDaysConfigured > 0 ? monthlySalary / workingDaysConfigured : 0;
+  const dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
+  // if (id === "70709903") {
+  //   console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
+  // }
 
   const punchDocs = Array.isArray(salaryRules.punchDocuments)
     ? salaryRules.punchDocuments
@@ -485,11 +646,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let absent = 0;
   let deductions = 0;
   let otherLeaveDeduction = 0;
-  let sickLeaveDeduction = 0;
+  // let sickLeaveDeduction = 0;
+  let absentDeductions = 0;
+  let lateDeductions = 0;
+  let earlyDeductions = 0;
+  let missedPunchDeductions = 0;
   let halfDayLateCount = 0;
   let fullDayLateCount = 0;
-  let sickLeaveDaysUsed = 0;
-
   let wLeaveDeduction = 0;
   let oLeaveDeduction = 0;
   let sLeaveDeduction = 0;
@@ -580,9 +743,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
           .filter((p) => p === "00:00").length;
         missedPunch += missedCount;
 
-        // if (id === "3531774237") {
-        //   console.log("Missed punch on", date, missedCount, punches);
-        // }
+        if (id === "70709910") {
+          console.log("Missed punch on", date, missedCount, punches);
+        }
       }
     }
 
@@ -598,18 +761,18 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         lateCount += 1;
         totalLatenessMinutes += lateMins;
 
-        // if (id === "2109058927") {
-        //   console.log("Late on", date, lateMins, lateCount);
-        // }
+        if (id === "70709905") {
+          console.log("Late on", date, lateMins, lateCount, latenessGraceMin);
+        }
 
         if (rule18) {
-          const halfDayBoundary = toMinutes(
-            punches[2] === "00:00" ? "12:30" : punches[2]
-          );
-          if (punchMins < halfDayBoundary) halfDayLateCount += 1;
-          else fullDayLateCount += 1;
+          halfDayLateCount += 1;
         }
       }
+    }
+
+    if (id === "70709905") {
+      console.log(latenessGraceMin);
     }
 
     // Index 2: Lunch in
@@ -622,9 +785,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         const lateMins = punchMins - lateThresh;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
-        // if (id === "2109058927") {
-        //   console.log("Late on", date, lateMins);
-        // }
+        if (id === "70709905") {
+          console.log("Late on", date, lateMins, latenessGraceMin);
+        }
+
+        if (rule18) {
+          fullDayLateCount += 1;
+        }
       }
     }
 
@@ -701,20 +868,40 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     if (shift.length >= 6 && punches.length >= 6) {
       // Has overtime shift (index 4-5)
       const otStart = toMinutes(shift[4]);
-      const otEnd = toMinutes(shift[5]);
-      const punchOut =
-        punches[5] !== "00:00" ? toMinutes(punches[5]) : toMinutes(punches[3]);
-
-      if (punchOut > otStart) {
-        const otMinutes = Math.max(0, Math.min(punchOut, otEnd) - otStart);
-
-        if (isHoliday) {
-          overtimeHoliday += otMinutes;
-        } else if (isWeekend) {
-          overtimeWeekend += otMinutes;
-        } else {
-          overtimeNormal += otMinutes;
-        }
+      // const otEnd = toMinutes(shift[5]);
+      // const punchOut =
+      //   punches[5] !== "00:00" ? toMinutes(punches[5]) : toMinutes(punches[3]);
+      let otMinutes = 0;
+      if (punches[4] !== "00:00" && punches[5] !== "00:00") {
+        const p4 = toMinutes(punches[4]);
+        const p5 = toMinutes(punches[5]);
+        otMinutes = Math.max(0, p5 - p4); // prevent negative OT
+      } else if (punches[5] !== "00:00") {
+        // Your previous logic: use shift OT start time
+        const punchOut = toMinutes(punches[5]);
+        otMinutes = Math.max(0, punchOut - otStart);
+      }
+      if (isHoliday) {
+        overtimeHoliday += otMinutes;
+      } else if (isWeekend) {
+        overtimeWeekend += otMinutes;
+      } else {
+        overtimeNormal += otMinutes;
+      }
+      if (rule8 && minOTUnit > 0) {
+        overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
+        overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
+        overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
+        // if (id === "70709908") {
+        //   console.log(
+        //     otMinutes,
+        //     overtimeNormal,
+        //     toMinutes(punches[5]),
+        //     toMinutes(punches[4]),
+        //     toMinutes(punches[5]) - toMinutes(punches[4]),
+        //     date
+        //   );
+        // }
       }
     }
   });
@@ -728,30 +915,64 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let presentDaysSalary = 0;
   let earnedSalary = 0;
 
-  if (rule14 && daysPenaltyPerAbsence > 0) {
-    presentDaysSalary =
-      normalPresent > 0
-        ? (monthlySalary / workingDaysConfigured) * normalPresent
-        : 0;
-    earnedSalary = presentDaysSalary + uncheckedTotal;
-  } else {
-    presentDaysSalary = monthlySalary;
-    earnedSalary = standardPay;
-  }
-
-  const sickLeaveDays = Number(rule11?.param3 || 0);
-  const sickLeaveType = rule11?.param4 || "proportional";
-  const sickLeaveAmount = Number(rule11?.param5 || 0);
-
-  if (rule11 && sickLeaveDays > 0 && sickLeaveDaysUsed > 0) {
-    if (sickLeaveType === "fixed") {
-      sickLeaveDeduction = sickLeaveAmount * sickLeaveDaysUsed;
+  if (year === currentYear && month === currentMonth) {
+    if (rule14 && daysPenaltyPerAbsence > 0) {
+      presentDaysSalary =
+        normalPresent > 0
+          ? standardPay - dailyRate * (absent + futureAbsent)
+          : 0;
+      earnedSalary = presentDaysSalary;
+      // if (id === "2109058927") {
+      //   console.log(
+      //     standardPay - dailyRate * (absent + futureAbsent),
+      //     standardPay,
+      //     absent,
+      //     futureAbsent,
+      //     dailyRate
+      //   );
+      // }
     } else {
-      const proportion = sickLeaveAmount || 1;
-      const dailySalary = dailyRate;
-      sickLeaveDeduction = dailySalary * proportion * sickLeaveDaysUsed;
+      presentDaysSalary = monthlySalary + uncheckedTotal;
+      earnedSalary = standardPay;
+      // if (id === "2109058926") {
+      //   console.log(earnedSalary);
+      // }
+    }
+  } else {
+    if (rule14 && daysPenaltyPerAbsence > 0) {
+      presentDaysSalary =
+        normalPresent > 0 ? standardPay - dailyRate * absent : 0;
+      earnedSalary = presentDaysSalary;
+      // if (id === "70709904") {
+      //   console.log(
+      //     standardPay,
+      //     dailyRate,
+      //     absent,
+      //     standardPay - dailyRate * absent
+      //   );
+      // }
+    } else {
+      presentDaysSalary = monthlySalary + uncheckedTotal;
+      earnedSalary = standardPay;
+      // if (id === "70709903") {
+      //   console.log(earnedSalary);
+      // }
     }
   }
+
+  // const sickLeaveDays = Number(rule11?.param3 || 0);
+  // const sickLeaveType = rule11?.param4 || "proportional";
+  // const sickLeaveAmount = Number(rule11?.param5 || 0);
+
+  // if (rule11 && sickLeaveDays > 0 && sickLeaveDaysUsed > 0) {
+  //   if (sickLeaveType === "fixed") {
+  //     sickLeaveDeduction = sickLeaveAmount * sickLeaveDaysUsed;
+  //   } else {
+  //     const proportion = sickLeaveAmount || 1;
+  //     const dailySalary = dailyRate;
+  //     sickLeaveDeduction = dailySalary * proportion * sickLeaveDaysUsed;
+  //   }
+  // }
 
   if (rule7Enabled && totalLatenessMinutes > 0) {
     let remaining = totalLatenessMinutes;
@@ -770,32 +991,41 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
   }
 
-  if (rule8 && minOTUnit > 0) {
-    overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
-    overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
-    overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
+  // if (id === "70709903") {
+  //   console.log(overtimeNormal);
+  // }
+
+  if (rule16 && latePenaltyPerOcc > 0) {
+    lateDeductions += lateCount * latePenaltyPerOcc;
+    // if (id === "70709904") {
+    //   console.log(deductions, latePenaltyPerOcc, lateCount);
+    // }
   }
 
-  if (rule16 && latePenaltyPerOcc > 0)
-    deductions += lateCount * latePenaltyPerOcc;
-
   if (rule17 && earlyPenaltyPerOcc > 0)
-    deductions += earlyDepartureCount * earlyPenaltyPerOcc;
+    earlyDeductions += earlyDepartureCount * earlyPenaltyPerOcc;
+  // if (id === "70709904") {
+  //   console.log(deductions);
+  // }
 
   if (rule18) {
     const dailySalary = dailyRate;
-    deductions +=
+    lateDeductions +=
       halfDayLateCount * (0.5 * dailySalary) + fullDayLateCount * dailySalary;
   }
+  // if (id === "2109058928") {
+  //   console.log(halfDayLateCount, fullDayLateCount, lateDeductions, lateCount);
+  // }
 
   if (rule19 && perHourLatePenalty > 0)
-    deductions += toHours(totalLatenessMinutes) * perHourLatePenalty;
+    lateDeductions += toHours(totalLatenessMinutes) * perHourLatePenalty;
 
   if (rule20 && rule20Threshold > 0 && totalLatenessMinutes > rule20Threshold)
-    deductions += rule20Fixed;
+    lateDeductions += rule20Fixed;
 
   if (rule21 && incrementalLateValue > 0) {
-    deductions += (incrementalLateValue * (lateCount * (lateCount + 1))) / 2;
+    lateDeductions +=
+      (incrementalLateValue * (lateCount * (lateCount + 1))) / 2;
   }
 
   if (rule22 && (dayShiftPenalty || nightShiftPenalty)) {
@@ -810,11 +1040,12 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
 
     const perOccPenalty = isNightShift ? nightShiftPenalty : dayShiftPenalty;
-    if (perOccPenalty) deductions += lateCount * perOccPenalty;
+    if (perOccPenalty) lateDeductions += lateCount * perOccPenalty;
   }
 
   if (rule23 && missedPunchCost && missedPunch > missedPunchAccept) {
-    deductions += (missedPunch - missedPunchAccept) * missedPunchCost;
+    missedPunchDeductions +=
+      (missedPunch - missedPunchAccept) * missedPunchCost;
   }
 
   if (rule11) {
@@ -839,7 +1070,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     const extraPenaltyDaysPerAbsence = Math.max(0, daysPenaltyPerAbsence - 1);
     if (extraPenaltyDaysPerAbsence > 0) {
       const additionalPenaltyDays = extraPenaltyDaysPerAbsence * absent;
-      deductions += additionalPenaltyDays * dailyRate;
+      absentDeductions += additionalPenaltyDays * dailyRate;
     }
   }
 
@@ -862,26 +1093,26 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       overtimePay += toHours(overtimeHoliday) * overtimeSalaryRate * 1;
     }
   }
-
-  const weekendNormalShiftPay =
-    (monthlySalary / workingDaysConfigured) *
-    weekendNormalShiftMultiplier *
-    weekendPresent;
+  let weekendNormalShiftPay = 0;
+  weekendNormalShiftPay =
+    dailyRate * (weekendNormalShiftMultiplier - 1) * weekendPresent;
   // if (id === "2109058929") {
   //   console.log(
   //     monthlySalary,
-  //     workingDaysConfigured,
+  //     workingDaysUpToCurrent,
   //     weekendNormalShiftMultiplier,
   //     weekendPresent
   //   );
   // }
-  const holidayNormalShiftPay =
-    (monthlySalary / workingDaysConfigured) *
-    holidayNormalShiftMultiplier *
-    holidayPresent;
+  let holidayNormalShiftPay = 0;
+  holidayNormalShiftPay =
+    dailyRate * (holidayNormalShiftMultiplier - 1) * holidayPresent;
 
   earnedSalary += weekendNormalShiftPay + holidayNormalShiftPay;
   presentDaysSalary += weekendNormalShiftPay + holidayNormalShiftPay;
+
+  deductions =
+    missedPunchDeductions + lateDeductions + earlyDeductions + absentDeductions;
 
   const totalLeaveDeductions =
     wLeaveDeduction + oLeaveDeduction + sLeaveDeduction;
@@ -890,17 +1121,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     earnedSalary -
     deductions -
     otherLeaveDeduction -
-    sickLeaveDeduction -
     totalLeaveDeductions +
     overtimePay
   ).toFixed(2);
 
-  // if (id === "2109058927") {
+  // if (id === "2109058928") {
   //   console.log(
   //     earnedSalary,
   //     deductions,
   //     otherLeaveDeduction,
-  //     sickLeaveDeduction,
   //     totalLeaveDeductions,
   //     overtimePay,
   //     weekendNormalShiftPay,
@@ -915,14 +1144,26 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       missedPunch,
       totalLatenessMinutes,
     },
-    deductions,
-    otherLeaveDeduction,
-    sickLeaveDeduction,
-    sickLeaveDaysUsed,
+    monthlyDetails: { thisMonthHolidays, thisMonthLeave, thisMonthWeekends },
+    deductions: {
+      absentDeductions,
+      missedPunchDeductions,
+      lateDeductions,
+      earlyDeductions,
+    },
+    LeaveDeduction: {
+      wLeaveDeduction,
+      oLeaveDeduction,
+      sLeaveDeduction,
+    },
     overtimeDetails: {
       normal: toHours(overtimeNormal),
       weekend: toHours(overtimeWeekend),
       holiday: toHours(overtimeHoliday),
+    },
+    extraPay: {
+      weekendNormalShiftPay,
+      holidayNormalShiftPay,
     },
     overtimePay,
     overtimeSalary: overtimeSalaryRate,
@@ -932,7 +1173,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     totalPay,
     Present: { normalPresent, holidayPresent, weekendPresent },
     absent,
-    workingDays: workingDaysConfigured,
+    workingDays: workingDaysUpToCurrent,
     workingDaysUpToCurrent,
     replaceDaysArr,
     otherSalaryBreakdown: {

@@ -2,14 +2,15 @@ import { useState } from "react";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const FlexibleWork = () => {
   const [lateMinutes, setLateMinutes] = useState("");
   const [leaveLateMinutes, setLeaveLateMinutes] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   // Save flexible work configuration
   const handleSave = async () => {

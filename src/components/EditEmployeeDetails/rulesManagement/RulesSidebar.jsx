@@ -1,10 +1,10 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import useAlertDialog from "@/zustand/useAlertDialog";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useEffect } from "react";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
-  const { selectedEmployee } = useEmployeeStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { openDialog } = useAlertDialog();
 
   // Force re-render when selectedEmployee changes
@@ -18,6 +18,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   };
 
   const existingRuleIds = getAllRuleIds(selectedEmployee?.salaryRules?.rules);
+  // console.log(existingRuleIds);
 
   const hasRuleId = (ruleIdsArray, id) => {
     if (!Array.isArray(ruleIdsArray)) return false;
@@ -50,7 +51,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
 
     // Condition 1: Rules 6-9 require rule 24 to be set
     if (isDependencyRule(rule.id)) {
-      if (!hasRuleId(existingRuleIds, 24)) {
+      if (!hasRuleId(existingRuleIds, 23)) {
         openDialog(
           `Rule ${
             rule.id + 1

@@ -4,11 +4,12 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useUserStore } from "@/zustand/useUserStore";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();

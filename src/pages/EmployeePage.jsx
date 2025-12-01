@@ -4,19 +4,26 @@ import EmployeeTable from "@/components/employee/EmployeeTable";
 import FancyLoader from "@/components/FancyLoader";
 import { useEmployees } from "@/hook/useEmployees";
 import { useDesignation } from "../hook/useDesignation";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { Employees, isLoading } = useEmployees();
+  const { isLoading: EmployeesLoading } = useEmployees();
 
-  console.log(Employees);
+  const { employees } = useEmployeeStore();
 
-  const { designation } = useDesignation();
+  console.log(employees());
+
+  const { designation, isLoading: designationLoading } = useDesignation();
 
   const getFilteredEmployees = () => {
-    if (activeFilter === "All Employees") return Employees;
-    return Employees.filter((emp) => emp.department === activeFilter);
+    if (activeFilter === "All Employees") return employees();
+    return employees().filter((emp) => emp.department === activeFilter);
   };
+
+  if (EmployeesLoading || designationLoading) {
+    <FancyLoader />;
+  }
 
   return (
     <div className="p-4 space-y-4">
@@ -28,11 +35,7 @@ function EmployeePage() {
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
       />
-      {isLoading ? (
-        <FancyLoader />
-      ) : (
-        <EmployeeTable employees={getFilteredEmployees()} />
-      )}
+      <EmployeeTable employees={getFilteredEmployees()} />
     </div>
   );
 }

@@ -4,13 +4,14 @@ import { Label } from "@/components/ui/label";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployees } from "@/hook/useEmployees";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const SelectOvertime = () => {
   const [allowOvertime, setAllowOvertime] = useState("No");
   const [multiplier, setMultiplier] = useState("1");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { Employees } = useEmployees();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
 
   // Save overtime configuration
   const handleSave = async () => {
