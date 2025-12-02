@@ -13,6 +13,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   // Calculate total deductions
   const totalDeductions =
     (salaryDetails?.deductions?.absentDeductions || 0) +
+    (salaryDetails?.deductions?.extraAbsentDeductions || 0) +
     (salaryDetails?.deductions?.missedPunchDeductions || 0) +
     (salaryDetails?.deductions?.lateDeductions || 0) +
     (salaryDetails?.deductions?.earlyDeductions || 0) +
@@ -407,6 +408,19 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             )}
                           </span>
                         </div>
+                        {/* Extra Absent Deductions */}
+                        {salaryDetails?.deductions?.extraAbsentDeductions >
+                          0 && (
+                          <div className="flex justify-between items-center text-sm py-1">
+                            <span className="text-gray-600">Extra Absent</span>
+                            <span className="text-red-600">
+                              -
+                              {formatNumber(
+                                salaryDetails?.deductions?.extraAbsentDeductions
+                              )}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center text-sm py-1">
                           <span className="text-gray-600">Missed Punches</span>
                           <span className="text-red-600">
