@@ -378,7 +378,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  if (id === "70709917") {
+  if (id === "7070968035") {
     console.log(attendanceRecords);
   }
 
@@ -770,9 +770,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         lateCount += 1;
         totalLatenessMinutes += lateMins;
 
-        if (id === "70709913") {
-          console.log("Late on", date, lateMins, latenessGraceMin);
-        }
+        // if (id === "7070968036") {
+        //   console.log("Late on", date, lateMins, latenessGraceMin);
+        // }
 
         if (rule18) {
           halfDayLateCount += 1;
@@ -794,9 +794,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         const lateMins = punchMins - lateThresh;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
-        if (id === "70709913") {
-          console.log("Late on", date, lateMins, latenessGraceMin);
-        }
+        // if (id === "7070968036") {
+        //   console.log("Late on", date, lateMins, latenessGraceMin);
+        // }
 
         if (rule18) {
           fullDayLateCount += 1;
@@ -1023,15 +1023,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     lateDeductions +=
       halfDayLateCount * (0.5 * dailySalary) + fullDayLateCount * dailySalary;
   }
-  if (id === "70709913") {
-    console.log(
-      halfDayLateCount,
-      fullDayLateCount,
-      lateDeductions,
-      lateCount,
-      dailyRate
-    );
-  }
+  // if (id === "7070968036") {
+  //   console.log(
+  //     halfDayLateCount,
+  //     fullDayLateCount,
+  //     lateDeductions,
+  //     lateCount,
+  //     dailyRate
+  //   );
+  // }
 
   if (rule19 && perHourLatePenalty > 0)
     lateDeductions += toHours(totalLatenessMinutes) * perHourLatePenalty;

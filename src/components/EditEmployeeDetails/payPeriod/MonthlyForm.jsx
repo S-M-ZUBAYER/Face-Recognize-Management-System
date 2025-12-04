@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ function MonthlyForm() {
   const [workingDay, setWorkingDay] = useState("");
   const [workingHours, setWorkingHours] = useState("");
   const [overtimeRate, setOvertimeRate] = useState("");
+  const [overtimeFixed, setOvertimeFixed] = useState("");
   const [selectedOvertimeOption, setSelectedOvertimeOption] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
@@ -25,6 +26,11 @@ function MonthlyForm() {
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
     return total + (parseFloat(salary.amount) || 0);
   }, 0);
+  const otherSalaryCheckTotal = useMemo(() => {
+    return additionalSalaries
+      .filter((d) => d.isChecked)
+      .reduce((sum, d) => sum + Number(d.amount), 0);
+  }, [additionalSalaries]);
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -33,10 +39,11 @@ function MonthlyForm() {
     if (selectedOvertimeOption === "auto-calc" && basic && workingDay) {
       const basicNum = parseFloat(basic) || 0;
       const workingDayNum = parseFloat(workingDay) || 1; // Avoid division by zero
-      const calculatedOvertime = (basicNum + otherSalaryTotal) / workingDayNum;
+      const calculatedOvertime =
+        (basicNum + otherSalaryCheckTotal) / workingDayNum;
       setOvertimeRate(calculatedOvertime.toFixed(2));
     }
-  }, [basic, otherSalaryTotal, workingDay, selectedOvertimeOption]);
+  }, [basic, otherSalaryCheckTotal, workingDay, selectedOvertimeOption]);
 
   useEffect(() => {
     if (selectedEmployee?.payPeriod) {
@@ -47,6 +54,7 @@ function MonthlyForm() {
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeSalary?.toString() || "");
       setSelectedDate(payPeriod.startDay?.toString() || "");
+      setOvertimeFixed(payPeriod.overtimeFixed?.toString() || "");
 
       // Set additional salaries from otherSalary array with unique IDs
       const initialAdditionalSalaries = Array.isArray(payPeriod?.otherSalary)
@@ -60,9 +68,9 @@ function MonthlyForm() {
       setAdditionalSalaries(initialAdditionalSalaries);
 
       // Set overtime option based on selectedOvertimeOption
-      if (payPeriod.selectedOvertimeOption === 1) {
+      if (payPeriod.selectedOvertimeOption === 0) {
         setSelectedOvertimeOption("auto-calc");
-      } else if (payPeriod.selectedOvertimeOption === 2) {
+      } else if (payPeriod.selectedOvertimeOption === 1) {
         setSelectedOvertimeOption("fixed-input");
       }
     }
@@ -171,7 +179,7 @@ function MonthlyForm() {
           : 0,
       payPeriod: "monthly",
       salary: parseFloat(basic) || 0,
-      selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 1 : 2,
+      selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 0 : 1,
       shift: selectedEmployee?.payPeriod?.shift || "Morning",
       startDay: parseInt(selectedDate) || 1,
       startWeek: null,
@@ -398,7 +406,9 @@ function MonthlyForm() {
                 placeholder={placeholder}
                 className="w-80"
                 type={"number"}
-                value={selectedOvertimeOption === id ? overtimeRate : ""}
+                value={
+                  selectedOvertimeOption === id ? overtimeRate : overtimeFixed
+                }
                 onChange={(e) => setOvertimeRate(e.target.value)}
                 disabled={id === "auto-calc"} // Disable input for auto-calc
               />

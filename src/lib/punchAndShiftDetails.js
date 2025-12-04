@@ -43,6 +43,7 @@ function convertPunchesWithSpecialRules(
   oneEmployeeData,
   previousDayPunchesAsStrings = [],
   nextDaySchedule = null
+  // id
 ) {
   const rules = useGlobalStore.getState().globalRules;
   let punches = [...punchesAsStrings].sort();
@@ -156,7 +157,7 @@ function convertPunchesWithSpecialRules(
           }
         }
 
-        // If multiple evening punches, take the closest one to shift start
+        // If multiple evening punches, take the closest one to shift start   && it's will come current day's evening punches  bugs .
         if (eveningPunches.length > 0) {
           let closestEveningPunch = eveningPunches[0];
           let minDiff = Infinity;
@@ -183,9 +184,28 @@ function convertPunchesWithSpecialRules(
             previousDayPunchesAsStrings[i]
           );
 
-          // Look for EVENING punches (19:00-21:00) from previous day
+          const startHour = Number(
+            nextDaySchedule === null
+              ? normalAllRules[0].split(":")[0]
+              : nextDaySchedule[0].split(":")[0]
+          );
+
+          // Evening window = startHour - 1 to startHour + 1
+          const windowStart = (startHour - 1) * 60;
+          const windowEnd = (startHour + 1) * 60;
+
           const isEveningPunch =
-            punchMinutes >= 19 * 60 && punchMinutes <= 21 * 60;
+            punchMinutes >= windowStart && punchMinutes <= windowEnd;
+
+          // if (id === "70709919") {
+          //   console.log(
+          //     date,
+          //     isEveningPunch,
+          //     punchMinutes,
+          //     windowStart,
+          //     windowEnd
+          //   );
+          // }
 
           if (
             isEveningPunch &&
@@ -396,6 +416,7 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
     const punches = JSON.parse(record.checkIn);
     const date = record.date;
     const mac = record.macId;
+    const id = record.empId;
 
     const previousDayPunches =
       i > 0 ? JSON.parse(sortedAttendance[i - 1].checkIn) : [];
@@ -431,7 +452,8 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
             date,
             specialEmployeeData,
             previousDayPunches,
-            nextDaySchedule
+            nextDaySchedule,
+            id
           )
         : convertPunchesWithNormalRules(punches, rulesModel, date);
 
