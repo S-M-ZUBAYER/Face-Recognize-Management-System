@@ -511,10 +511,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const monthlySalary = Number(payPeriod.salary || 0) + checkedTotal;
 
   const dailyWorkingHours = Number(payPeriod.name || 8);
-  const isFixedHourlyRate = payPeriod.isSelectedFixedHourlyRate || false;
+  const isFixedHourlyRate = payPeriod.selectedOvertimeOption === 1 || false;
   const overtimeSalaryRate = isFixedHourlyRate
     ? Number(payPeriod.overtimeFixed || 0)
-    : Number(payPeriod.overtimeSalary || 0);
+    : Number(payPeriod.overtimeSalary || 0) / dailyWorkingHours;
 
   let year, month;
 
@@ -798,8 +798,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         //   console.log("Late on", date, lateMins, latenessGraceMin);
         // }
 
-        if (rule18) {
+        if (rule18 && punches[0] === "00:00" && punches[1] === "00:00") {
           fullDayLateCount += 1;
+        } else if (rule18) {
+          halfDayLateCount += 1;
         }
       }
     }

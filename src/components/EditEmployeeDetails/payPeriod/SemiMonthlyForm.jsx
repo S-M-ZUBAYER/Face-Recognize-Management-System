@@ -172,7 +172,7 @@ function SemiMonthlyForm() {
       otherSalary: otherSalaryArray,
       overtimeFixed:
         selectedOvertimeOption === "fixed-input"
-          ? parseFloat(overtimeRate) || 0
+          ? parseFloat(overtimeFixed) || 0
           : 0,
       overtimeSalary:
         selectedOvertimeOption === "auto-calc"
@@ -375,7 +375,7 @@ function SemiMonthlyForm() {
               label: "Fixed Input (Hour)",
               placeholder: "Enter Overtime Rate",
             },
-          ].map(({ id, label, placeholder }) => (
+          ].map(({ id, label, placeholder }, index) => (
             <div key={id} className="flex items-center justify-between">
               <div className="flex items-center gap-3.5">
                 <Checkbox
@@ -387,6 +387,7 @@ function SemiMonthlyForm() {
                       handleOvertimeOptionChange(id);
                     }
                   }}
+                  disabled={id === "auto-calc"} // Disable auto-calc for Weekly
                 />
                 <Label htmlFor={id} className="whitespace-nowrap">
                   {label}
@@ -395,12 +396,14 @@ function SemiMonthlyForm() {
               <Input
                 placeholder={placeholder}
                 className="w-80"
-                type={"number"}
-                value={
-                  selectedOvertimeOption === id ? overtimeRate : overtimeFixed
+                type="number"
+                value={index === 0 ? overtimeRate : overtimeFixed}
+                onChange={(e) =>
+                  index === 0
+                    ? setOvertimeRate(e.target.value)
+                    : setOvertimeFixed(e.target.value)
                 }
-                onChange={(e) => setOvertimeRate(e.target.value)}
-                disabled={id === "auto-calc"} // Disable input for auto-calc
+                disabled={id === "auto-calc"}
               />
             </div>
           ))}

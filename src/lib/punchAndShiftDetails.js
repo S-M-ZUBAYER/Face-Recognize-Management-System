@@ -158,21 +158,29 @@ function convertPunchesWithSpecialRules(
         }
 
         // If multiple evening punches, take the closest one to shift start   && it's will come current day's evening punches  bugs .
+        // if (eveningPunches.length > 0) {
+        //   let closestEveningPunch = eveningPunches[0];
+        //   let minDiff = Infinity;
+
+        //   for (const punch of eveningPunches) {
+        //     const punchMinutes = parseTimeToMinutes(punch);
+        //     const diff = Math.abs(targetMinutes - punchMinutes);
+        //     if (diff < minDiff) {
+        //       minDiff = diff;
+        //       closestEveningPunch = punch;
+        //     }
+        //   }
+
+        //   // Keep only the closest evening punch
+        //   punches = [closestEveningPunch, ...otherPunches];
+        // }
+
+        // STRICT RULE: Remove ALL current day's evening punches
+        // Don't keep any, always take from previous day
         if (eveningPunches.length > 0) {
-          let closestEveningPunch = eveningPunches[0];
-          let minDiff = Infinity;
-
-          for (const punch of eveningPunches) {
-            const punchMinutes = parseTimeToMinutes(punch);
-            const diff = Math.abs(targetMinutes - punchMinutes);
-            if (diff < minDiff) {
-              minDiff = diff;
-              closestEveningPunch = punch;
-            }
-          }
-
-          // Keep only the closest evening punch
-          punches = [closestEveningPunch, ...otherPunches];
+          // Remove all evening punches from current day
+          // Keep only otherPunches (non-evening punches)
+          punches = [...otherPunches];
         }
 
         // Find closest EVENING punch from previous day

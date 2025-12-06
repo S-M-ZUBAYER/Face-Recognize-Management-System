@@ -492,6 +492,7 @@ const OvertimeSection = ({
               className={checkboxStyle}
               checked={selectedOption === id}
               onCheckedChange={(checked) => checked && onOptionChange?.(id)}
+              disabled={id === "auto-calc"}
             />
             <Label htmlFor={id} className="whitespace-nowrap">
               {label}

@@ -333,6 +333,7 @@ function NormalMonthForm() {
         checkboxStyle={checkboxStyle}
         onOptionChange={handleOvertimeOptionChange}
         onRateChange={(value) => handleInputChange("overtimeRate", value)}
+        onFixedChange={(value) => handleInputChange("overtimeFixed", value)}
       />
 
       {/* Details Section */}
@@ -446,11 +447,12 @@ const OvertimeSection = ({
   checkboxStyle,
   onOptionChange,
   onRateChange,
+  onFixedChange,
 }) => (
   <div className="space-y-3">
     <Label className="font-semibold">Select Overtime Rate</Label>
     <div className="flex flex-col space-y-2">
-      {options.map(({ id, label, placeholder, disabled }) => (
+      {options.map(({ id, label, placeholder, disabled }, index) => (
         <div key={id} className="flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             <Checkbox
@@ -467,8 +469,12 @@ const OvertimeSection = ({
             placeholder={placeholder}
             className="w-80"
             type="number"
-            value={selectedOption === id ? overtimeRate : overtimeFixed}
-            onChange={(e) => onRateChange?.(e.target.value)}
+            value={index === 0 ? overtimeRate : overtimeFixed}
+            onChange={(e) =>
+              index === 0
+                ? onRateChange?.(e.target.value)
+                : onFixedChange?.(e.target.value)
+            }
             disabled={disabled}
           />
         </div>

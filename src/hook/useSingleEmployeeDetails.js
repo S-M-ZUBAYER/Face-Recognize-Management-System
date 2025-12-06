@@ -100,15 +100,15 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
           }
         } catch (parseErr) {
           console.error("❌ Error parsing employee data:", parseErr);
-          toast.error("Error parsing employee data");
+          // toast.error("Error parsing employee data");
         }
 
         return emp;
       } catch (error) {
         console.error("❌ Error fetching employee details:", error);
-        toast.error(
-          error.response?.data?.message || "Failed to fetch employee details"
-        );
+        // toast.error(
+        //   error.response?.data?.message || "Failed to fetch employee details"
+        // );
         throw error;
       }
     },
@@ -126,7 +126,7 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
         queryKey: ["employee-details", variables.id, variables.mac],
       });
 
-      toast.success("Employee details updated successfully!");
+      // toast.success("Employee details updated successfully!");
     },
     onError: (error) => {
       console.error("❌ Failed to update employee:", error);
