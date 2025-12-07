@@ -6,6 +6,7 @@ import { calculateSalary } from "@/lib/calculateSalary";
 // ---------------------------------------------------------
 function getEmployeeMonthlyAttendance(
   empId,
+  deviceMAC,
   Attendance,
   selectedMonth,
   selectedYear
@@ -15,7 +16,8 @@ function getEmployeeMonthlyAttendance(
     return (
       d.getMonth() === selectedMonth &&
       d.getFullYear() === selectedYear &&
-      record.empId === empId
+      record.empId === empId &&
+      record.macId === deviceMAC
     );
   });
 }
@@ -25,6 +27,7 @@ function getEmployeeMonthlyAttendance(
 // ---------------------------------------------------------
 function getEmployeeMonthlyAttendanceWithPreDay(
   empId,
+  deviceMAC,
   Attendance,
   selectedMonth,
   selectedYear
@@ -34,6 +37,7 @@ function getEmployeeMonthlyAttendanceWithPreDay(
 
   const currentMonthData = getEmployeeMonthlyAttendance(
     empId,
+    deviceMAC,
     Attendance,
     selectedMonth,
     selectedYear
@@ -44,7 +48,8 @@ function getEmployeeMonthlyAttendanceWithPreDay(
     return (
       d.getMonth() === prevMonth &&
       d.getFullYear() === prevYear &&
-      record.empId === empId
+      record.empId === empId &&
+      record.macId === deviceMAC
     );
   });
 
@@ -80,12 +85,14 @@ export function calculateSalaryData(
       ruleObj?.param3 === "special"
         ? getEmployeeMonthlyAttendanceWithPreDay(
             emp.employeeId,
+            emp.deviceMAC,
             Attendance,
             selectedMonth,
             selectedYear
           )
         : getEmployeeMonthlyAttendance(
             emp.employeeId,
+            emp.deviceMAC,
             Attendance,
             selectedMonth,
             selectedYear
@@ -135,12 +142,14 @@ export async function calculateSalaryDataAsync(
         ruleObj?.param3 === "special"
           ? getEmployeeMonthlyAttendanceWithPreDay(
               emp.employeeId,
+              emp.deviceMAC,
               Attendance,
               selectedMonth,
               selectedYear
             )
           : getEmployeeMonthlyAttendance(
               emp.employeeId,
+              emp.deviceMAC,
               Attendance,
               selectedMonth,
               selectedYear

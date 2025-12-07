@@ -35,6 +35,7 @@ function NormalMonthForm() {
     workingDay: "",
     workingHours: "",
     overtimeRate: "",
+    overtimeFixed: "",
     selectedOvertimeOption: "",
   });
 
@@ -43,14 +44,14 @@ function NormalMonthForm() {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Calculate other salary total
-  const otherSalaryTotal = useMemo(
-    () =>
-      additionalSalaries.reduce(
-        (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
-      ),
-    [additionalSalaries]
-  );
+  const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
+    return total + (parseFloat(salary.amount) || 0);
+  }, 0);
+  const otherSalaryCheckTotal = useMemo(() => {
+    return additionalSalaries
+      .filter((d) => d.isChecked)
+      .reduce((sum, d) => sum + Number(d.amount), 0);
+  }, [additionalSalaries]);
 
   // Calculate automatic overtime when basic, other salary total, or working day changes
   useEffect(() => {
@@ -61,7 +62,8 @@ function NormalMonthForm() {
     ) {
       const basicNum = parseFloat(formData.basic) || 0;
       const workingDayNum = parseFloat(formData.workingDay) || 1; // Avoid division by zero
-      const calculatedOvertime = (basicNum + otherSalaryTotal) / workingDayNum;
+      const calculatedOvertime =
+        (basicNum + otherSalaryCheckTotal) / workingDayNum;
       setFormData((prev) => ({
         ...prev,
         overtimeRate: calculatedOvertime.toFixed(2),
@@ -69,7 +71,7 @@ function NormalMonthForm() {
     }
   }, [
     formData.basic,
-    otherSalaryTotal,
+    otherSalaryCheckTotal,
     formData.workingDay,
     formData.selectedOvertimeOption,
   ]);
@@ -84,10 +86,11 @@ function NormalMonthForm() {
         workingDay: payPeriod.hourlyRate?.toString() || "",
         workingHours: payPeriod.name?.toString() || "",
         overtimeRate: payPeriod.overtimeSalary?.toString() || "",
+        overtimeFixed: payPeriod.overtimeFixed?.toString() || "",
         selectedOvertimeOption:
-          payPeriod.selectedOvertimeOption === 1
+          payPeriod.selectedOvertimeOption === 0
             ? "auto-calc"
-            : payPeriod.selectedOvertimeOption === 2
+            : payPeriod.selectedOvertimeOption === 1
             ? "fixed-input"
             : "",
       });
@@ -224,9 +227,9 @@ function NormalMonthForm() {
           salary: formData.basic || selectedEmployee?.payPeriod?.salary,
           selectedOvertimeOption:
             formData.selectedOvertimeOption === "auto-calc"
-              ? 1
+              ? 0
               : formData.selectedOvertimeOption === "fixed-input"
-              ? 2
+              ? 1
               : selectedEmployee?.payPeriod?.selectedOvertimeOption,
           shift: selectedEmployee?.payPeriod?.shift || "Morning",
           startDay: selectedEmployee?.payPeriod?.startDay || 1,
@@ -326,9 +329,11 @@ function NormalMonthForm() {
         options={OVERTIME_OPTIONS}
         selectedOption={formData.selectedOvertimeOption}
         overtimeRate={formData.overtimeRate}
+        overtimeFixed={formData.overtimeFixed}
         checkboxStyle={checkboxStyle}
         onOptionChange={handleOvertimeOptionChange}
         onRateChange={(value) => handleInputChange("overtimeRate", value)}
+        onFixedChange={(value) => handleInputChange("overtimeFixed", value)}
       />
 
       {/* Details Section */}
@@ -438,14 +443,16 @@ const OvertimeSection = ({
   options,
   selectedOption,
   overtimeRate,
+  overtimeFixed,
   checkboxStyle,
   onOptionChange,
   onRateChange,
+  onFixedChange,
 }) => (
   <div className="space-y-3">
     <Label className="font-semibold">Select Overtime Rate</Label>
     <div className="flex flex-col space-y-2">
-      {options.map(({ id, label, placeholder, disabled }) => (
+      {options.map(({ id, label, placeholder, disabled }, index) => (
         <div key={id} className="flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             <Checkbox
@@ -462,8 +469,12 @@ const OvertimeSection = ({
             placeholder={placeholder}
             className="w-80"
             type="number"
-            value={selectedOption === id ? overtimeRate : ""}
-            onChange={(e) => onRateChange?.(e.target.value)}
+            value={index === 0 ? overtimeRate : overtimeFixed}
+            onChange={(e) =>
+              index === 0
+                ? onRateChange?.(e.target.value)
+                : onFixedChange?.(e.target.value)
+            }
             disabled={disabled}
           />
         </div>

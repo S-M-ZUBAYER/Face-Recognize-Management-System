@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,34 @@ function SemiMonthlyForm() {
       ),
     [additionalSalaries]
   );
+
+  const otherSalaryCheckTotal = useMemo(() => {
+    return additionalSalaries
+      .filter((d) => d.isChecked)
+      .reduce((sum, d) => sum + Number(d.amount), 0);
+  }, [additionalSalaries]);
+
+  useEffect(() => {
+    if (
+      formData.selectedOvertimeOption === "auto-calc" &&
+      formData.basic &&
+      formData.workingDay
+    ) {
+      const basicNum = parseFloat(formData.basic) || 0;
+      const workingDayNum = parseFloat(formData.workingDay) || 1; // Avoid division by zero
+      const calculatedOvertime =
+        (basicNum + otherSalaryCheckTotal) / workingDayNum;
+      setFormData((prev) => ({
+        ...prev,
+        overtimeRate: calculatedOvertime.toFixed(2),
+      }));
+    }
+  }, [
+    formData.basic,
+    otherSalaryCheckTotal,
+    formData.workingDay,
+    formData.selectedOvertimeOption,
+  ]);
 
   const salarySections = useMemo(
     () => [
@@ -459,6 +487,7 @@ const OvertimeSection = ({
               className={checkboxStyle}
               checked={selectedOption === id}
               onCheckedChange={(checked) => checked && onOptionChange?.(id)}
+              disabled={id === "auto-calc"} // Disable auto-calc for Weekly
             />
             <Label htmlFor={id} className="whitespace-nowrap">
               {label}
