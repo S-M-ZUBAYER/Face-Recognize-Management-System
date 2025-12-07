@@ -501,7 +501,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule24 = getRule(24);
 
-  const overtimeAllowed = true;
+  const overtimeAllowed = rule24 ? true : false;
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
   const { checkedTotal, uncheckedTotal } = parseOtherSalary(

@@ -13,6 +13,7 @@ const EditEmployeeDetails = () => {
   const { id, deviceMac } = useParams();
   const { data, isLoading, isError, error, updateEmployee, updating } =
     useSingleEmployeeDetails(id, deviceMac);
+  console.log(data);
   const { setSelectedEmployee } = useEditEmployeeStore();
   const navigate = useNavigate();
 
@@ -46,7 +47,7 @@ const EditEmployeeDetails = () => {
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
         employeeName: data.name?.split("<")[0] || "",
-        address: parseAddress(data.address)?.des,
+        address: parseAddress(data.address)?.des || data.address,
         department: data.department || "",
         email: emailParts[0] || "",
         deviceName: data.deviceName || "",
@@ -114,7 +115,7 @@ const EditEmployeeDetails = () => {
         shift: data.payPeriod?.shift || "",
         payPeriod: data.payPeriod?.payPeriod || "",
         employeeName: data.name?.split("<")[0] || "",
-        address: parseAddress(data.address),
+        address: parseAddress(data.address)?.des || data.address,
         department: data.department || "",
         email: emailParts[0] || "",
         deviceName: data.deviceName || "",
