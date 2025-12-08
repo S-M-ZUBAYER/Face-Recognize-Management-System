@@ -5,6 +5,7 @@ export const useAttendanceStore = create((set, get) => ({
   setSelectedDate: (value) => set({ selectedDate: value }),
   // Employee arrays - these will be properly populated
   allEmployees: [],
+  punchData: [],
   presentEmployees: [],
   absentEmployees: [],
   overTimeEmployees: [],
@@ -79,6 +80,7 @@ export const useAttendanceStore = create((set, get) => ({
         // Update state with processed data
         set({
           allEmployees: result.allEmployees,
+          punchData: result.punchData,
           presentEmployees: result.presentEmployees,
           absentEmployees: result.absentEmployees,
           overTimeEmployees: result.overTimeEmployees,
@@ -105,6 +107,8 @@ export const useAttendanceStore = create((set, get) => ({
   getFilteredEmployees: () => {
     const state = get();
     switch (state.activeFilter) {
+      case "punchData":
+        return state.punchData;
       case "present":
         return state.presentEmployees;
       case "absent":
@@ -120,6 +124,7 @@ export const useAttendanceStore = create((set, get) => ({
   resetAttendanceData: () => {
     set({
       allEmployees: [],
+      punchData: [],
       presentEmployees: [],
       absentEmployees: [],
       overTimeEmployees: [],
@@ -164,6 +169,7 @@ const parseCheckInData = (checkIn) => {
 
 const processEmployeeData = (employees, attendance, overTime, dateRange) => {
   const allEmployees = [];
+  const punchData = [];
   const presentEmployees = [];
   const absentEmployees = [];
   const overTimeEmployees = [];
@@ -184,6 +190,22 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
 
       // Check leaves if absent
       const leaveTypes = !isPresent ? getLeaveTypes(employee, date) : [];
+      const dayType = !isPresent
+        ? getDayType(employee.salaryRules || { rules: [], holidays: [] }, date)
+        : [];
+
+      //add punch data
+      punchData.push({
+        ...employee,
+        employeeId,
+        date,
+        punch: {
+          date,
+          checkIn: checkIn || [],
+        },
+        isPresent,
+        hasOvertime: overtimeSet.has(employeeId),
+      });
 
       // Create record
       const record = {
@@ -192,18 +214,25 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
         date,
         punch: {
           date,
-          checkIn: isPresent ? checkIn : leaveTypes,
+          checkIn: isPresent
+            ? checkIn
+            : leaveTypes.length > 0
+            ? leaveTypes
+            : dayType,
         },
         isPresent,
         hasOvertime: overtimeSet.has(employeeId),
       };
-
+      // if (employeeId === "2109058927") {
+      //   console.log(record, dayType, leaveTypes);
+      // }
       // Add to appropriate arrays
       allEmployees.push(record);
 
       if (isPresent) {
         presentEmployees.push(record);
-      } else {
+      } else if (leaveTypes.length === 0 && dayType.length === 0) {
+        // No leave, no holiday → true absent
         absentEmployees.push(record);
       }
 
@@ -215,6 +244,7 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
 
   return {
     allEmployees,
+    punchData,
     presentEmployees,
     absentEmployees,
     overTimeEmployees,
@@ -281,3 +311,46 @@ const getLeaveTypes = (employee, date) => {
 
   return leaveTypes;
 };
+
+function getDayType(salaryRules, date) {
+  const day = new Date(date);
+  const dayName = day.toLocaleString("en-US", { weekday: "long" });
+
+  // 1. Find ruleId === 2 (weekend rules)
+  const weekendRule = salaryRules.rules.find((r) => r.ruleId === 2);
+
+  // Extract all weekend names (param1..param6)
+  const weekendNames = [];
+  if (weekendRule) {
+    ["param1", "param2", "param3", "param4", "param5", "param6"].forEach(
+      (key) => {
+        if (
+          weekendRule[key] &&
+          typeof weekendRule[key] === "string" &&
+          weekendRule[key].trim() !== ""
+        ) {
+          weekendNames.push(weekendRule[key].trim());
+        }
+      }
+    );
+  }
+
+  // 2. Get all holiday dates (YYYY-MM-DD)
+  const holidayDates = (salaryRules.holidays || []).map((h) => h.split("T")[0]);
+
+  const dateOnly = date.split("T")[0];
+
+  // ---- LOGIC ----
+
+  // Weekend check
+  if (weekendNames.includes(dayName)) {
+    return ["Weekend"];
+  }
+
+  // Holiday check
+  if (holidayDates.includes(dateOnly)) {
+    return ["Holiday"];
+  }
+
+  return [];
+}

@@ -9,7 +9,6 @@ import { useDateStore } from "@/zustand/useDateStore";
 import { useAttendanceData } from "@/hook/useAttendanceData";
 import { calculateSalaryDataAsync } from "@/lib/calculateSalaryData";
 import { usePaymentInfo } from "@/hook/useSubscriptionData";
-import { useUserData } from "@/hook/useUserData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 
 function SalaryCalculationPage() {
@@ -23,8 +22,7 @@ function SalaryCalculationPage() {
   const { selectedMonth, selectedYear } = useDateStore();
   const { isLoading: attendanceLoading, Attendance = [] } = useAttendanceData();
   const { designation, isLoading: designationLoading } = useDesignation();
-  const { user } = useUserData();
-  const { data: paymentInfo } = usePaymentInfo(user?.userEmail);
+  const { data: paymentInfo } = usePaymentInfo();
   const { setIsSubscriptionModal } = useSubscriptionStore();
 
   // Async salary calculation - FIXED DEPENDENCIES

@@ -14,7 +14,8 @@ const AttendanceFilters = memo(() => {
   // Memoize filters array to prevent recreation
   const filters = useMemo(
     () => [
-      { key: "all", label: "All", count: totalCount },
+      { key: "punchData", label: "Original Attendance", count: totalCount },
+      { key: "all", label: "All Records", count: totalCount },
       { key: "present", label: "Present", count: presentCount },
       { key: "absent", label: "Absent", count: absentCount },
       { key: "overtime", label: "Overtime", count: null },

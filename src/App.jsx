@@ -4,6 +4,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { Toaster } from "react-hot-toast";
 import ErrorModal from "./components/ErrorModal";
 import SubscriptionModal from "./components/SubscriptionModal";
+import SubscriptionRequiredModal from "./components/SubscriptionRequiredModal";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Toaster />
       <ErrorModal />
       <SubscriptionModal />
+      <SubscriptionRequiredModal />
     </BrowserRouter>
   );
 }

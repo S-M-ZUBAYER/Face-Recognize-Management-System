@@ -17,16 +17,15 @@ import {
   useSubscriptionData,
 } from "@/hook/useSubscriptionData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
-import { useUserData } from "@/hook/useUserData";
 
 const SubscriptionModal = () => {
   const currency = "USD";
-  const { user } = useUserData();
+
   const [selectedPackage, setSelectedPackage] = useState(null);
   const { data: packages = [] } = useSubscriptionData();
   const { isSubscriptionModal, setIsSubscriptionModal } =
     useSubscriptionStore();
-  const { data: paymentInfo } = usePaymentInfo(user?.userEmail);
+  const { data: paymentInfo } = usePaymentInfo();
   const [currentPackage, setCurrentPackage] = useState(null);
 
   // Currency symbol mapping

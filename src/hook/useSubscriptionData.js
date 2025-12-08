@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { useUserData } from "./useUserData";
+import useSubscriptionStore from "@/zustand/useSubscriptionStore";
+import { useEffect } from "react";
 
 const BASE_URL = "https://grozziieget.zjweiting.com:8033/tht/attendance";
 
@@ -33,13 +36,28 @@ async function fetchPaymentInfo(email) {
 }
 
 // Hook
-export function usePaymentInfo(email) {
-  return useQuery({
-    queryKey: ["payment-info", email],
-    queryFn: () => fetchPaymentInfo(email),
-    enabled: !!email, // Only run when email exists
+export function usePaymentInfo() {
+  const { user } = useUserData();
+  const { setPaymentStatus } = useSubscriptionStore();
+
+  const response = useQuery({
+    queryKey: ["payment-info", user?.userEmail],
+    queryFn: () => fetchPaymentInfo(user?.userEmail),
+    enabled: !!user?.userEmail,
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
     refetchOnWindowFocus: false,
   });
+
+  // Update Zustand ONLY when response.data changes
+  useEffect(() => {
+    if (response.data?.paymentStatus === 0) {
+      setPaymentStatus(false);
+    } else if (response.data?.paymentStatus === 1) {
+      setPaymentStatus(true);
+    }
+    console.log(response.data);
+  }, [response.data, setPaymentStatus]);
+
+  return response.data;
 }

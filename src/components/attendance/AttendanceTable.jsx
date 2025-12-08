@@ -11,6 +11,7 @@ import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEmployees } from "@/hook/useEmployees";
 import { useOverTimeData } from "@/hook/useOverTimeData";
+import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 
 // Memoized components
 const MemoizedAttendanceExport = memo(AttendanceExport);
@@ -63,6 +64,9 @@ const AttendanceTable = ({ employees = [] }) => {
   const refreshAttendanceData = useAttendanceStore(
     (state) => state.refreshAttendanceData
   );
+
+  const { paymentStatus, setIsSubscriptionRequiredModal } =
+    useSubscriptionStore();
 
   // Hooks
   const { startDate, endDate } = useDateRangeStore();
@@ -242,7 +246,19 @@ const AttendanceTable = ({ employees = [] }) => {
       ),
     [employees, selectedEmployees]
   );
-
+  useEffect(() => {
+    if (selectedEmployeeData.length > 2) {
+      if (paymentStatus === false) {
+        setIsSubscriptionRequiredModal(true);
+        setSelectedEmployees([]);
+      }
+      console.log(paymentStatus);
+    }
+  }, [
+    paymentStatus,
+    setIsSubscriptionRequiredModal,
+    selectedEmployeeData.length,
+  ]);
   // FIXED: Cell renderer with ORIGINAL CSS
   const cellRenderer = useCallback(
     ({ columnIndex, key, rowIndex, style }) => {
