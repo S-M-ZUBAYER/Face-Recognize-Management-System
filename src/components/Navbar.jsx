@@ -3,9 +3,11 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useUserData } from "@/hook/useUserData";
 import SideDrawer from "./SideDrawer";
 import { base64ToImage } from "@/lib/base64Toimage";
+import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 
 const Navbar = () => {
   // const [show, setShow] = useState(false);
+  const { setIsSubscriptionModal } = useSubscriptionStore();
   const { user } = useUserData();
   let imageUrl = "https://i.pravatar.cc/300";
   if (user?.photo) {
@@ -30,8 +32,15 @@ const Navbar = () => {
       <div onClick={handleShow} className="cursor-pointer text-[#54819A]">
         <SearchIcon />
       </div> */}
-      <div>
+      {/* <div>
         <SideDrawer />
+      </div> */}
+      <div
+        className="flex pl-5 pr-2 border border-[#B0C5D0] rounded-2xl py-1.5 gap-2 cursor-pointer"
+        onClick={() => setIsSubscriptionModal(true)}
+      >
+        <p>Upgrade</p>
+        <p className="bg-[#004368]  px-4 rounded-xl text-amber-50  ">Plan</p>
       </div>
       <div className="flex items-center gap-4">
         <Avatar>
