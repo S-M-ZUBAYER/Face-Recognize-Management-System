@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useUserData } from "./useUserData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 const BASE_URL = "https://grozziieget.zjweiting.com:8033/tht/attendance";
 
@@ -29,18 +29,17 @@ export function useSubscriptionData() {
 // 2) Fetch Payment Info By Email
 // =========================================
 async function fetchPaymentInfo(email) {
-  if (!email) return null; // prevent API call with empty email
-
+  if (!email) return null;
   const res = await axios.get(`${BASE_URL}/paymentInfo/${email}`);
   return res.data?.data || res.data;
 }
 
-// Hook
 export function usePaymentInfo() {
   const { user } = useUserData();
   const { setPaymentStatus } = useSubscriptionStore();
+  const currentDate = useMemo(() => new Date(), []);
 
-  const response = useQuery({
+  const query = useQuery({
     queryKey: ["payment-info", user?.userEmail],
     queryFn: () => fetchPaymentInfo(user?.userEmail),
     enabled: !!user?.userEmail,
@@ -49,15 +48,20 @@ export function usePaymentInfo() {
     refetchOnWindowFocus: false,
   });
 
-  // Update Zustand ONLY when response.data changes
+  // Run when query finishes
   useEffect(() => {
-    if (response.data?.paymentStatus === 0) {
+    if (!query.data) return;
+
+    if (query.data.paymentStatus === 0) {
       setPaymentStatus(false);
-    } else if (response.data?.paymentStatus === 1) {
+    } else if (
+      query.data.paymentStatus === 1 &&
+      query.data.package_name !== "FreeTrial" &&
+      new Date(query.data.paymentExpireTime) < currentDate
+    ) {
       setPaymentStatus(true);
     }
-    console.log(response.data);
-  }, [response.data, setPaymentStatus]);
+  }, [query.data, setPaymentStatus, currentDate]);
 
-  return response.data;
+  return query; // 👍 return full query object
 }

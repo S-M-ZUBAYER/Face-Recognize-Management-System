@@ -234,172 +234,163 @@ const SubscriptionModal = () => {
 
               {/* Pricing Cards Grid */}
               <div className="p-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {packages.map((pkg, index) => {
-                    const price = pkg[currency];
-                    const isFree = price === 0;
-                    const isSelected = selectedPackage?.id === pkg.id;
-                    const isCurrentPackage = currentPackage?.id === pkg.id;
-                    const isPopular = pkg.package_name === "Premium";
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {packages
+                    .filter((pkg) => pkg.package_name !== "FreeTrial") // Remove FreeTrial
+                    .map((pkg, index) => {
+                      const price = pkg[currency];
+                      const isSelected = selectedPackage?.id === pkg.id;
+                      const isCurrentPackage = currentPackage?.id === pkg.id;
+                      const isPopular = pkg.package_name === "Premium";
 
-                    return (
-                      <motion.div
-                        key={pkg.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 + index * 0.05 }}
-                        whileHover={
-                          !isCurrentPackage
-                            ? { y: -4, transition: { duration: 0.2 } }
-                            : {}
-                        }
-                        className={`relative border rounded-xl transition-all duration-200 ${
-                          isCurrentPackage
-                            ? "border-[#004368] bg-[#004368]/5 cursor-default"
-                            : "cursor-pointer border-gray-200 hover:border-[#004368]/50 hover:shadow-md"
-                        } ${
-                          isSelected && !isCurrentPackage
-                            ? "border-[#004368] shadow-lg shadow-[#004368]/20"
-                            : ""
-                        } ${isPopular ? "ring-2 ring-[#004368]/30" : ""}`}
-                        onClick={() =>
-                          !isCurrentPackage && handlePackageSelect(pkg)
-                        }
-                      >
-                        {/* Current Plan Badge */}
-                        {isCurrentPackage && (
-                          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                            <div className="px-3 py-1 bg-[#004368] text-white text-xs font-bold rounded-full shadow-md">
-                              CURRENT
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Popular Badge */}
-                        {isPopular && !isCurrentPackage && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute -top-2 left-1/2 transform -translate-x-1/2"
-                          >
-                            <div className="px-3 py-1 bg-gradient-to-r from-[#004368] to-[#003152] text-white text-xs font-bold rounded-full shadow-md">
-                              POPULAR
-                            </div>
-                          </motion.div>
-                        )}
-
-                        <div className="p-4">
-                          {/* Package Name & Duration */}
-                          <div className="mb-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="text-lg font-bold text-gray-900">
-                                {pkg.package_name}
-                              </h3>
-                              <span className="px-2 py-1 bg-[#004368]/10 text-[#004368] text-xs font-medium rounded">
-                                {pkg.duration_months}{" "}
-                                {pkg.duration_months === 1 ? "Month" : "Months"}
-                              </span>
-                            </div>
-
-                            {/* Price Display */}
-                            <div className="mb-2">
-                              <div className="flex items-baseline">
-                                {isFree ? (
-                                  <span className="text-3xl font-bold text-gray-900">
-                                    Free
-                                  </span>
-                                ) : (
-                                  <>
-                                    <span className="text-3xl font-bold text-gray-900">
-                                      {currencySymbols[currency]}
-                                      {price}
-                                    </span>
-                                    <span className="text-gray-500 ml-1">
-                                      / mo
-                                    </span>
-                                  </>
-                                )}
+                      return (
+                        <motion.div
+                          key={pkg.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 + index * 0.05 }}
+                          whileHover={
+                            !isCurrentPackage
+                              ? { y: -4, transition: { duration: 0.2 } }
+                              : {}
+                          }
+                          className={`relative border rounded-xl transition-all duration-200 ${
+                            isCurrentPackage
+                              ? "border-[#004368] bg-[#004368]/5 cursor-default"
+                              : "cursor-pointer border-gray-200 hover:border-[#004368]/50 hover:shadow-md"
+                          } ${
+                            isSelected && !isCurrentPackage
+                              ? "border-[#004368] shadow-lg shadow-[#004368]/20"
+                              : ""
+                          } ${isPopular ? "ring-2 ring-[#004368]/30" : ""}`}
+                          onClick={() =>
+                            !isCurrentPackage && handlePackageSelect(pkg)
+                          }
+                        >
+                          {/* Current Plan Badge */}
+                          {isCurrentPackage && (
+                            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                              <div className="px-3 py-1 bg-[#004368] text-white text-xs font-bold rounded-full shadow-md">
+                                CURRENT
                               </div>
-                              {!isFree && (
+                            </div>
+                          )}
+
+                          {/* Popular Badge */}
+                          {isPopular && !isCurrentPackage && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute -top-2 left-1/2 transform -translate-x-1/2"
+                            >
+                              <div className="px-3 py-1 bg-gradient-to-r from-[#004368] to-[#003152] text-white text-xs font-bold rounded-full shadow-md">
+                                POPULAR
+                              </div>
+                            </motion.div>
+                          )}
+
+                          <div className="p-4 h-full flex flex-col">
+                            {/* Package Name & Duration */}
+                            <div className="mb-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className="text-lg font-bold text-gray-900">
+                                  {pkg.package_name}
+                                </h3>
+                                <span className="px-2 py-1 bg-[#004368]/10 text-[#004368] text-xs font-medium rounded">
+                                  {pkg.duration_months}{" "}
+                                  {pkg.duration_months === 1
+                                    ? "Month"
+                                    : "Months"}
+                                </span>
+                              </div>
+
+                              {/* Price Display */}
+                              <div className="mb-2">
+                                <div className="flex items-baseline">
+                                  <span className="text-3xl font-bold text-gray-900">
+                                    {currencySymbols[currency]}
+                                    {price}
+                                  </span>
+                                  <span className="text-gray-500 ml-1">
+                                    / mo
+                                  </span>
+                                </div>
                                 <p className="text-xs text-gray-500 mt-1">
                                   Billed every {pkg.duration_months} months
                                 </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Features List */}
-                          <div className="space-y-3 mb-6">
-                            {/* Common Feature - Employees */}
-                            <div className="flex items-center">
-                              <Check className="w-4 h-4 text-green-500 mr-2" />
-                              <span className="text-sm text-gray-700">
-                                Up to 100 employees
-                              </span>
+                              </div>
                             </div>
 
-                            {/* Package-specific Features */}
-                            {pkg.features.map((feature, idx) => (
-                              <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, x: -5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.2 + idx * 0.05 }}
-                                className="flex items-start"
-                              >
-                                <Check className="w-4 h-4 text-[#004368] mr-2 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm text-gray-600 leading-tight">
-                                  {feature}
+                            {/* Features List */}
+                            <div className="space-y-3 mb-6 flex-1">
+                              {/* Common Feature - Employees */}
+                              <div className="flex items-center">
+                                <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                                <span className="text-sm text-gray-700">
+                                  Up to 100 employees
                                 </span>
-                              </motion.div>
-                            ))}
-                          </div>
+                              </div>
 
-                          {/* Select/Current Button */}
-                          <motion.button
-                            whileHover={
-                              !isCurrentPackage ? { scale: 1.02 } : {}
-                            }
-                            whileTap={!isCurrentPackage ? { scale: 0.98 } : {}}
-                            onClick={(e) => {
-                              if (isCurrentPackage) {
-                                e.stopPropagation();
-                                return;
+                              {/* Package-specific Features */}
+                              {pkg.features.map((feature, idx) => (
+                                <motion.div
+                                  key={idx}
+                                  initial={{ opacity: 0, x: -5 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.2 + idx * 0.05 }}
+                                  className="flex items-start"
+                                >
+                                  <Check className="w-4 h-4 text-[#004368] mr-2 mt-0.5 flex-shrink-0" />
+                                  <span className="text-sm text-gray-600 leading-tight">
+                                    {feature}
+                                  </span>
+                                </motion.div>
+                              ))}
+                            </div>
+
+                            {/* Select/Current Button */}
+                            <motion.button
+                              whileHover={
+                                !isCurrentPackage ? { scale: 1.02 } : {}
                               }
-                              e.stopPropagation();
-                              handlePackageSelect(pkg);
-                            }}
-                            className={`w-full py-3 rounded-lg text-sm font-medium transition-all ${
-                              isCurrentPackage
-                                ? "bg-gray-300 text-gray-700 cursor-default"
-                                : isSelected
-                                ? "bg-[#004368] text-white shadow-md"
-                                : isFree
-                                ? "bg-gray-900 text-white hover:bg-gray-800"
-                                : "bg-[#004368]/10 text-[#004368] hover:bg-[#004368]/20"
-                            }`}
-                            disabled={isCurrentPackage}
-                          >
-                            {isCurrentPackage ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <Check className="w-4 h-4" />
-                                Active
-                              </div>
-                            ) : isSelected ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <Check className="w-4 h-4" />
-                                Selected
-                              </div>
-                            ) : isFree ? (
-                              "Start Free Trial"
-                            ) : (
-                              "Select Plan"
-                            )}
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                              whileTap={
+                                !isCurrentPackage ? { scale: 0.98 } : {}
+                              }
+                              onClick={(e) => {
+                                if (isCurrentPackage) {
+                                  e.stopPropagation();
+                                  return;
+                                }
+                                e.stopPropagation();
+                                handlePackageSelect(pkg);
+                              }}
+                              className={`w-full py-3 rounded-lg text-sm font-medium transition-all mt-auto ${
+                                isCurrentPackage
+                                  ? "bg-gray-300 text-gray-700 cursor-default"
+                                  : isSelected
+                                  ? "bg-[#004368] text-white shadow-md"
+                                  : "bg-[#004368]/10 text-[#004368] hover:bg-[#004368]/20"
+                              }`}
+                              disabled={isCurrentPackage}
+                            >
+                              {isCurrentPackage ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <Check className="w-4 h-4" />
+                                  Active
+                                </div>
+                              ) : isSelected ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <Check className="w-4 h-4" />
+                                  Selected
+                                </div>
+                              ) : (
+                                "Select Plan"
+                              )}
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                 </div>
               </div>
 
@@ -496,7 +487,7 @@ const SubscriptionModal = () => {
                                 {selectedPackage[currency] >
                                 currentPackage[currency]
                                   ? "Upgrade"
-                                  : "Downgrade"}
+                                  : "Add another Package"}
                               </span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -551,7 +542,7 @@ const SubscriptionModal = () => {
                         console.log(`Action: ${action}`);
 
                         // You can add your payment processing logic here
-                        // Handle renew, upgrade, downgrade, or new subscription
+                        // Handle renew, upgrade, Add another Package, or new subscription
                       }
                     }}
                     disabled={

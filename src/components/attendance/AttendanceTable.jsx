@@ -252,7 +252,7 @@ const AttendanceTable = ({ employees = [] }) => {
         setIsSubscriptionRequiredModal(true);
         setSelectedEmployees([]);
       }
-      console.log(paymentStatus);
+      // console.log(paymentStatus);
     }
   }, [
     paymentStatus,
