@@ -95,8 +95,19 @@ function convertPunchesWithSpecialRules(
     // Check if current day IS overnight shift
     const isCurrentDayOvernight = isTimeGreater(
       normalAllRules[0],
-      normalAllRules[lastRuleIndex]
+      normalAllRules[lastRuleIndex] !== "00:00"
+        ? normalAllRules[lastRuleIndex]
+        : normalAllRules[3]
     );
+
+    // if (id === "3531774215") {
+    //   console.log(
+    //     isCurrentDayOvernight,
+    //     normalAllRules[0],
+    //     normalAllRules[lastRuleIndex],
+    //     normalAllRules[3]
+    //   );
+    // }
 
     // Check if next day HAS overnight shift
     const isNextDayOvernight =

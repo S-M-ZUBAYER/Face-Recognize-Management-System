@@ -51,7 +51,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-white">
+            <div className="bg-[#004368] p-6 text-white">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold">
