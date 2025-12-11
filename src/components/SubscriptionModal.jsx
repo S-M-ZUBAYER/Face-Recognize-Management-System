@@ -18,13 +18,13 @@ import {
   useSubscriptionData,
 } from "@/hook/useSubscriptionData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
-import { useUserData } from "@/hook/useUserData";
 import { useNavigate } from "react-router-dom";
+import { useUserStore } from "@/zustand/useUserStore";
 
 const SubscriptionModal = () => {
   const currency = "USD";
   const navigate = useNavigate();
-  const { user } = useUserData();
+  const { user } = useUserStore();
 
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [currentPackage, setCurrentPackage] = useState(null);

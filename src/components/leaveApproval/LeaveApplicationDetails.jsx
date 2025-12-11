@@ -1,7 +1,6 @@
 import React from "react";
 // import { FileText, ArrowLeft, Download } from "lucide-react";
 import { useLeaveData } from "@/hook/useLeaveData";
-import { useUserData } from "@/hook/useUserData";
 import toast from "react-hot-toast";
 import updateJsonString from "@/lib/updateJsonString";
 import {
@@ -21,10 +20,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useUserStore } from "@/zustand/useUserStore";
 
 const LeaveApplicationDetails = ({ data }) => {
   const { updateLeave } = useLeaveData();
-  const { user } = useUserData();
+  const { user } = useUserStore();
 
   if (!data) {
     return (
@@ -211,8 +211,8 @@ const LeaveApplicationDetails = ({ data }) => {
             {/* Leave Details - Responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Leave Category */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group">
-                <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group flex items-center ">
+                <div className="flex items-center justify-start gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#004368]/5 to-[#004368]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Tag className="w-4 h-4 md:w-5 md:h-5 text-[#004368]" />
                   </div>
@@ -228,8 +228,8 @@ const LeaveApplicationDetails = ({ data }) => {
               </div>
 
               {/* Leave Type */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group">
-                <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group flex items-center ">
+                <div className="flex items-center justify-start gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#004368]/5 to-[#004368]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Calendar className="w-4 h-4 md:w-5 md:h-5 text-[#004368]" />
                   </div>

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOverTimeData } from "@/hook/useOverTimeData";
-import { useUserData } from "@/hook/useUserData";
 import toast from "react-hot-toast";
+import { useUserStore } from "@/zustand/useUserStore";
 
 function OvertimeModal({ isOpen, onCancel, employeeId, deviceMAC }) {
   const { createOverTime, createLoading } = useOverTimeData();
-  const { user } = useUserData();
+  const { user } = useUserStore();
 
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("09:00");

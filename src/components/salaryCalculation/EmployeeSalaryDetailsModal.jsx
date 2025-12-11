@@ -108,9 +108,11 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                       <div className="flex justify-between items-center py-3 border-b">
                         <div>
                           <p className="font-medium text-gray-700 text-sm">
-                            Standard Pay
+                            Monthly Pay
                           </p>
-                          <p className="text-xs text-gray-500">Base salary</p>
+                          <p className="text-xs text-gray-500">
+                            Base salary + Other salary{" "}
+                          </p>
                         </div>
                         <span className="text-lg font-bold text-gray-900">
                           {formatNumber(salaryDetails?.standardPay)}

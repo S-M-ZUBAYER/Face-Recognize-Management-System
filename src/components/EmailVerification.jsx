@@ -19,15 +19,15 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { useUserData } from "@/hook/useUserData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 import { useNavigate } from "react-router-dom";
+import { useUserStore } from "@/zustand/useUserStore";
 
 const EmailVerification = ({
   maxResendAttempts = 3,
   codeExpirySeconds = 300,
 }) => {
-  const { user } = useUserData();
+  const { user, setUser } = useUserStore();
   const navigate = useNavigate();
 
   // States
@@ -208,6 +208,14 @@ const EmailVerification = ({
 
       setVerificationStatus("success");
       toast.success("Email verified successfully!");
+
+      setUser({
+        ...user,
+        emailVerified: true,
+        alternateEmail: alternativeEmail
+          ? alternativeEmail
+          : user.alternateEmail,
+      });
 
       // Optional: Redirect or close modal after successful verification
       setTimeout(() => {
