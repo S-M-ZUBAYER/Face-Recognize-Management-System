@@ -67,7 +67,11 @@ const Animated404 = () => {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.8 }}
       >
-        <Button onClick={() => (window.location.href = "/")}>
+        <Button
+          onClick={() =>
+            (window.location.href = "/Face_Attendance_Management_System")
+          }
+        >
           Go Back Home
         </Button>
       </MotionDiv.div>
