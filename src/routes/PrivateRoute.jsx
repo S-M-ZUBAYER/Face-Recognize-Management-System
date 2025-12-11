@@ -25,7 +25,11 @@ const PrivateRoute = () => {
     );
   }
 
-  return user?.userEmail ? <Outlet /> : <Navigate to="/signin" replace />;
+  return user?.userEmail ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/Face_Attendance_Management_System/signin" replace />
+  );
 };
 
 export default PrivateRoute;

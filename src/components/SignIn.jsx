@@ -139,7 +139,7 @@ export default function Signin() {
         setDeviceMACs(deviceMACs);
 
         toast.success("Login successful");
-        navigate("/", { replace: true });
+        navigate("/Face_Attendance_Management_System", { replace: true });
       } catch (error) {
         toast.error(error.message || "Login failed");
         console.error("Login error:", error);
