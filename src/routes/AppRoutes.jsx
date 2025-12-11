@@ -18,6 +18,7 @@ import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
 import PayPeriodPage from "@/pages/PayPeriodPage";
 import ResignedEmployeePage from "@/pages/ResignedEmployeePage";
 import { useEmployees } from "@/hook/useEmployees";
+import EmailVerification from "@/components/EmailVerification";
 
 const AppLayout = () => {
   useEmployees(); // Fetch and set employees data
@@ -65,6 +66,7 @@ const AppRoutes = () => {
           <Route path="pay-period" element={<PayPeriodPage />} />
           <Route path="*" element={<Animated404 />} />
         </Route>
+        <Route path="verification" element={<EmailVerification />} />
       </Route>
 
       {/* Public routes */}

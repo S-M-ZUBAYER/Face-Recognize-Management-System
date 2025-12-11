@@ -378,7 +378,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  if (id === "7070968035") {
+  if (id === "3531774215") {
     console.log(attendanceRecords);
   }
 

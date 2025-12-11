@@ -52,7 +52,7 @@ const AttendanceFilters = memo(() => {
             key={filter.key}
             onClick={() => handleFilterClick(filter.key)}
             disabled={isFilterLoading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors relative ${
+            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-4 md:py-2 whitespace-nowrap ${
               activeFilter === filter.key
                 ? "bg-[#004368] text-[#E6ECF0]"
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0]"

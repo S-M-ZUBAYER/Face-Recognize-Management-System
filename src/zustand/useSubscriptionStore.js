@@ -1,8 +1,12 @@
 import { create } from "zustand";
 
 const useSubscriptionStore = create((set) => ({
+  package: null,
+  setPackage: (value) => set({ package: value }),
+
   paymentStatus: true,
   setPaymentStatus: (value) => set({ paymentStatus: value }),
+
   // For subscription modal
   isSubscriptionModal: false,
   setIsSubscriptionModal: (value) => set({ isSubscriptionModal: value }),

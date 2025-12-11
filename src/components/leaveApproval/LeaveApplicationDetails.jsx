@@ -1,7 +1,6 @@
 import React from "react";
 // import { FileText, ArrowLeft, Download } from "lucide-react";
 import { useLeaveData } from "@/hook/useLeaveData";
-import { useUserData } from "@/hook/useUserData";
 import toast from "react-hot-toast";
 import updateJsonString from "@/lib/updateJsonString";
 import {
@@ -21,10 +20,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useUserStore } from "@/zustand/useUserStore";
 
 const LeaveApplicationDetails = ({ data }) => {
   const { updateLeave } = useLeaveData();
-  const { user } = useUserData();
+  const { user } = useUserStore();
 
   if (!data) {
     return (
@@ -152,22 +152,9 @@ const LeaveApplicationDetails = ({ data }) => {
         <div className="rounded-3xl border border-gray-100 p-6 bg-white shadow-lg shadow-gray-100/50 backdrop-blur-sm">
           {/* Header with fixed positioning on scroll if needed */}
           <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm py-2 mb-6">
-            <button
-              onClick={() => window.history.back()}
-              className="group inline-flex items-center gap-3 font-semibold text-gray-700 hover:text-gray-900 rounded-xl transition-all duration-300 hover:-translate-x-1"
-            >
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-gray-50 to-white border border-gray-100 group-hover:border-gray-200 group-hover:shadow-sm transition-all">
-                <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="text-[1.2vh] font-medium text-gray-500">
-                  Back to Applications
-                </span>
-                <span className="text-[1.4vh] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                  Application Details
-                </span>
-              </div>
-            </button>
+            <span className="text-[1.4vh] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+              Application Details
+            </span>
           </div>
 
           {/* Content with proper responsive layout */}
@@ -224,8 +211,8 @@ const LeaveApplicationDetails = ({ data }) => {
             {/* Leave Details - Responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Leave Category */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group">
-                <div className="flex items-center gap-3 mb-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group flex items-center ">
+                <div className="flex items-center justify-start gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#004368]/5 to-[#004368]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Tag className="w-4 h-4 md:w-5 md:h-5 text-[#004368]" />
                   </div>
@@ -241,8 +228,8 @@ const LeaveApplicationDetails = ({ data }) => {
               </div>
 
               {/* Leave Type */}
-              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group">
-                <div className="flex items-center gap-3 mb-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-300 group flex items-center ">
+                <div className="flex items-center justify-start gap-3">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#004368]/5 to-[#004368]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Calendar className="w-4 h-4 md:w-5 md:h-5 text-[#004368]" />
                   </div>

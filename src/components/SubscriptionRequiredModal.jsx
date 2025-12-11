@@ -114,12 +114,12 @@ const SubscriptionRequiredModal = () => {
               </div>
 
               {/* Footer Note */}
-              <div className="px-8 pb-6 text-center">
+              {/* <div className="px-8 pb-6 text-center">
                 <p className="text-xs text-gray-500">
                   All plans include a 14-day free trial. No credit card
                   required.
                 </p>
-              </div>
+              </div> */}
             </motion.div>
           </div>
         </>

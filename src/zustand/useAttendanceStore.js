@@ -16,7 +16,7 @@ export const useAttendanceStore = create((set, get) => ({
   absentCount: 0,
 
   // UI states
-  activeFilter: "all",
+  activeFilter: "punchData",
   isProcessing: false,
   isFilterLoading: false,
 
@@ -282,7 +282,7 @@ const createOvertimeSet = (overTime) => {
 const getLeaveTypes = (employee, date) => {
   const leaveTypes = [];
   const leaveMappings = {
-    m_leaves: "Medical Leave",
+    m_leaves: "Maternity leave",
     mar_leaves: "Marriage Leave",
     p_leaves: "Personal Leave",
     s_leaves: "Sick Leave",
