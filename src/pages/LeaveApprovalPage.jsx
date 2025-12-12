@@ -67,7 +67,7 @@ const LeaveApprovalPage = () => {
         <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
           Leave approval
         </p>
-        <div className="flex flex-col items-center justify-center h-[75vh] rounded-lg bg-gray-50">
+        <div className="flex flex-col items-center justify-center h-[75vh] rounded-lg ">
           <p className="text-gray-500 mb-2">No leave applications found</p>
           <p className="text-gray-400 text-sm">
             All applications have been processed
@@ -97,7 +97,7 @@ const LeaveApprovalPage = () => {
             key={selectedId} // Re-mount on selection change
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
+          <div className="flex-1 flex items-center justify-center rounded-lg ">
             <p className="text-gray-500">
               Select an application to view details
             </p>
