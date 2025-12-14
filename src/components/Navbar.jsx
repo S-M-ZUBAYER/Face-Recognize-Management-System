@@ -59,11 +59,11 @@ const Navbar = () => {
         </Avatar>
       </div>
       <div
-        className={` py-0.5 rounded-4xl  flex justify-center items-center   ${
+        className={` py-0.5 rounded-4xl  flex justify-center items-center ${
           verify
             ? "text-[#16A34A] text-[0.7vw] border border-[#50500] px-4 py-1.5  "
             : "border border-[#fdbcbc] px-4 py-1.5  text-[#ff0000] cursor-pointer "
-        }  `}
+        }`}
         onClick={handleNavigate}
       >
         <p>{verify ? "Email Verified" : "Email Unverified"} </p>

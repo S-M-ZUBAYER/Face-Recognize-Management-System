@@ -338,6 +338,8 @@ function convertPunchesWithSpecialRules(
     punches: takenPunches,
     date,
     shift: normalAllRules,
+    workingDecoded,
+    overtimeDecoded,
   };
 }
 
@@ -345,10 +347,13 @@ function convertPunchesWithNormalRules(punchesAsStrings, rulesModel, date) {
   let punches = [...punchesAsStrings].sort();
   let normalAllRules = [];
 
+  let workingDecoded = [];
+  let overtimeDecoded = [];
+
   if (Array.isArray(rulesModel.param1) && Array.isArray(rulesModel.param2)) {
     // ONLY NORMAL LOGIC - no special condition
-    let workingDecoded = rulesModel.param1 || [];
-    let overtimeDecoded = rulesModel.param2 || [];
+    workingDecoded = rulesModel.param1 || [];
+    overtimeDecoded = rulesModel.param2 || [];
 
     for (const shift of workingDecoded) {
       normalAllRules.push(shift.start, shift.end);
@@ -399,6 +404,8 @@ function convertPunchesWithNormalRules(punchesAsStrings, rulesModel, date) {
     punches: takenPunches,
     date,
     shift: normalAllRules,
+    workingDecoded,
+    overtimeDecoded,
   };
 }
 

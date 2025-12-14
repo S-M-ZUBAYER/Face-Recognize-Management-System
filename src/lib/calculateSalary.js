@@ -675,7 +675,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   }
   // NEW: Process attendance using reconciled punch data
   punchDetails.forEach((dayData) => {
-    const { punches, shift, date } = dayData;
+    const { punches, shift, date, workingDecoded, overtimeDecoded } = dayData;
 
     if (fullDayLeaveDates.includes(date)) {
       return;
@@ -876,43 +876,66 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
 
     // NEW: Overtime calculation
-    if (shift.length >= 6 && punches.length >= 6) {
-      // Has overtime shift (index 4-5)
-      const otStart = toMinutes(shift[4]);
-      // const otEnd = toMinutes(shift[5]);
-      // const punchOut =
-      //   punches[5] !== "00:00" ? toMinutes(punches[5]) : toMinutes(punches[3]);
+    if (workingDecoded && overtimeDecoded && punches.length >= 2) {
+      // Calculate working time (if needed)
+      // ... your working time calculation logic ...
+
+      // Calculate overtime based on overtimeDecoded periods
       let otMinutes = 0;
-      if (punches[4] !== "00:00" && punches[5] !== "00:00") {
-        const p4 = toMinutes(punches[4]);
-        const p5 = toMinutes(punches[5]);
-        otMinutes = Math.max(0, p5 - p4); // prevent negative OT
-      } else if (punches[5] !== "00:00") {
-        // Your previous logic: use shift OT start time
-        const punchOut = toMinutes(punches[5]);
-        otMinutes = Math.max(0, punchOut - otStart);
+
+      if (overtimeDecoded.length > 0) {
+        // We need to determine which punches correspond to overtime
+        // Assuming punches are in order: work punches first, then OT punches
+
+        // Count total working periods to skip those punches
+        const totalWorkPeriods = workingDecoded.length;
+        const workPunchCount = totalWorkPeriods * 2; // Each work period has in/out
+
+        // Process each overtime period
+        for (let i = 0; i < overtimeDecoded.length; i++) {
+          const otPeriod = overtimeDecoded[i];
+          const otStart = toMinutes(otPeriod.start);
+
+          // Calculate indices for this OT period's punches
+          // Assuming 2 punches per OT period (in/out)
+          const otInIndex = workPunchCount + i * 2;
+          const otOutIndex = workPunchCount + i * 2 + 1;
+
+          // Your exact logic from original code, adapted for dynamic indices
+          if (
+            punches[otInIndex] !== "00:00" &&
+            punches[otOutIndex] !== "00:00"
+          ) {
+            const pIn = toMinutes(punches[otInIndex]);
+            const pOut = toMinutes(punches[otOutIndex]);
+            otMinutes += Math.max(0, pOut - pIn); // prevent negative OT
+          } else if (punches[otOutIndex] !== "00:00") {
+            // Use shift OT start time when only out punch exists
+            const punchOut = toMinutes(punches[otOutIndex]);
+            otMinutes += Math.max(0, punchOut - otStart);
+          }
+          // Note: If only in punch exists (punches[otInIndex] !== "00:00" && punches[otOutIndex] === "00:00")
+          // Your original logic doesn't handle this case
+        }
       }
+
+      // Apply OT rules based on day type (same as before)
       if (isHoliday) {
         overtimeHoliday += otMinutes;
       } else if (isWeekend) {
         overtimeWeekend += otMinutes;
       } else {
         overtimeNormal += otMinutes;
+        if (id === "8938086979") {
+          console.log(date, overtimeNormal);
+        }
       }
+
+      // Apply rounding if needed (same as before)
       if (rule8 && minOTUnit > 0) {
         overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
         overtimeWeekend = roundOvertime(overtimeWeekend, minOTUnit);
         overtimeHoliday = roundOvertime(overtimeHoliday, minOTUnit);
-        // if (id === "70709908") {
-        //   console.log(
-        //     otMinutes,
-        //     overtimeNormal,
-        //     toMinutes(punches[5]),
-        //     toMinutes(punches[4]),
-        //     toMinutes(punches[5]) - toMinutes(punches[4]),
-        //     date
-        //   );
-        // }
       }
     }
   });

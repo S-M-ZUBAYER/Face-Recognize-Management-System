@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import ExportButton from "../ExportButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeModal from "../EmployeeModal";
@@ -11,11 +11,11 @@ function ResignedEmployeeTable({ employees = [] }) {
   const [isSearching, setIsSearching] = useState(false);
 
   // Reset selections when employees prop changes
-  useEffect(() => {
-    setSelectedEmployees([]);
-    setSearchInput("");
-    setSearchQuery("");
-  }, [employees]);
+  // useEffect(() => {
+  //   setSelectedEmployees([]);
+  //   setSearchInput("");
+  //   setSearchQuery("");
+  // }, [employees]);
 
   // Filter employees based on search query
   const filteredEmployees = useMemo(() => {

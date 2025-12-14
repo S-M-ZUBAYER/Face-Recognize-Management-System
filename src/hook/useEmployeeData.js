@@ -2,6 +2,7 @@ import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useAttendance } from "./useAttendance";
 import { useMemo } from "react";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { realAbsentCount } from "@/lib/realAbsentCount";
 
 export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
@@ -30,6 +31,15 @@ export const useEmployeeData = () => {
   const absentEmployees = Employees.filter(
     (emp) => !attendedIds.includes(emp.employeeId)
   );
+
+  let absentCount = 0;
+
+  absentEmployees.forEach((abEmp) => {
+    const res = realAbsentCount(abEmp.salaryRules, selectedDate);
+    if (res) {
+      absentCount++;
+    }
+  });
 
   const totalLate = useMemo(() => {
     return attendanceData.filter((att) => {
@@ -77,7 +87,7 @@ export const useEmployeeData = () => {
   return {
     totalEmployees: Employees.length,
     totalPresent: attendedEmployees.length,
-    totalAbsent: absentEmployees.length,
+    totalAbsent: absentCount,
     totalLate,
     isLoading: employeesLoading || attendanceLoading,
   };
