@@ -419,7 +419,9 @@ const AttendanceTable = ({ employees = [] }) => {
       }
 
       const isLongTextColumn =
-        columnKey === "designation" || columnKey === "department";
+        columnKey === "designation" ||
+        columnKey === "department" ||
+        columnKey === "punch-0";
 
       return (
         <div
