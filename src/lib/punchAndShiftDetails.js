@@ -203,11 +203,7 @@ function convertPunchesWithSpecialRules(
             previousDayPunchesAsStrings[i]
           );
 
-          const startHour = Number(
-            nextDaySchedule === null
-              ? normalAllRules[0].split(":")[0]
-              : nextDaySchedule[0].split(":")[0]
-          );
+          const startHour = Number(normalAllRules[0].split(":")[0]);
 
           // Evening window = startHour - 1 to startHour + 1
           const windowStart = (startHour - 1) * 60;
