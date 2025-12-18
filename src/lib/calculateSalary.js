@@ -354,6 +354,18 @@ function getWorkingDaysUpToDate(
   };
 }
 
+function identifyShiftType(shift) {
+  const [startHour, startMin] = shift.start.split(":").map(Number);
+  const [endHour, endMin] = shift.end.split(":").map(Number);
+
+  // Convert to minutes since 00:00
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+
+  // Night shift crosses midnight
+  return endMinutes <= startMinutes ? "Night Shift" : "Day Shift";
+}
+
 export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
     // attendanceRecords.push(
@@ -655,6 +667,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let missedPunchDeductions = 0;
   let halfDayLateCount = 0;
   let fullDayLateCount = 0;
+  let dayLateCount = 0;
+  let nightLateCount = 0;
   let wLeaveDeduction = 0;
   let oLeaveDeduction = 0;
   let sLeaveDeduction = 0;
@@ -772,6 +786,12 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         lateCount += 1;
         totalLatenessMinutes += lateMins;
 
+        if (identifyShiftType(workingDecoded) === "Day Shift") {
+          dayLateCount += 1;
+        } else {
+          nightLateCount += 1;
+        }
+
         // if (id === "7070968036") {
         //   console.log("Late on", date, lateMins, latenessGraceMin);
         // }
@@ -796,6 +816,12 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         const lateMins = punchMins - lateThresh;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
+
+        if (identifyShiftType(workingDecoded) === "Day Shift") {
+          dayLateCount += 1;
+        } else {
+          nightLateCount += 1;
+        }
         // if (id === "7070968036") {
         //   console.log("Late on", date, lateMins, latenessGraceMin);
         // }
@@ -1119,18 +1145,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   }
 
   if (rule22 && (dayShiftPenalty || nightShiftPenalty)) {
-    let isNightShift = false;
-
-    if (punchDetails.length > 0) {
-      const firstDay = punchDetails[0];
-      if (firstDay.shift && firstDay.shift[0]) {
-        const startMin = toMinutes(firstDay.shift[0]);
-        if (startMin >= toMinutes("18:00")) isNightShift = true;
-      }
-    }
-
-    const perOccPenalty = isNightShift ? nightShiftPenalty : dayShiftPenalty;
-    if (perOccPenalty) lateDeductions += lateCount * perOccPenalty;
+    lateDeductions +=
+      nightLateCount * nightShiftPenalty + dayLateCount * dayShiftPenalty;
   }
 
   if (rule23 && missedPunchCost && missedPunch > missedPunchAccept) {
