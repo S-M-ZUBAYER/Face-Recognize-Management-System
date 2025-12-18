@@ -355,6 +355,10 @@ function getWorkingDaysUpToDate(
 }
 
 function identifyShiftType(shift) {
+  if (!shift || !shift.start || !shift.end) {
+    return "No Shift";
+  }
+
   const [startHour, startMin] = shift.start.split(":").map(Number);
   const [endHour, endMin] = shift.end.split(":").map(Number);
 
@@ -392,9 +396,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // );
     return;
   }
-  if (id === "3531774215") {
-    console.log(attendanceRecords);
-  }
+  // if (id === "3531774215") {
+  //   console.log(attendanceRecords);
+  // }
 
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
@@ -788,7 +792,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
         if (identifyShiftType(workingDecoded) === "Day Shift") {
           dayLateCount += 1;
-        } else {
+        } else if (identifyShiftType(workingDecoded) === "Night Shift") {
           nightLateCount += 1;
         }
 
@@ -819,7 +823,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
         if (identifyShiftType(workingDecoded) === "Day Shift") {
           dayLateCount += 1;
-        } else {
+        } else if (identifyShiftType(workingDecoded) === "Night Shift") {
           nightLateCount += 1;
         }
         // if (id === "7070968036") {
