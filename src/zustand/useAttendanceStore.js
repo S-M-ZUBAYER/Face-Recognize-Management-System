@@ -289,7 +289,7 @@ const getLeaveTypes = (employee, date) => {
     c_leaves: "Casual Leave",
     e_leaves: "Earned Leave",
     w_leaves: "Without Pay Leave",
-    r_leaves: "Regular Leave",
+    r_leaves: "Rest Leave",
     o_leaves: "Other Leave",
   };
 

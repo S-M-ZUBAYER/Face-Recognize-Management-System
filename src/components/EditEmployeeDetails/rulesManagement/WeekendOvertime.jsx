@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 
 export const WeekendOvertime = () => {
-  const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
+  // const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
   const [weekendWorkingTimePercent, setWeekendWorkingTimePercent] =
     useState("");
   const { selectedEmployee } = useEditEmployeeStore();
@@ -26,13 +26,13 @@ export const WeekendOvertime = () => {
 
         if (ruleEight) {
           // param1 contains weekend overtime percent value
-          if (ruleEight.param1) {
-            const overtimePercentValue =
-              typeof ruleEight.param1 === "string"
-                ? ruleEight.param1
-                : String(ruleEight.param1);
-            setWeekendOvertimePercent(overtimePercentValue);
-          }
+          // if (ruleEight.param1) {
+          //   const overtimePercentValue =
+          //     typeof ruleEight.param1 === "string"
+          //       ? ruleEight.param1
+          //       : String(ruleEight.param1);
+          //   setWeekendOvertimePercent(overtimePercentValue);
+          // }
 
           // param2 contains weekend working time percent value
           if (ruleEight.param2) {
@@ -56,16 +56,16 @@ export const WeekendOvertime = () => {
       return;
     }
 
-    if (
-      !weekendOvertimePercent ||
-      isNaN(weekendOvertimePercent) ||
-      parseFloat(weekendOvertimePercent) < 0
-    ) {
-      toast.error(
-        "Please enter a valid positive number for weekend overtime percent"
-      );
-      return;
-    }
+    // if (
+    //   !weekendOvertimePercent ||
+    //   isNaN(weekendOvertimePercent) ||
+    //   parseFloat(weekendOvertimePercent) < 0
+    // ) {
+    //   toast.error(
+    //     "Please enter a valid positive number for weekend overtime percent"
+    //   );
+    //   return;
+    // }
 
     if (
       !weekendWorkingTimePercent ||
@@ -95,7 +95,7 @@ export const WeekendOvertime = () => {
           empId: empId, // string
           ruleId: "8", // string
           ruleStatus: 1, // number
-          param1: weekendOvertimePercent, // string containing weekend overtime percent value
+          // param1: weekendOvertimePercent, // string containing weekend overtime percent value
           param2: weekendWorkingTimePercent, // string containing weekend working time percent value
           param3: "",
           param4: "",
@@ -105,7 +105,7 @@ export const WeekendOvertime = () => {
       } else {
         // Update ONLY the ruleEight object - preserve all other properties
         ruleEight.empId = empId; // string
-        ruleEight.param1 = weekendOvertimePercent; // update with new weekend overtime percent value
+        // ruleEight.param1 = weekendOvertimePercent; // update with new weekend overtime percent value
         ruleEight.param2 = weekendWorkingTimePercent; // update with new weekend working time percent value
         // Keep all other properties as they are
       }
@@ -127,10 +127,10 @@ export const WeekendOvertime = () => {
         payload,
       });
 
-      console.log("Weekend overtime settings updated successfully:", {
-        weekendOvertimePercent,
-        weekendWorkingTimePercent,
-      });
+      // console.log("Weekend overtime settings updated successfully:", {
+      //   weekendOvertimePercent,
+      //   weekendWorkingTimePercent,
+      // });
       toast.success("Weekend overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving weekend overtime settings:", error);
@@ -167,7 +167,7 @@ export const WeekendOvertime = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-3.5 items-center justify-between">
+      {/* <div className="flex gap-3.5 items-center justify-between">
         <label className="text-sm font-semibold">
           Weekend Overtime Percent
         </label>
@@ -180,11 +180,11 @@ export const WeekendOvertime = () => {
           step="0.1"
           className="w-[50%] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004368] focus:border-transparent"
         />
-      </div>
+      </div> */}
 
-      <div className="flex gap-3.5 items-center justify-between">
+      <div className="flex gap-3.5 items-center justify-between mt-3.5">
         <label className="text-sm font-semibold">
-          Weekend Working Time Percent
+          Weekend Overtime Time Percent
         </label>
         <input
           type="number"
@@ -198,43 +198,51 @@ export const WeekendOvertime = () => {
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">
+          Weekend Overtime Pay Details
+        </h3>
         <ul className="text-sm text-gray-700 space-y-2">
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <strong>Weekend working time percent:</strong> daily total working
-              hours without overtime, if we want, we can increase it on weekend.
+              Weekend overtime pay is calculated by first determining the
+              employee’s hourly overtime rate. This is done by dividing the
+              employee’s daily salary rate by the standard number of working
+              hours per day. The total weekend overtime pay is then calculated
+              by multiplying the total number of weekend overtime hours by the
+              hourly overtime rate and applying a predefined weekend shift
+              multiplier. This ensures that employees receive additional
+              compensation for working overtime on weekends at a higher rate
+              than normal working days.
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <strong>Weekend overtime time percent:</strong> daily total
-              overtime hours, if we want,we can increase it on weekend.
+              <strong>Weekend Overtime Calculation Logic</strong>
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <strong>Example:</strong> if an employee works 2 days with per day
-              salary of 500 and the multiplier is set to 2 weekend.working time
-              pay = Weekend working days *500*2=2*500*2=2000
+              <strong>
+                Convert the daily salary into an hourly overtime rate:
+              </strong>{" "}
+              Overtime Rate = Daily Salary ÷ Daily Working Hours
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <strong>Example:</strong> if an employee works 2 hours overtime in
-              weekend with 100/hour and the multiplier is set to 3.weekend
-              overtime pay = overtime hour *100*3=2*100*3=600
+              <strong>Calculate weekend overtime pay:</strong> Weekend Overtime
+              Pay = Weekend Overtime Hours × Overtime Rate × Weekend Multiplier
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span className="text-gray-600">
-              Enter percentage multipliers for weekend working hours and
-              overtime (e.g., 1.5 for 150%, 2 for 200%)
+              Add the calculated amount to the employee’s total weekend overtime
+              payment.
             </span>
           </li>
         </ul>
@@ -253,9 +261,7 @@ export const WeekendOvertime = () => {
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={
-            updating || !weekendOvertimePercent || !weekendWorkingTimePercent
-          }
+          disabled={updating || !weekendWorkingTimePercent}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Saving..." : "Save"}

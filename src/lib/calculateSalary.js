@@ -1,4 +1,5 @@
 import calculateLeaveDeductions from "./calculateLeaveDeductions";
+import calculateWorkedTime from "./calculateWorkedTime";
 import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 
@@ -449,11 +450,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const minOTUnit = Number(firstNumericParam(rule8) || 0);
 
   const rule9 = getRule(9);
-  const weekendMultiplier = Number(rule9?.param1 || 0);
+  // const weekendMultiplier = Number(rule9?.param1 || 0);
   const weekendNormalShiftMultiplier = Number(rule9?.param2 || 1);
 
   const rule10 = getRule(10);
-  const holidayMultiplier = Number(firstNumericParam(rule10) || 0);
+  // const holidayMultiplier = Number(firstNumericParam(rule10) || 0);
   const holidayNormalShiftMultiplier = Number(secondNumericParam(rule10) || 1);
 
   const rule11 = getRule(11);
@@ -656,7 +657,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let wLeaveDeduction = 0;
   let oLeaveDeduction = 0;
   let sLeaveDeduction = 0;
+  let holidayNormalShiftPay = 0;
   // const nonDeductibleLeaveDates = new Set();
+  let weekendNormalShiftPay = 0;
 
   if (rule11) {
     const { s_deduction, o_deduction, w_deduction } = calculateLeaveDeductions(
@@ -921,9 +924,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
       // Apply OT rules based on day type (same as before)
       if (isHoliday) {
-        overtimeHoliday += otMinutes;
+        overtimeHoliday += calculateWorkedTime(workingDecoded, punches);
       } else if (isWeekend) {
-        overtimeWeekend += otMinutes;
+        overtimeWeekend += calculateWorkedTime(workingDecoded, punches);
       } else {
         overtimeNormal += otMinutes;
         // if (id === "8938086979") {
@@ -1178,23 +1181,30 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     overtimePay +=
       toHours(overtimeNormal) * overtimeSalaryRate * (normalOTMultiplier || 1);
 
-    if (rule9 && weekendMultiplier > 1) {
+    if (rule9 && weekendNormalShiftMultiplier && rule8) {
       overtimePay +=
-        toHours(overtimeWeekend) * overtimeSalaryRate * weekendMultiplier;
-    } else {
-      overtimePay += toHours(overtimeWeekend) * overtimeSalaryRate * 1;
+        toHours(overtimeWeekend) *
+        overtimeSalaryRate *
+        weekendNormalShiftMultiplier;
+
+      // if (id === "2109058927") {
+      //   console.log(
+      //     rule8,
+      //     overtimeWeekend,
+      //     weekendNormalShiftMultiplier,
+      //     overtimeSalaryRate
+      //   );
+      // }
     }
 
-    if (rule10 && holidayMultiplier > 1) {
+    if (rule10 && holidayNormalShiftMultiplier && rule8) {
       overtimePay +=
-        toHours(overtimeHoliday) * overtimeSalaryRate * holidayMultiplier;
-    } else {
-      overtimePay += toHours(overtimeHoliday) * overtimeSalaryRate * 1;
+        toHours(overtimeHoliday) *
+        overtimeSalaryRate *
+        holidayNormalShiftMultiplier;
     }
   }
-  let weekendNormalShiftPay = 0;
-  weekendNormalShiftPay =
-    dailyRate * (weekendNormalShiftMultiplier - 1) * weekendPresent;
+
   // if (id === "2109058927") {
   //   console.log(
   //     monthlySalary,
@@ -1204,9 +1214,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //     weekendPresent
   //   );
   // }
-  let holidayNormalShiftPay = 0;
-  holidayNormalShiftPay =
-    dailyRate * (holidayNormalShiftMultiplier - 1) * holidayPresent;
 
   earnedSalary += weekendNormalShiftPay + holidayNormalShiftPay;
   presentDaysSalary += weekendNormalShiftPay + holidayNormalShiftPay;

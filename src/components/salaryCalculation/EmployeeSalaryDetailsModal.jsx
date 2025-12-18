@@ -430,7 +430,9 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         {salaryDetails?.deductions?.extraAbsentDeductions >
                           0 && (
                           <div className="flex justify-between items-center text-sm py-1">
-                            <span className="text-gray-600">Extra Absent</span>
+                            <span className="text-gray-600">
+                              Extra Absent penalty
+                            </span>
                             <span className="text-red-600">
                               -
                               {formatNumber(
