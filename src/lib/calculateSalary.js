@@ -1,5 +1,6 @@
 import calculateLeaveDeductions from "./calculateLeaveDeductions";
 import calculateWorkedTime from "./calculateWorkedTime";
+import countWorkingMissPunch from "./countWorkingMissPunch";
 import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 
@@ -744,21 +745,19 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     // }
 
     // NEW: Check for missed punches in first 4 positions
+    const missedCount = countWorkingMissPunch(workingDecoded, punches);
+
     const hasMissedPunch =
-      punches.slice(0, 4).some((p) => p === "00:00") &&
-      !halfDayLeaveDates.includes(date);
+      missedCount.hasMissPunch && !halfDayLeaveDates.includes(date);
 
     if (hasMissedPunch) {
       if (isMissedPunchSalaryCut(date, id)) {
-        const missedCount = punches
-          .slice(0, 4)
-          .filter((p) => p === "00:00").length;
-        missedPunch += missedCount;
-
-        // if (id === "8938086979") {
-        //   console.log("Missed punch on", date, missedCount, punches);
-        // }
+        missedPunch += missedCount.missPunchCount;
       }
+
+      // if (id === "8938086979") {
+      //   console.log("Missed punch on", date, missedCount, punches);
+      // }
     }
 
     // NEW: Late count logic (only index 0 and index 2)
