@@ -3,6 +3,7 @@ import ExportButton from "../ExportButton";
 import { ShowQrCodeModal } from "./ShowQrcodeModal";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeModal from "../EmployeeModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function EmployeeTable({ employees = [] }) {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
@@ -17,6 +18,21 @@ function EmployeeTable({ employees = [] }) {
   //   setSearchInput("");
   //   setSearchQuery("");
   // }, [employees]);
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
 
   // Filter employees based on search query
   const filteredEmployees = useMemo(() => {
@@ -213,6 +229,8 @@ function EmployeeTable({ employees = [] }) {
               filteredEmployees.map((emp, idx) => {
                 const empId = emp.companyEmployeeId || emp.employeeId || emp.id;
                 const isSelected = selectedEmployeeIdsSet.has(empId);
+                const employeeName = getEmployeeName(emp.name);
+                const initials = getInitials(employeeName);
 
                 return (
                   <tr
@@ -229,7 +247,18 @@ function EmployeeTable({ employees = [] }) {
                       />
                     </td>
                     <td className="p-2 font-medium">
-                      {emp?.name ? emp.name.split("<")[0] : "N/A"}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src={emp.image}
+                            alt={`${emp.name}'s profile`}
+                          />
+                          <AvatarFallback className="text-xs font-medium">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        {emp?.name ? emp.name.split("<")[0] : "N/A"}
+                      </div>
                     </td>
                     <td className="p-2">
                       {emp?.companyEmployeeId ||

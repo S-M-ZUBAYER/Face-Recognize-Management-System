@@ -5,6 +5,7 @@ import EmployeeModal from "./EmployeeModal";
 import { useOverTimeData } from "@/hook/useOverTimeData";
 import { useNavigate } from "react-router-dom";
 import SetModal from "./modal/SetModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const EmployeeManagementTable = ({ employees = [] }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
@@ -29,6 +30,22 @@ const EmployeeManagementTable = ({ employees = [] }) => {
     setSearchInput("");
     setSearchQuery("");
   }, [employees]);
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
 
   const handleNavigate = (employeeId, deviceMAC) => {
     navigate("editEmployeeDetails/" + employeeId + "/" + deviceMAC);
@@ -239,6 +256,8 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                 const hasOvertime = hasOvertimeRecords(
                   emp.employeeId || emp.id
                 );
+                const employeeName = getEmployeeName(emp.name);
+                const initials = getInitials(employeeName);
 
                 return (
                   <tr
@@ -257,7 +276,18 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                       />
                     </td>
                     <td className="p-2 font-medium">
-                      {emp?.name ? emp.name.split("<")[0] : "N/A"}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src={emp.image}
+                            alt={`${emp.name}'s profile`}
+                          />
+                          <AvatarFallback className="text-xs font-medium">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        {emp?.name ? emp.name.split("<")[0] : "N/A"}
+                      </div>
                     </td>
                     <td className="p-2">
                       {emp?.companyEmployeeId ||

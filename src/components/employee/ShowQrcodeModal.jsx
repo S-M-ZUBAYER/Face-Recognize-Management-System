@@ -7,8 +7,30 @@ export function ShowQrCodeModal({ deviceMAC, employeeId }) {
   const [isOpen, setIsOpen] = useState(false);
   const [macDevice, setMacDevice] = useState(deviceMAC);
   const [Id, setId] = useState(employeeId);
+  const input = `employeeId-${employeeId} ; macId-${macDevice} ; time-${new Date().toISOString()}`;
+  function shiftLetters(input) {
+    return input
+      .split("")
+      .map((char) => {
+        if (/[a-z]/.test(char)) {
+          // shift lowercase
+          let code = char.charCodeAt(0);
+          code = ((code - 97 + 1) % 26) + 97; // 'a' = 97
+          return String.fromCharCode(code);
+        } else if (/[A-Z]/.test(char)) {
+          // shift uppercase
+          let code = char.charCodeAt(0);
+          code = ((code - 65 + 1) % 26) + 65; // 'A' = 65
+          return String.fromCharCode(code);
+        } else {
+          // leave digits and symbols unchanged
+          return char;
+        }
+      })
+      .join("");
+  }
 
-  const qrValue = `employeeId-${Id} ; macId-${macDevice}`;
+  const qrValue = shiftLetters(input);
 
   useEffect(() => {
     setMacDevice(deviceMAC);

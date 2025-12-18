@@ -348,12 +348,12 @@ const SubscriptionModal = () => {
                           {/* Features List */}
                           <div className="space-y-3 mb-6 flex-1">
                             {/* Common Feature - Employees */}
-                            <div className="flex items-center">
+                            {/* <div className="flex items-center">
                               <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
                               <span className="text-sm text-gray-700">
                                 Up to 100 employees
                               </span>
-                            </div>
+                            </div> */}
 
                             {/* Package-specific Features */}
                             {pkg.features.map((feature, idx) => (

@@ -6,7 +6,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 
 export const HolidayOvertime = () => {
-  const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
+  // const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
   const [holidayWorkingTimePercent, setHolidayWorkingTimePercent] =
     useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
@@ -21,16 +21,16 @@ export const HolidayOvertime = () => {
       return;
     }
 
-    if (
-      !holidayOvertimePercent ||
-      isNaN(holidayOvertimePercent) ||
-      parseFloat(holidayOvertimePercent) < 0
-    ) {
-      toast.error(
-        "Please enter a valid positive number for holiday overtime percent"
-      );
-      return;
-    }
+    // if (
+    //   !holidayOvertimePercent ||
+    //   isNaN(holidayOvertimePercent) ||
+    //   parseFloat(holidayOvertimePercent) < 0
+    // ) {
+    //   toast.error(
+    //     "Please enter a valid positive number for holiday overtime percent"
+    //   );
+    //   return;
+    // }
 
     if (
       !holidayWorkingTimePercent ||
@@ -65,7 +65,7 @@ export const HolidayOvertime = () => {
             empId: empId, // string
             ruleId: "9", // string
             ruleStatus: 1, // number
-            param1: holidayOvertimePercent, // string containing holiday overtime percent value
+            // param1: holidayOvertimePercent, // string containing holiday overtime percent value
             param2: holidayWorkingTimePercent, // string containing holiday working time percent value
             param3: "",
             param4: "",
@@ -75,7 +75,7 @@ export const HolidayOvertime = () => {
         } else {
           // Update ONLY the ruleNine object - preserve all other properties
           ruleNine.empId = empId; // string
-          ruleNine.param1 = holidayOvertimePercent; // update with new holiday overtime percent value
+          // ruleNine.param1 = holidayOvertimePercent; // update with new holiday overtime percent value
           ruleNine.param2 = holidayWorkingTimePercent; // update with new holiday working time percent value
           // Keep all other properties as they are
         }
@@ -116,7 +116,7 @@ export const HolidayOvertime = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-3.5 items-center justify-between">
+      {/* <div className="flex gap-3.5 items-center justify-between">
         <label className="text-sm font-semibold">
           Holiday Overtime Percent
         </label>
@@ -129,9 +129,9 @@ export const HolidayOvertime = () => {
           step="0.1"
           className="w-[50%] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004368] focus:border-transparent"
         />
-      </div>
+      </div> */}
 
-      <div className="flex gap-3.5 items-center justify-between">
+      <div className="flex gap-3.5 items-center justify-between mt-3.5 ">
         <label className="text-sm font-semibold">
           Holiday Working Time Percent
         </label>
@@ -147,43 +147,49 @@ export const HolidayOvertime = () => {
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">
+          Holiday Overtime Pay Details
+        </h3>
         <ul className="text-sm text-gray-700 space-y-2">
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <strong>Holiday working time percent:</strong> daily total working
-              hours without overtime, if we want, we can increase it on holiday.
+              Holiday overtime pay is calculated by first determining the
+              employee’s hourly overtime rate. This is done by dividing the
+              employee’s daily salary rate by the standard number of working
+              hours per day. The total holiday overtime pay is then calculated
+              by multiplying the total number of holiday overtime hours by the
+              hourly overtime rate and applying a predefined holiday shift
+              multiplier. This ensures that employees receive additional
+              compensation for working overtime on holidays at a higher rate
+              than normal working days.
+            </span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>Holiday Overtime Calculation Logic</span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              <strong>
+                Convert the daily salary into an hourly overtime rate
+              </strong>{" "}
+              Overtime Rate = Daily Salary ÷ Daily Working Hours
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span>
-              <strong>Holiday overtime time percent:</strong> daily total
-              overtime hours, if we want,we can increase it on holiday.
-            </span>
-          </li>
-          <li className="flex items-start">
-            <span className="font-semibold mr-2">•</span>
-            <span>
-              <strong>Example:</strong> if an employee works 2 days with per day
-              salary of 500 and the multiplier is set to 2 holiday.working time
-              pay = Holiday working days *500*2=2*500*2=2000
-            </span>
-          </li>
-          <li className="flex items-start">
-            <span className="font-semibold mr-2">•</span>
-            <span>
-              <strong>Example:</strong> if an employee works 2 hours overtime in
-              holiday with 100/hour and the multiplier is set to 3.Holiday
-              overtime pay = overtime hour *100*3=2*100*3=600
+              <strong>Calculate holiday overtime pay:</strong> Holiday Overtime
+              Pay = Holiday Overtime Hours × Overtime Rate × Holiday Multiplier
             </span>
           </li>
           <li className="flex items-start">
             <span className="font-semibold mr-2">•</span>
             <span className="text-gray-600">
-              Enter percentage multipliers for holiday working hours and
-              overtime (e.g., 1.5 for 150%, 2 for 200%)
+              Add the calculated amount to the employee’s total weekend overtime
+              payment.
             </span>
           </li>
         </ul>
@@ -191,9 +197,7 @@ export const HolidayOvertime = () => {
 
       <button
         onClick={handleSave}
-        disabled={
-          updating || !holidayOvertimePercent || !holidayWorkingTimePercent
-        }
+        disabled={updating || !holidayWorkingTimePercent}
         className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
       >
         {updating ? "Saving..." : "Save"}
