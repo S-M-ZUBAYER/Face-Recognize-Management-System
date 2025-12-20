@@ -1,10 +1,10 @@
-import calculateHourlySalary from "./calculateHourlySalary";
+import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
 import calculateLeaveDeductions from "./calculateLeaveDeductions";
-import { calculateWeeklySalary } from "./calculateWeeklySalary";
 import calculateWorkedTime from "./calculateWorkedTime";
 import countWorkingMissPunch from "./countWorkingMissPunch";
 import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
+import { useDateStore } from "@/zustand/useDateStore";
 
 function toMinutes(time) {
   if (!time && time !== 0) return 0;
@@ -201,8 +201,8 @@ function parseOtherSalary(otherSalary) {
 }
 
 function getWorkingDaysInMonth(
-  year,
-  month,
+  startDate,
+  endDate,
   weekendDayNames,
   holidaysSet,
   generalDaysSet,
@@ -214,14 +214,16 @@ function getWorkingDaysInMonth(
   let thisMonthHolidays = 0;
   let thisMonthWeekends = 0;
   const weekends = Array.from(weekendDayNames);
-  // Fixed month indexing - months are 0-based in JavaScript Date
-  const daysInMonth = new Date(year, month, 0).getDate();
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const monthStr = String(month).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-    const date = new Date(dateStr);
+  for (
+    let d = new Date(startDate);
+    d <= new Date(endDate);
+    d.setDate(d.getDate() + 1)
+  ) {
+    const monthStr = String(d.getMonth() + 1).padStart(2, "0");
+    const dayStr = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${d.getFullYear()}-${monthStr}-${dayStr}`;
+    const date = d;
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
     // Check if it's a full day leave - skip this day
@@ -261,100 +263,100 @@ function getWorkingDaysInMonth(
   return { workingDays, thisMonthLeave, thisMonthHolidays, thisMonthWeekends };
 }
 
-function getWorkingDaysUpToDate(
-  year,
-  month,
-  currentDay,
-  weekendDayNames,
-  holidaysSet,
-  generalDaysSet,
-  replaceDaysSet,
-  fullDayLeaveDates // Add this parameter
-  // id
-) {
-  let workingDays = 0;
-  let thisMonthLeave = 0;
-  let thisMonthHolidays = 0;
-  let thisMonthWeekends = 0;
-  let futureAbsent = 0;
-  const weekends = Array.from(weekendDayNames);
+// function getWorkingDaysUpToDate(
+//   year,
+//   month,
+//   currentDay,
+//   weekendDayNames,
+//   holidaysSet,
+//   generalDaysSet,
+//   replaceDaysSet,
+//   fullDayLeaveDates // Add this parameter
+//   // id
+// ) {
+//   let workingDays = 0;
+//   let thisMonthLeave = 0;
+//   let thisMonthHolidays = 0;
+//   let thisMonthWeekends = 0;
+//   let futureAbsent = 0;
+//   const weekends = Array.from(weekendDayNames);
 
-  const monthDays = new Date(year, month, 0).getDate();
+//   const monthDays = new Date(year, month, 0).getDate();
 
-  for (let d = currentDay + 1; d <= monthDays; d++) {
-    const monthStr = String(month).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-    const date = new Date(dateStr);
-    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+//   for (let d = currentDay + 1; d <= monthDays; d++) {
+//     const monthStr = String(month).padStart(2, "0");
+//     const dayStr = String(d).padStart(2, "0");
+//     const dateStr = `${year}-${monthStr}-${dayStr}`;
+//     const date = new Date(dateStr);
+//     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-    if (weekends.includes(dayName)) {
-      continue;
-    }
+//     if (weekends.includes(dayName)) {
+//       continue;
+//     }
 
-    // Check holidays
-    if (holidaysSet.has(dateStr)) {
-      continue;
-    }
-    futureAbsent++;
-  }
+//     // Check holidays
+//     if (holidaysSet.has(dateStr)) {
+//       continue;
+//     }
+//     futureAbsent++;
+//   }
 
-  for (let d = 1; d <= currentDay; d++) {
-    const monthStr = String(month).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-    const date = new Date(dateStr);
-    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+//   for (let d = 1; d <= currentDay; d++) {
+//     const monthStr = String(month).padStart(2, "0");
+//     const dayStr = String(d).padStart(2, "0");
+//     const dateStr = `${year}-${monthStr}-${dayStr}`;
+//     const date = new Date(dateStr);
+//     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-    // Check if it's a full day leave - skip this day
-    if (fullDayLeaveDates.includes(dateStr)) {
-      thisMonthLeave++;
-      continue;
-    }
-    // if (id === "70709903") {
-    //   console.log(
-    //     fullDayLeaveDates,
-    //     fullDayLeaveDates.includes(dateStr),
-    //     dateStr
-    //   );
-    // }
+//     // Check if it's a full day leave - skip this day
+//     if (fullDayLeaveDates.includes(dateStr)) {
+//       thisMonthLeave++;
+//       continue;
+//     }
+//     // if (id === "70709903") {
+//     //   console.log(
+//     //     fullDayLeaveDates,
+//     //     fullDayLeaveDates.includes(dateStr),
+//     //     dateStr
+//     //   );
+//     // }
 
-    // Check replacement days first (these override everything)
-    if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
-      continue;
-    }
+//     // Check replacement days first (these override everything)
+//     if (replaceDaysSet.has(dateStr)) {
+//       workingDays++;
+//       continue;
+//     }
 
-    // Check holidays
-    if (holidaysSet.has(dateStr)) {
-      thisMonthHolidays++;
-      continue;
-    }
+//     // Check holidays
+//     if (holidaysSet.has(dateStr)) {
+//       thisMonthHolidays++;
+//       continue;
+//     }
 
-    // Check general working days
-    if (generalDaysSet.has(dateStr)) {
-      workingDays++;
-      continue;
-    }
+//     // Check general working days
+//     if (generalDaysSet.has(dateStr)) {
+//       workingDays++;
+//       continue;
+//     }
 
-    // Check weekends
-    if (weekends.includes(dayName)) {
-      thisMonthWeekends++;
-      continue;
-    }
+//     // Check weekends
+//     if (weekends.includes(dayName)) {
+//       thisMonthWeekends++;
+//       continue;
+//     }
 
-    // Normal working day
-    workingDays++;
-  }
+//     // Normal working day
+//     workingDays++;
+//   }
 
-  return {
-    workingDays,
-    thisMonthLeave,
-    thisMonthHolidays,
-    thisMonthWeekends,
-    futureAbsent,
-  };
-}
+//   return {
+//     workingDays,
+//     thisMonthLeave,
+//     thisMonthHolidays,
+//     thisMonthWeekends,
+//     futureAbsent,
+//   };
+// }
 
 function identifyShiftType(shifts) {
   // If not array or empty array
@@ -376,52 +378,61 @@ function identifyShiftType(shifts) {
 
   return endMinutes <= startMinutes ? "Night Shift" : "Day Shift";
 }
+function getFirstWeekRange(year, month, weekStartDay = 0) {
+  // weekStartDay: 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
 
-export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
-  if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
-    // attendanceRecords.push(
-    //   {
-    //     empId: "21290499",
-    //     macId: "71_b2_d5_b8_0f_e1",
-    //     date: "2025-11-09",
-    //     checkIn: '["08:08","14:30"]',
-    //     lunchTimeCheckIn: null,
-    //     lunchTimeCheckOut: null,
-    //     checkOut: null,
-    //     status: "synced",
-    //   },
-    //   {
-    //     empId: "21290499",
-    //     macId: "71_b2_d5_b8_0f_e1",
-    //     date: "2025-11-02",
-    //     checkIn: '["07:56","18:54"]',
-    //     lunchTimeCheckIn: null,
-    //     lunchTimeCheckOut: null,
-    //     checkOut: null,
-    //     status: "synced",
-    //   }
-    // );
-    return;
+  const firstDay = new Date(year, month, 1);
+  const jsDay = firstDay.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+
+  // Convert JS day to 0=Mon system
+  const normalizedDay = (jsDay + 6) % 7; // 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+
+  // Calculate days to reach the desired weekStartDay
+  let daysToStart;
+  if (normalizedDay <= weekStartDay) {
+    // Go forward to reach weekStartDay
+    daysToStart = weekStartDay - normalizedDay;
+  } else {
+    // Go forward to next week's weekStartDay
+    daysToStart = 7 - (normalizedDay - weekStartDay);
   }
 
-  if (payPeriod.payPeriod === "hourly") {
-    return calculateHourlySalary(attendanceRecords, salaryRules, payPeriod);
-  }
-  if (payPeriod.payPeriod === "weekly") {
-    let startDate = undefined;
-    let endDate = undefined;
-    return calculateWeeklySalary(
-      payPeriod,
-      salaryRules,
-      startDate,
-      endDate,
-      id
+  const startDate = new Date(year, month, 1 + daysToStart);
+  const endDate = new Date(year, month, 1 + daysToStart + 6);
+
+  return {
+    startDate: startDate.toISOString().slice(0, 10),
+    endDate: endDate.toISOString().slice(0, 10),
+  };
+}
+
+export function calculateWeeklySalary(
+  payPeriod,
+  salaryRules,
+  startDate,
+  endDate,
+  id
+) {
+  const { selectedMonth, selectedYear } = useDateStore.getState();
+  if (startDate === undefined && endDate === undefined) {
+    const firstWeekRange = getFirstWeekRange(
+      selectedYear,
+      selectedMonth,
+      payPeriod?.startDay + 1
     );
+    startDate = firstWeekRange.startDate;
+    endDate = firstWeekRange.endDate;
   }
-  // if (id === "3531774215") {
-  //   console.log(attendanceRecords);
-  // }
+  const allAttendance = useAllAttendanceStore.getState().attendanceArray;
 
+  const attendanceRecords = allAttendance.filter((item) => {
+    return (
+      String(item.empId) === String(id) &&
+      item.date >= startDate &&
+      item.date <= endDate
+    );
+  });
+  console.log(attendanceRecords, startDate, endDate, id);
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
     : tryParseMaybeString(salaryRules.rules);
@@ -556,7 +567,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     ? Number(payPeriod.overtimeFixed || 0)
     : Number(payPeriod.overtimeSalary || 0) / dailyWorkingHours;
 
-  let year, month;
+  //   let year, month;
 
   // NEW: Get reconciled punch and shift details
 
@@ -568,15 +579,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //   console.log(id,salaryRules)
   // }
 
-  if (punchDetails.length > 0) {
-    const [y, m] = punchDetails[0].date.split("-");
-    year = Number(y);
-    month = Number(m);
-  } else {
-    const now = new Date();
-    year = now.getFullYear();
-    month = now.getMonth();
-  }
+  //   if (punchDetails.length > 0) {
+  //     const [y, m] = punchDetails[0].date.split("-");
+  //     year = Number(y);
+  //     month = Number(m);
+  //   } else {
+  //     const now = new Date();
+  //     year = now.getFullYear();
+  //     month = now.getMonth();
+  //   }
 
   // const workingDaysConfigured = getWorkingDaysInMonth(
   //   year,
@@ -591,10 +602,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   //   console.log(holidaysArr);
   // }
 
-  const now = new Date();
-  const currentDay = now.getDate();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
+  //   const now = new Date();
+  //   const currentDay = now.getDate();
+  //   const currentYear = now.getFullYear();
+  //   const currentMonth = now.getMonth() + 1;
 
   const { fullDayLeaveDates, halfDayLeaveDates } = getFullDayLeaveDates([
     salaryRules.m_leaves,
@@ -609,45 +620,25 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   ]);
 
   // console.log(currentMonth, currentYear, month, year);
-
   let workingDaysUpToCurrent;
   let thisMonthLeave = 0;
   let thisMonthHolidays = 0;
   let thisMonthWeekends = 0;
-  let futureAbsent = 0;
-  if (year === currentYear && month === currentMonth) {
-    const details = getWorkingDaysUpToDate(
-      year,
-      month,
-      currentDay,
-      weekendDayNames,
-      holidaysSet,
-      generalDaysSet,
-      replaceDaysSet,
-      fullDayLeaveDates,
-      id
-    );
-    workingDaysUpToCurrent = details.workingDays;
-    thisMonthLeave = details.thisMonthLeave;
-    thisMonthHolidays = details.thisMonthHolidays;
-    thisMonthWeekends = details.thisMonthWeekends;
-    futureAbsent = details.futureAbsent;
-  } else {
-    const details = getWorkingDaysInMonth(
-      year,
-      month,
-      weekendDayNames,
-      holidaysSet, // Fixed parameter order
-      generalDaysSet,
-      replaceDaysSet,
-      fullDayLeaveDates,
-      id
-    );
-    workingDaysUpToCurrent = details.workingDays;
-    thisMonthLeave = details.thisMonthLeave;
-    thisMonthHolidays = details.thisMonthHolidays;
-    thisMonthWeekends = details.thisMonthWeekends;
-  }
+
+  const details = getWorkingDaysInMonth(
+    startDate,
+    endDate,
+    weekendDayNames,
+    holidaysSet,
+    generalDaysSet,
+    replaceDaysSet,
+    fullDayLeaveDates,
+    id
+  );
+  workingDaysUpToCurrent = details.workingDays;
+  thisMonthLeave = details.thisMonthLeave;
+  thisMonthHolidays = details.thisMonthHolidays;
+  thisMonthWeekends = details.thisMonthWeekends;
 
   const standardPay = monthlySalary + uncheckedTotal;
   const dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
@@ -1058,49 +1049,25 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   let presentDaysSalary = 0;
   let earnedSalary = 0;
 
-  if (year === currentYear && month === currentMonth) {
-    if (rule14 && daysPenaltyPerAbsence > 0) {
-      presentDaysSalary =
-        normalPresent > 0
-          ? standardPay - dailyRate * (absent + futureAbsent)
-          : 0;
-      earnedSalary = presentDaysSalary;
-      // if (id === "2109058927") {
-      //   console.log(
-      //     standardPay - dailyRate * (absent + futureAbsent),
-      //     standardPay,
-      //     absent,
-      //     futureAbsent,
-      //     dailyRate
-      //   );
-      // }
-    } else {
-      presentDaysSalary = monthlySalary + uncheckedTotal;
-      earnedSalary = standardPay;
-      // if (id === "2109058926") {
-      //   console.log(earnedSalary);
-      // }
-    }
+  if (rule14 && daysPenaltyPerAbsence > 0) {
+    presentDaysSalary =
+      normalPresent > 0 ? standardPay - dailyRate * absent : 0;
+    earnedSalary = presentDaysSalary;
+    // if (id === "2109058927") {
+    //   console.log(
+    //     standardPay - dailyRate * (absent + futureAbsent),
+    //     standardPay,
+    //     absent,
+    //     futureAbsent,
+    //     dailyRate
+    //   );
+    // }
   } else {
-    if (rule14 && daysPenaltyPerAbsence > 0) {
-      presentDaysSalary =
-        normalPresent > 0 ? standardPay - dailyRate * absent : 0;
-      earnedSalary = presentDaysSalary;
-      // if (id === "70709917") {
-      //   console.log(
-      //     standardPay,
-      //     dailyRate,
-      //     absent,
-      //     standardPay - dailyRate * absent
-      //   );
-      // }
-    } else {
-      presentDaysSalary = monthlySalary + uncheckedTotal;
-      earnedSalary = standardPay;
-      // if (id === "70709903") {
-      //   console.log(earnedSalary);
-      // }
-    }
+    presentDaysSalary = monthlySalary + uncheckedTotal;
+    earnedSalary = standardPay;
+    // if (id === "2109058926") {
+    //   console.log(earnedSalary);
+    // }
   }
 
   // const sickLeaveDays = Number(rule11?.param3 || 0);
@@ -1338,8 +1305,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     totalPay,
     Present: { normalPresent, holidayPresent, weekendPresent },
     absent,
-    workingDays: workingDaysUpToCurrent,
-    workingDaysUpToCurrent,
     replaceDaysArr,
     otherSalaryBreakdown: {
       original: payPeriod.otherSalary,

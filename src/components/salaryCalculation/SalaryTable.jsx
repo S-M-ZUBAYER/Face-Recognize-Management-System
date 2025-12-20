@@ -3,6 +3,7 @@ import { EyeClosed } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
 import SalaryExportMonthly from "./SalaryExportMonthly";
+import HourlyEmployeeDetailsModal from "./HourlyEmployeeDetailsModal";
 
 function SalaryTable({ employees }) {
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -345,8 +346,14 @@ function SalaryTable({ employees }) {
       </div>
 
       {/* Modal */}
-      {selectedEmp && (
+      {selectedEmp?.salaryInfo?.payPeriod === "normalMonthly" && (
         <EmployeeSalaryDetailsModal
+          selectedEmp={selectedEmp}
+          setSelectedEmp={setSelectedEmp}
+        />
+      )}
+      {selectedEmp?.salaryInfo?.payPeriod === "hourly" && (
+        <HourlyEmployeeDetailsModal
           selectedEmp={selectedEmp}
           setSelectedEmp={setSelectedEmp}
         />
