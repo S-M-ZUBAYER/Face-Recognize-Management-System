@@ -6,31 +6,27 @@ import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
 
-const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
+const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
-  const [weekRange, setWeekRange] = useState(() => {
-    return getFirstWeekRange(
-      selectedYear,
-      selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
-      0
-    );
+  const [semiMonthlyRange, setSemiMonthlyRange] = useState(() => {
+    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    return getSemiMonthlyRange(selectedYear, selectedMonth, splitEndDate, 0);
   });
   const [salaryData, setSalaryData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [periodOffset, setPeriodOffset] = useState(0);
 
-  // Fetch weekly salary data
+  // Fetch semi-monthly salary data
   useEffect(() => {
     if (!selectedEmp) return;
 
-    const fetchWeeklySalary = async () => {
+    const fetchSemiMonthlySalary = async () => {
       setLoading(true);
       const payPeriod = selectedEmp.salaryInfo;
       const salaryRules = selectedEmp.salaryRules || {};
       const id = selectedEmp.employeeId;
-      const startDate = weekRange.startDate;
-      const endDate = weekRange.endDate;
+      const startDate = semiMonthlyRange.startDate;
+      const endDate = semiMonthlyRange.endDate;
       try {
         const data = await calculateRangeSalary(
           payPeriod,
@@ -41,50 +37,65 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         );
         setSalaryData(data);
       } catch (error) {
-        console.error("Error calculating weekly salary:", error);
+        console.error("Error calculating semi-monthly salary:", error);
         setSalaryData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchWeeklySalary();
-  }, [selectedEmp, weekRange]);
+    fetchSemiMonthlySalary();
+  }, [selectedEmp, semiMonthlyRange]);
 
-  // Handle week navigation
-  const handlePreviousWeek = () => {
-    const newOffset = weekOffset - 1;
-    setWeekOffset(newOffset);
-    const newRange = getFirstWeekRange(
+  // Handle semi-monthly navigation
+  const handlePreviousPeriod = () => {
+    const newOffset = periodOffset === 0 ? 1 : 0;
+    setPeriodOffset(newOffset);
+    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      splitEndDate,
       newOffset
     );
-    setWeekRange(newRange);
+    setSemiMonthlyRange(newRange);
   };
 
-  const handleNextWeek = () => {
-    const newOffset = weekOffset + 1;
-    setWeekOffset(newOffset);
-    const newRange = getFirstWeekRange(
+  const handleNextPeriod = () => {
+    const newOffset = periodOffset === 0 ? 1 : 0;
+    setPeriodOffset(newOffset);
+    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      splitEndDate,
       newOffset
     );
-    setWeekRange(newRange);
+    setSemiMonthlyRange(newRange);
   };
 
-  const handleCurrentWeek = () => {
-    setWeekOffset(0);
-    const newRange = getFirstWeekRange(
+  const handleFirstHalf = () => {
+    setPeriodOffset(0);
+    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      splitEndDate,
       0
     );
-    setWeekRange(newRange);
+    setSemiMonthlyRange(newRange);
+  };
+
+  const handleSecondHalf = () => {
+    setPeriodOffset(1);
+    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const newRange = getSemiMonthlyRange(
+      selectedYear,
+      selectedMonth,
+      splitEndDate,
+      1
+    );
+    setSemiMonthlyRange(newRange);
   };
 
   // Format date for display
@@ -112,6 +123,15 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const totalExtraPay =
     (salaryData?.extraPay?.weekendNormalShiftPay || 0) +
     (salaryData?.extraPay?.holidayNormalShiftPay || 0);
+
+  // Get days in period
+  const getDaysInPeriod = () => {
+    const start = new Date(semiMonthlyRange.startDate);
+    const end = new Date(semiMonthlyRange.endDate);
+    return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const daysInPeriod = getDaysInPeriod();
 
   return (
     <AnimatePresence>
@@ -145,9 +165,11 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     {selectedEmp?.name?.split("<")[0]}
                   </h2>
                   <p className="text-white/80 text-sm mt-1">
-                    Weekly Salary Details • {selectedEmp?.department} • Week{" "}
-                    {formatDisplayDate(weekRange.startDate)} -{" "}
-                    {formatDisplayDate(weekRange.endDate)}
+                    Semi-Monthly Salary Details • {selectedEmp?.department} •{" "}
+                    {semiMonthlyRange.part === "FIRST_HALF"
+                      ? "1st Half"
+                      : "2nd Half"}{" "}
+                    of {selectedMonth}/{selectedYear}
                   </p>
                 </div>
                 <button
@@ -159,51 +181,57 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               </div>
             </div>
 
-            {/* Week Navigation */}
+            {/* Semi-Monthly Navigation */}
             <div className="bg-gray-50 border-b p-4">
               <div className="flex items-center justify-between">
                 <Button
-                  onClick={handlePreviousWeek}
+                  onClick={handlePreviousPeriod}
                   variant="outline"
                   size="sm"
                   className="gap-2"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous Week
+                  {periodOffset === 1 ? "1st Half" : "2nd Half"}
                 </Button>
 
                 <div className="text-center">
                   <h3 className="font-semibold text-gray-800 text-lg">
-                    Week of {formatDisplayDate(weekRange.startDate)}
+                    {semiMonthlyRange.part === "FIRST_HALF"
+                      ? "1st Half"
+                      : "2nd Half"}{" "}
+                    • {formatDisplayDate(semiMonthlyRange.startDate)} -{" "}
+                    {formatDisplayDate(semiMonthlyRange.endDate)}
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    {weekOffset >= 0
-                      ? weekOffset === 0
-                        ? "(Current Week)"
-                        : `${weekOffset} week${
-                            weekOffset !== 1 ? "s" : ""
-                          } ahead`
-                      : `${Math.abs(weekOffset)} week${
-                          Math.abs(weekOffset) !== 1 ? "s" : ""
-                        } ago`}
+                    {daysInPeriod} days • Split at day{" "}
+                    {selectedEmp?.salaryInfo?.splitEndDate || 15}
                   </p>
                 </div>
 
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleCurrentWeek}
-                    variant="outline"
+                    onClick={handleFirstHalf}
+                    variant={periodOffset === 0 ? "default" : "outline"}
                     size="sm"
+                    className={periodOffset === 0 ? "bg-[#004368]" : ""}
                   >
-                    Current Week
+                    1st Half
                   </Button>
                   <Button
-                    onClick={handleNextWeek}
+                    onClick={handleSecondHalf}
+                    variant={periodOffset === 1 ? "default" : "outline"}
+                    size="sm"
+                    className={periodOffset === 1 ? "bg-[#004368]" : ""}
+                  >
+                    2nd Half
+                  </Button>
+                  <Button
+                    onClick={handleNextPeriod}
                     variant="outline"
                     size="sm"
                     className="gap-2"
                   >
-                    Next Week
+                    {periodOffset === 0 ? "2nd Half" : "1st Half"}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -216,7 +244,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004368] mx-auto"></div>
                   <p className="mt-4 text-gray-600">
-                    Calculating weekly salary...
+                    Calculating semi-monthly salary...
                   </p>
                 </div>
               ) : salaryData ? (
@@ -231,7 +259,10 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     {/* Salary Breakdown */}
                     <div className="bg-white p-5 rounded-2xl border shadow-sm">
                       <h3 className="font-semibold text-gray-800 mb-4 text-lg">
-                        Salary Breakdown
+                        {semiMonthlyRange.part === "FIRST_HALF"
+                          ? "First Half"
+                          : "Second Half"}{" "}
+                        Salary
                       </h3>
                       <div className="space-y-4">
                         {/* Standard Pay */}
@@ -241,7 +272,10 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               Standard Pay
                             </p>
                             <p className="text-xs text-gray-500">
-                              Base salary for week
+                              Base salary for{" "}
+                              {semiMonthlyRange.part === "FIRST_HALF"
+                                ? "1st half"
+                                : "2nd half"}
                             </p>
                           </div>
                           <span className="text-lg font-bold text-gray-900">
@@ -316,14 +350,52 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="flex justify-between items-center py-3 bg-gradient-to-r from-blue-50 to-indigo-50 -mx-3 px-3 rounded-lg">
                           <div>
                             <p className="font-bold text-gray-800 text-sm">
-                              TOTAL PAY
+                              {semiMonthlyRange.part === "FIRST_HALF"
+                                ? "1st Half"
+                                : "2nd Half"}{" "}
+                              Total
                             </p>
                             <p className="text-xs text-gray-600">
-                              Weekly net amount
+                              Net amount for period
                             </p>
                           </div>
                           <span className="text-xl font-bold text-gray-900">
                             {formatNumber(salaryData?.totalPay || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Period Information */}
+                    <div className="bg-white p-5 rounded-2xl border shadow-sm">
+                      <h3 className="font-semibold text-gray-800 mb-4 text-sm">
+                        Period Information
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">Period:</span>
+                          <span className="font-medium">
+                            {semiMonthlyRange.part === "FIRST_HALF"
+                              ? "1st Half"
+                              : "2nd Half"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">Split Date:</span>
+                          <span className="font-medium">
+                            Day {selectedEmp?.salaryInfo?.splitEndDate || 15}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">Days in Period:</span>
+                          <span className="font-medium">
+                            {daysInPeriod} days
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">Month:</span>
+                          <span className="font-medium">
+                            {selectedMonth}/{selectedYear}
                           </span>
                         </div>
                       </div>
@@ -365,39 +437,6 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </div>
                           <div className="text-xs text-gray-600 mt-1">
                             Absent Days
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Weekly Breakdown */}
-                    <div className="bg-white p-5 rounded-2xl border shadow-sm">
-                      <h3 className="font-semibold text-gray-800 mb-4 text-sm">
-                        Weekly Breakdown
-                      </h3>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="p-3 bg-orange-50 rounded-lg">
-                          <div className="text-md font-bold text-orange-600">
-                            {salaryData?.monthlyDetails?.thisMonthHolidays || 0}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            Holidays
-                          </div>
-                        </div>
-                        <div className="p-3 bg-purple-50 rounded-lg">
-                          <div className="text-md font-bold text-purple-600">
-                            {salaryData?.monthlyDetails?.thisMonthLeave || 0}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            Leaves
-                          </div>
-                        </div>
-                        <div className="p-3 bg-cyan-50 rounded-lg">
-                          <div className="text-md font-bold text-cyan-600">
-                            {salaryData?.monthlyDetails?.thisMonthWeekends || 0}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            Weekends
                           </div>
                         </div>
                       </div>
@@ -823,7 +862,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               ) : (
                 <div className="text-center py-12">
                   <p className="text-gray-600">
-                    No salary data available for this week.
+                    No salary data available for this semi-monthly period.
                   </p>
                 </div>
               )}
@@ -833,9 +872,15 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             <div className="border-t p-4 bg-gray-50">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Week:</span>{" "}
-                  {formatDisplayDate(weekRange.startDate)} -{" "}
-                  {formatDisplayDate(weekRange.endDate)}
+                  <span className="font-medium">
+                    {semiMonthlyRange.part === "FIRST_HALF"
+                      ? "1st Half"
+                      : "2nd Half"}{" "}
+                    of {selectedMonth}/{selectedYear}:
+                  </span>{" "}
+                  {formatDisplayDate(semiMonthlyRange.startDate)} -{" "}
+                  {formatDisplayDate(semiMonthlyRange.endDate)} • {daysInPeriod}{" "}
+                  days
                 </div>
                 <Button
                   onClick={() => setSelectedEmp(null)}
@@ -852,31 +897,33 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   );
 };
 
-// Helper function
-function getFirstWeekRange(year, month, weekStartDay = 0, direction = 0) {
-  const firstDay = new Date(year, month, 1); // Month is 0-indexed
-  const jsDay = firstDay.getDay();
-  const normalizedDay = (jsDay + 6) % 7;
+// Helper functions
+function formatDate(year, month, day) {
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return `${year}-${mm}-${dd}`;
+}
 
-  let daysToStart;
-  if (normalizedDay <= weekStartDay) {
-    daysToStart = weekStartDay - normalizedDay;
-  } else {
-    daysToStart = 7 - (normalizedDay - weekStartDay);
-  }
+function getSemiMonthlyRange(year, month, splitEndDate, direction = 0) {
+  // Note: month is 1-12 (January = 1)
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
 
-  const directionOffset = direction * 7;
-  const startDate = new Date(
-    year,
-    month - 1,
-    1 + daysToStart + directionOffset
-  );
-  const endDate = new Date(year, month, 1 + daysToStart + directionOffset + 6);
+  // Ensure splitEndDate is valid (1 to lastDayOfMonth-1)
+  const safeSplit = Math.max(1, Math.min(splitEndDate, lastDayOfMonth - 1));
+
+  const ranges = [
+    { start: 1, end: safeSplit },
+    { start: safeSplit + 1, end: lastDayOfMonth },
+  ];
+
+  const index = Math.abs(direction) % 2; // Ensure direction is 0 or 1
+  const current = ranges[index];
 
   return {
-    startDate: startDate.toISOString().slice(0, 10),
-    endDate: endDate.toISOString().slice(0, 10),
+    startDate: formatDate(year, month, current.start),
+    endDate: formatDate(year, month, current.end),
+    part: index === 0 ? "FIRST_HALF" : "SECOND_HALF",
   };
 }
 
-export default WeeklyEmployeeDetailsModal;
+export default SemiMonthlyEmployeeDetailsModal;

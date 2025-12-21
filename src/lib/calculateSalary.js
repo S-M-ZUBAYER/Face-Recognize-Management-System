@@ -1,6 +1,6 @@
 import calculateHourlySalary from "./calculateHourlySalary";
 import calculateLeaveDeductions from "./calculateLeaveDeductions";
-import { calculateWeeklySalary } from "./calculateWeeklySalary";
+import { calculateRangeSalary } from "./calculateRangeSalary";
 import calculateWorkedTime from "./calculateWorkedTime";
 import countWorkingMissPunch from "./countWorkingMissPunch";
 import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
@@ -407,16 +407,15 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   if (payPeriod.payPeriod === "hourly") {
     return calculateHourlySalary(attendanceRecords, salaryRules, payPeriod);
   }
-  if (payPeriod.payPeriod === "weekly") {
+  if (
+    payPeriod.payPeriod === "weekly" ||
+    payPeriod.payPeriod === "biweekly" ||
+    payPeriod.payPeriod === "semiMonthly" ||
+    payPeriod.payPeriod === "monthly"
+  ) {
     let startDate = undefined;
     let endDate = undefined;
-    return calculateWeeklySalary(
-      payPeriod,
-      salaryRules,
-      startDate,
-      endDate,
-      id
-    );
+    return calculateRangeSalary(payPeriod, salaryRules, startDate, endDate, id);
   }
   // if (id === "3531774215") {
   //   console.log(attendanceRecords);

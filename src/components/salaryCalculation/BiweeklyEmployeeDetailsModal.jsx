@@ -6,10 +6,10 @@ import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
 
-const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
+const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
-  const [weekRange, setWeekRange] = useState(() => {
-    return getFirstWeekRange(
+  const [biweeklyRange, setBiweeklyRange] = useState(() => {
+    return getBiweeklyRangeWithDirection(
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
@@ -18,19 +18,19 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   });
   const [salaryData, setSalaryData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [biweeklyOffset, setBiweeklyOffset] = useState(0);
 
-  // Fetch weekly salary data
+  // Fetch biweekly salary data
   useEffect(() => {
     if (!selectedEmp) return;
 
-    const fetchWeeklySalary = async () => {
+    const fetchBiweeklySalary = async () => {
       setLoading(true);
       const payPeriod = selectedEmp.salaryInfo;
       const salaryRules = selectedEmp.salaryRules || {};
       const id = selectedEmp.employeeId;
-      const startDate = weekRange.startDate;
-      const endDate = weekRange.endDate;
+      const startDate = biweeklyRange.startDate;
+      const endDate = biweeklyRange.endDate;
       try {
         const data = await calculateRangeSalary(
           payPeriod,
@@ -41,50 +41,50 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         );
         setSalaryData(data);
       } catch (error) {
-        console.error("Error calculating weekly salary:", error);
+        console.error("Error calculating biweekly salary:", error);
         setSalaryData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchWeeklySalary();
-  }, [selectedEmp, weekRange]);
+    fetchBiweeklySalary();
+  }, [selectedEmp, biweeklyRange]);
 
-  // Handle week navigation
-  const handlePreviousWeek = () => {
-    const newOffset = weekOffset - 1;
-    setWeekOffset(newOffset);
-    const newRange = getFirstWeekRange(
+  // Handle biweekly navigation
+  const handlePreviousBiweekly = () => {
+    const newOffset = biweeklyOffset - 1;
+    setBiweeklyOffset(newOffset);
+    const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
       newOffset
     );
-    setWeekRange(newRange);
+    setBiweeklyRange(newRange);
   };
 
-  const handleNextWeek = () => {
-    const newOffset = weekOffset + 1;
-    setWeekOffset(newOffset);
-    const newRange = getFirstWeekRange(
+  const handleNextBiweekly = () => {
+    const newOffset = biweeklyOffset + 1;
+    setBiweeklyOffset(newOffset);
+    const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
       newOffset
     );
-    setWeekRange(newRange);
+    setBiweeklyRange(newRange);
   };
 
-  const handleCurrentWeek = () => {
-    setWeekOffset(0);
-    const newRange = getFirstWeekRange(
+  const handleCurrentBiweekly = () => {
+    setBiweeklyOffset(0);
+    const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
       0
     );
-    setWeekRange(newRange);
+    setBiweeklyRange(newRange);
   };
 
   // Format date for display
@@ -145,9 +145,9 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     {selectedEmp?.name?.split("<")[0]}
                   </h2>
                   <p className="text-white/80 text-sm mt-1">
-                    Weekly Salary Details • {selectedEmp?.department} • Week{" "}
-                    {formatDisplayDate(weekRange.startDate)} -{" "}
-                    {formatDisplayDate(weekRange.endDate)}
+                    Biweekly Salary Details • {selectedEmp?.department} •
+                    Period: {formatDisplayDate(biweeklyRange.startDate)} -{" "}
+                    {formatDisplayDate(biweeklyRange.endDate)}
                   </p>
                 </div>
                 <button
@@ -159,51 +159,54 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               </div>
             </div>
 
-            {/* Week Navigation */}
+            {/* Biweekly Navigation */}
             <div className="bg-gray-50 border-b p-4">
               <div className="flex items-center justify-between">
                 <Button
-                  onClick={handlePreviousWeek}
+                  onClick={handlePreviousBiweekly}
                   variant="outline"
                   size="sm"
                   className="gap-2"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous Week
+                  Previous Period
                 </Button>
 
                 <div className="text-center">
                   <h3 className="font-semibold text-gray-800 text-lg">
-                    Week of {formatDisplayDate(weekRange.startDate)}
+                    Biweekly Period:{" "}
+                    {formatDisplayDate(biweeklyRange.startDate)} -{" "}
+                    {formatDisplayDate(biweeklyRange.endDate)}
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    {weekOffset >= 0
-                      ? weekOffset === 0
-                        ? "(Current Week)"
-                        : `${weekOffset} week${
-                            weekOffset !== 1 ? "s" : ""
+                    14 days •{" "}
+                    {biweeklyOffset >= 0
+                      ? biweeklyOffset === 0
+                        ? "(Current Period)"
+                        : `${biweeklyOffset} period${
+                            biweeklyOffset !== 1 ? "s" : ""
                           } ahead`
-                      : `${Math.abs(weekOffset)} week${
-                          Math.abs(weekOffset) !== 1 ? "s" : ""
+                      : `${Math.abs(biweeklyOffset)} period${
+                          Math.abs(biweeklyOffset) !== 1 ? "s" : ""
                         } ago`}
                   </p>
                 </div>
 
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleCurrentWeek}
+                    onClick={handleCurrentBiweekly}
                     variant="outline"
                     size="sm"
                   >
-                    Current Week
+                    Current Period
                   </Button>
                   <Button
-                    onClick={handleNextWeek}
+                    onClick={handleNextBiweekly}
                     variant="outline"
                     size="sm"
                     className="gap-2"
                   >
-                    Next Week
+                    Next Period
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -216,7 +219,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004368] mx-auto"></div>
                   <p className="mt-4 text-gray-600">
-                    Calculating weekly salary...
+                    Calculating biweekly salary...
                   </p>
                 </div>
               ) : salaryData ? (
@@ -231,7 +234,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     {/* Salary Breakdown */}
                     <div className="bg-white p-5 rounded-2xl border shadow-sm">
                       <h3 className="font-semibold text-gray-800 mb-4 text-lg">
-                        Salary Breakdown
+                        Biweekly Salary Breakdown
                       </h3>
                       <div className="space-y-4">
                         {/* Standard Pay */}
@@ -241,7 +244,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               Standard Pay
                             </p>
                             <p className="text-xs text-gray-500">
-                              Base salary for week
+                              Base salary for period
                             </p>
                           </div>
                           <span className="text-lg font-bold text-gray-900">
@@ -319,7 +322,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               TOTAL PAY
                             </p>
                             <p className="text-xs text-gray-600">
-                              Weekly net amount
+                              Biweekly net amount
                             </p>
                           </div>
                           <span className="text-xl font-bold text-gray-900">
@@ -368,12 +371,19 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </div>
                         </div>
                       </div>
+                      <div className="mt-4 text-center text-sm text-gray-600">
+                        {salaryData?.Present?.normalPresent +
+                          salaryData?.Present?.holidayPresent +
+                          salaryData?.Present?.weekendPresent +
+                          (salaryData?.absent || 0)}{" "}
+                        out of 14 days
+                      </div>
                     </div>
 
-                    {/* Weekly Breakdown */}
+                    {/* Period Breakdown */}
                     <div className="bg-white p-5 rounded-2xl border shadow-sm">
                       <h3 className="font-semibold text-gray-800 mb-4 text-sm">
-                        Weekly Breakdown
+                        Period Breakdown
                       </h3>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="p-3 bg-orange-50 rounded-lg">
@@ -823,7 +833,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               ) : (
                 <div className="text-center py-12">
                   <p className="text-gray-600">
-                    No salary data available for this week.
+                    No salary data available for this biweekly period.
                   </p>
                 </div>
               )}
@@ -833,9 +843,9 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             <div className="border-t p-4 bg-gray-50">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Week:</span>{" "}
-                  {formatDisplayDate(weekRange.startDate)} -{" "}
-                  {formatDisplayDate(weekRange.endDate)}
+                  <span className="font-medium">Biweekly Period:</span>{" "}
+                  {formatDisplayDate(biweeklyRange.startDate)} -{" "}
+                  {formatDisplayDate(biweeklyRange.endDate)}
                 </div>
                 <Button
                   onClick={() => setSelectedEmp(null)}
@@ -853,7 +863,12 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 };
 
 // Helper function
-function getFirstWeekRange(year, month, weekStartDay = 0, direction = 0) {
+function getBiweeklyRangeWithDirection(
+  year,
+  month,
+  weekStartDay = 0,
+  direction = 0
+) {
   const firstDay = new Date(year, month, 1); // Month is 0-indexed
   const jsDay = firstDay.getDay();
   const normalizedDay = (jsDay + 6) % 7;
@@ -865,13 +880,11 @@ function getFirstWeekRange(year, month, weekStartDay = 0, direction = 0) {
     daysToStart = 7 - (normalizedDay - weekStartDay);
   }
 
-  const directionOffset = direction * 7;
-  const startDate = new Date(
-    year,
-    month - 1,
-    1 + daysToStart + directionOffset
-  );
-  const endDate = new Date(year, month, 1 + daysToStart + directionOffset + 6);
+  // Apply direction offset (14 days per biweekly period)
+  const directionOffset = direction * 14;
+
+  const startDate = new Date(year, month, 1 + daysToStart + directionOffset);
+  const endDate = new Date(year, month, 1 + daysToStart + directionOffset + 13);
 
   return {
     startDate: startDate.toISOString().slice(0, 10),
@@ -879,4 +892,4 @@ function getFirstWeekRange(year, month, weekStartDay = 0, direction = 0) {
   };
 }
 
-export default WeeklyEmployeeDetailsModal;
+export default BiweeklyEmployeeDetailsModal;

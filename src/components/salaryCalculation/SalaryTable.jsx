@@ -5,6 +5,8 @@ import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
 import SalaryExportMonthly from "./SalaryExportMonthly";
 import HourlyEmployeeDetailsModal from "./HourlyEmployeeDetailsModal";
 import WeeklyEmployeeDetailsModal from "./WeeklyEmployeeDetailsModal";
+import BiweeklyEmployeeDetailsModal from "./BiweeklyEmployeeDetailsModal";
+import SemiMonthlyEmployeeDetailsModal from "./SemiMonthlyEmployeeDetailsModal";
 
 function SalaryTable({ employees }) {
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -347,12 +349,13 @@ function SalaryTable({ employees }) {
       </div>
 
       {/* Modal */}
-      {selectedEmp?.salaryInfo?.payPeriod === "normalMonthly" && (
-        <EmployeeSalaryDetailsModal
-          selectedEmp={selectedEmp}
-          setSelectedEmp={setSelectedEmp}
-        />
-      )}
+      {selectedEmp?.salaryInfo?.payPeriod === "normalMonthly" ||
+        (selectedEmp?.salaryInfo?.payPeriod === "monthly" && (
+          <EmployeeSalaryDetailsModal
+            selectedEmp={selectedEmp}
+            setSelectedEmp={setSelectedEmp}
+          />
+        ))}
       {selectedEmp?.salaryInfo?.payPeriod === "hourly" && (
         <HourlyEmployeeDetailsModal
           selectedEmp={selectedEmp}
@@ -361,6 +364,18 @@ function SalaryTable({ employees }) {
       )}
       {selectedEmp?.salaryInfo?.payPeriod === "weekly" && (
         <WeeklyEmployeeDetailsModal
+          selectedEmp={selectedEmp}
+          setSelectedEmp={setSelectedEmp}
+        />
+      )}
+      {selectedEmp?.salaryInfo?.payPeriod === "biweekly" && (
+        <BiweeklyEmployeeDetailsModal
+          selectedEmp={selectedEmp}
+          setSelectedEmp={setSelectedEmp}
+        />
+      )}
+      {selectedEmp?.salaryInfo?.payPeriod === "semiMonthly" && (
+        <SemiMonthlyEmployeeDetailsModal
           selectedEmp={selectedEmp}
           setSelectedEmp={setSelectedEmp}
         />
