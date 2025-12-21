@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
 import SalaryExportMonthly from "./SalaryExportMonthly";
 import HourlyEmployeeDetailsModal from "./HourlyEmployeeDetailsModal";
+import WeeklyEmployeeDetailsModal from "./WeeklyEmployeeDetailsModal";
 
 function SalaryTable({ employees }) {
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -354,6 +355,12 @@ function SalaryTable({ employees }) {
       )}
       {selectedEmp?.salaryInfo?.payPeriod === "hourly" && (
         <HourlyEmployeeDetailsModal
+          selectedEmp={selectedEmp}
+          setSelectedEmp={setSelectedEmp}
+        />
+      )}
+      {selectedEmp?.salaryInfo?.payPeriod === "weekly" && (
+        <WeeklyEmployeeDetailsModal
           selectedEmp={selectedEmp}
           setSelectedEmp={setSelectedEmp}
         />

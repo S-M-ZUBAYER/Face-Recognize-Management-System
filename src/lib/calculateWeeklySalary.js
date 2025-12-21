@@ -214,16 +214,14 @@ function getWorkingDaysInMonth(
   let thisMonthHolidays = 0;
   let thisMonthWeekends = 0;
   const weekends = Array.from(weekendDayNames);
+  const [year, month, day] = startDate.split("-").map(Number);
+  const end = endDate.split("-")[2];
 
-  for (
-    let d = new Date(startDate);
-    d <= new Date(endDate);
-    d.setDate(d.getDate() + 1)
-  ) {
-    const monthStr = String(d.getMonth() + 1).padStart(2, "0");
-    const dayStr = String(d.getDate()).padStart(2, "0");
-    const dateStr = `${d.getFullYear()}-${monthStr}-${dayStr}`;
-    const date = d;
+  for (let d = day; d <= end; d++) {
+    const monthStr = String(month).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    const date = new Date(dateStr);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
     // Check if it's a full day leave - skip this day
@@ -432,7 +430,7 @@ export function calculateWeeklySalary(
       item.date <= endDate
     );
   });
-  console.log(attendanceRecords, startDate, endDate, id);
+  //   console.log(attendanceRecords, startDate, endDate, id);
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
     : tryParseMaybeString(salaryRules.rules);
@@ -1041,6 +1039,7 @@ export function calculateWeeklySalary(
 
   // Calculate absent days
   absent = Math.max(0, workingDaysUpToCurrent - normalPresent);
+  console.log(workingDaysUpToCurrent, normalPresent, absent);
 
   // if (id === "70709913") {
   //   console.log(workingDaysUpToCurrent, normalPresent);
