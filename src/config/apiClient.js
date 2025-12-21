@@ -1,4 +1,3 @@
-// lib/apiClient.js
 import axios from "axios";
 import { API_CONFIG } from "./config";
 import useErrorStore from "@/zustand/useErrorStore";
@@ -37,9 +36,7 @@ apiClient.interceptors.response.use(
 
     let errorMessage = "An unexpected error occurred";
 
-    if (error.code === "ECONNABORTED") {
-      errorMessage = "Request timeout - please check your connection";
-    } else if (!error.response) {
+    if (!error.response) {
       errorMessage = "Network error - please check your internet connection";
     } else if (error.response.status >= 500) {
       errorMessage = "Server error - please try again later";
