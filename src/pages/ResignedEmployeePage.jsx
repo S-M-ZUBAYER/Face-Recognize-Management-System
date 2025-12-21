@@ -6,7 +6,6 @@ import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 const ResignedEmployeePage = () => {
   const { isLoading } = useEmployees();
   const { resignedEmployees } = useEmployeeStore();
-  console.log(resignedEmployees());
 
   if (isLoading) {
     <FancyLoader />;

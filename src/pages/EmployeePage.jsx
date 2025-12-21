@@ -12,8 +12,6 @@ function EmployeePage() {
 
   const { employees } = useEmployeeStore();
 
-  console.log(employees());
-
   const { designation, isLoading: designationLoading } = useDesignation();
 
   const getFilteredEmployees = () => {

@@ -6,11 +6,12 @@ import DateRangePicker from "./DateRangePicker";
 import AttendanceExport from "./AttendanceExport";
 import { RefreshIcon } from "@/constants/icons";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
-import { useAttendanceData } from "@/hook/useAttendanceData";
+// import { useAttendanceData } from "@/hook/useAttendanceData";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEmployees } from "@/hook/useEmployees";
-import { useOverTimeData } from "@/hook/useOverTimeData";
+// import { useEmployees } from "@/hook/useEmployees";
+// import { useOverTimeData } from "@/hook/useOverTimeData";
+import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 
 // Memoized components
 const MemoizedAttendanceExport = memo(AttendanceExport);
@@ -55,26 +56,32 @@ const SearchBox = memo(
 );
 
 const AttendanceTable = ({ employees = [] }) => {
-  // Store selectors
+  // Store selectors - CORRECTED
   const isProcessing = useAttendanceStore((state) => state.isProcessing);
   const isFilterLoading = useAttendanceStore((state) => state.isFilterLoading);
   const activeFilter = useAttendanceStore((state) => state.activeFilter);
   const isRefreshing = useAttendanceStore((state) => state.isRefreshing);
-  const refreshAttendanceData = useAttendanceStore(
-    (state) => state.refreshAttendanceData
-  );
+
+  // IMPORTANT: Make sure this function exists in your store
+  // const refreshAttendanceData = useAttendanceStore(
+  //   (state) => state.refreshAttendanceData
+  // );
+
+  const { paymentStatus, setIsSubscriptionRequiredModal } =
+    useSubscriptionStore();
 
   // Hooks
   const { startDate, endDate } = useDateRangeStore();
-  const { refresh } = useAttendanceData();
-  const { refetch: refetchEmployees } = useEmployees();
-  const { refetch: refetchOverTime } = useOverTimeData();
+  // const { refresh } = useAttendanceData();
+  // const { refetch: refetchEmployees } = useEmployees();
+  // const { refetch: refetchOverTime } = useOverTimeData();
 
   // Local state
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [tableWidth, setTableWidth] = useState(0);
 
   // Track when initial load is complete
   useEffect(() => {
@@ -101,19 +108,6 @@ const AttendanceTable = ({ employees = [] }) => {
     setSearchInput("");
     setSearchQuery("");
   }, []);
-
-  // Refresh handler
-  const handleRefresh = useCallback(async () => {
-    try {
-      await refreshAttendanceData({
-        refetchEmployees,
-        refetchAttendance: refresh,
-        refetchOverTime,
-      });
-    } catch (error) {
-      console.error("Refresh error:", error);
-    }
-  }, [refreshAttendanceData, refetchEmployees, refresh, refetchOverTime]);
 
   // Filtered data
   const filteredData = useMemo(() => {
@@ -151,27 +145,106 @@ const AttendanceTable = ({ employees = [] }) => {
     return max;
   }, [employees]);
 
-  // Columns definition
+  // Calculate column widths based on content and available space
+  const calculateColumnWidths = useCallback(
+    (availableWidth) => {
+      // Fixed widths for non-responsive columns
+      const fixedWidths = {
+        select: 56,
+        date: 120,
+        name: 220,
+        employeeId: 140,
+        punch: 100,
+      };
+
+      // Calculate total fixed width
+      const totalFixedWidth =
+        fixedWidths.select +
+        fixedWidths.date +
+        fixedWidths.name +
+        fixedWidths.employeeId +
+        maxPunchCount * fixedWidths.punch;
+
+      // Available width for designation and department
+      const availableForDynamic = Math.max(
+        0,
+        availableWidth - totalFixedWidth - 50
+      );
+
+      // Minimum widths
+      const minWidths = {
+        designation: 200,
+        department: 180,
+      };
+
+      // Calculate based on content length
+      let maxDesignationLength = minWidths.designation;
+      let maxDepartmentLength = minWidths.department;
+
+      employees.forEach((emp) => {
+        const designation = emp.designation || "";
+        const department = emp.department || "";
+
+        const designationWidth = Math.min(designation.length * 7 + 30, 400);
+        const departmentWidth = Math.min(department.length * 7 + 30, 350);
+
+        maxDesignationLength = Math.max(maxDesignationLength, designationWidth);
+        maxDepartmentLength = Math.max(maxDepartmentLength, departmentWidth);
+      });
+
+      const totalNeededWidth = maxDesignationLength + maxDepartmentLength;
+
+      // If enough space, use calculated widths
+      if (totalNeededWidth <= availableForDynamic) {
+        return {
+          ...fixedWidths,
+          designation: maxDesignationLength,
+          department: maxDepartmentLength,
+        };
+      }
+
+      // Otherwise distribute proportionally
+      const designationRatio = maxDesignationLength / totalNeededWidth;
+      const departmentRatio = maxDepartmentLength / totalNeededWidth;
+
+      return {
+        ...fixedWidths,
+        designation: Math.max(
+          minWidths.designation,
+          availableForDynamic * designationRatio
+        ),
+        department: Math.max(
+          minWidths.department,
+          availableForDynamic * departmentRatio
+        ),
+      };
+    },
+    [employees, maxPunchCount]
+  );
+
+  // Columns definition with responsive widths
   const columns = useMemo(() => {
+    const widths = calculateColumnWidths(tableWidth || 1200);
+
     const baseColumns = [
-      { label: "", width: 56, key: "select" },
-      { label: "Date", width: 140, key: "date" },
-      { label: "Name", width: 260, key: "name" },
-      { label: "Employee ID", width: 160, key: "employeeId" },
-      { label: "Designation", width: 200, key: "designation" },
-      { label: "Department", width: 200, key: "department" },
+      { label: "", width: widths.select, key: "select" },
+      { label: "Date", width: widths.date, key: "date" },
+      { label: "Name", width: widths.name, key: "name" },
+      { label: "Employee ID", width: widths.employeeId, key: "employeeId" },
+      { label: "Designation", width: widths.designation, key: "designation" },
+      { label: "Department", width: widths.department, key: "department" },
     ];
 
     const punchColumns = Array.from({ length: maxPunchCount }, (_, idx) => ({
       label: maxPunchCount === 1 ? "Punch" : `Punch ${idx + 1}`,
-      width: 120,
+      width: widths.punch,
       key: `punch-${idx}`,
     }));
 
     return [...baseColumns, ...punchColumns];
-  }, [maxPunchCount]);
+  }, [maxPunchCount, calculateColumnWidths, tableWidth]);
 
-  // Selection logic - FIXED
+  // Selection logic
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
     [selectedEmployees]
@@ -197,7 +270,7 @@ const AttendanceTable = ({ employees = [] }) => {
     return hasSelected && !isAllSelected;
   }, [filteredData, selectedEmployeeIdsSet, isAllSelected]);
 
-  // FIXED: Individual selection
+  // Individual selection
   const toggleSelectEmployee = useCallback((id) => {
     setSelectedEmployees((prev) => {
       const newSet = new Set(prev);
@@ -210,10 +283,9 @@ const AttendanceTable = ({ employees = [] }) => {
     });
   }, []);
 
-  // FIXED: Select all functionality
+  // Select all functionality
   const handleSelectAll = useCallback(() => {
     if (isAllSelected) {
-      // Deselect all filtered employees
       const filteredIds = new Set(
         filteredData.map(
           (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
@@ -221,7 +293,6 @@ const AttendanceTable = ({ employees = [] }) => {
       );
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
-      // Select all filtered employees
       const newIds = filteredData.map(
         (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
       );
@@ -243,11 +314,24 @@ const AttendanceTable = ({ employees = [] }) => {
     [employees, selectedEmployees]
   );
 
-  // FIXED: Cell renderer with ORIGINAL CSS
+  useEffect(() => {
+    if (selectedEmployeeData.length > 2) {
+      if (paymentStatus === false) {
+        setIsSubscriptionRequiredModal(true);
+        setSelectedEmployees([]);
+      }
+    }
+  }, [
+    paymentStatus,
+    setIsSubscriptionRequiredModal,
+    selectedEmployeeData.length,
+  ]);
+
+  // Cell renderer WITHOUT borders
   const cellRenderer = useCallback(
     ({ columnIndex, key, rowIndex, style }) => {
       const isHeader = rowIndex === 0;
-      const isSticky = columnIndex < 4; // Original sticky columns logic
+      const isSticky = columnIndex < 4;
 
       if (isHeader) {
         return (
@@ -334,6 +418,11 @@ const AttendanceTable = ({ employees = [] }) => {
           }
       }
 
+      const isLongTextColumn =
+        columnKey === "designation" ||
+        columnKey === "department" ||
+        columnKey === "punch-0";
+
       return (
         <div
           key={key}
@@ -346,12 +435,17 @@ const AttendanceTable = ({ employees = [] }) => {
             fontSize: "14px",
             color: "#4B5563",
             zIndex: isSticky ? 40 : 1,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            padding: "0 8px",
+            whiteSpace: isLongTextColumn ? "normal" : "nowrap",
+            overflow: isLongTextColumn ? "visible" : "hidden",
+            textOverflow: isLongTextColumn ? "clip" : "ellipsis",
+            padding: isLongTextColumn ? "8px 12px" : "0 8px",
+            textAlign: "center",
+            wordBreak: isLongTextColumn ? "break-word" : "normal",
+            lineHeight: isLongTextColumn ? "1.4" : "1",
+            minHeight: "50px",
           }}
           className="hover:bg-gray-50"
+          title={isLongTextColumn && content.length > 30 ? content : undefined}
         >
           {content}
         </div>
@@ -367,7 +461,6 @@ const AttendanceTable = ({ employees = [] }) => {
   const hasFilteredData = filteredData.length > 0;
 
   const getStatusMessage = () => {
-    // Show loading states first
     if (isLoading) {
       if (isRefreshing) return "Refreshing data...";
       if (isProcessing) return "Processing attendance data...";
@@ -375,12 +468,10 @@ const AttendanceTable = ({ employees = [] }) => {
       return "Loading employee data...";
     }
 
-    // Then check for search results
     if (searchQuery && !hasFilteredData) {
       return "No employees match your search";
     }
 
-    // Finally check for empty data
     if (!hasData) {
       return "No employee data available";
     }
@@ -389,6 +480,11 @@ const AttendanceTable = ({ employees = [] }) => {
   };
 
   const showStatusMessage = getStatusMessage() !== null;
+
+  // Handle table resize
+  const handleResize = useCallback(({ width }) => {
+    setTableWidth(width);
+  }, []);
 
   return (
     <div className="h-[80vh] w-[77vw]">
@@ -418,8 +514,8 @@ const AttendanceTable = ({ employees = [] }) => {
             />
             <p className="text-[#8AA9BA] font-semibold">Select All</p>
           </div>
-          <div
-            className={`border border-[#004368] text-[#004368] rounded-2xl flex items-center gap-2.5 px-4 py-1 cursor-pointer hover:bg-[#004368] hover:text-white transition-colors ${
+          {/* <div
+            className={`border border-[#004368] text-[#004368] rounded-2xl flex items-center gap-2.5 px-4 py-1 cursor-pointer  transition-colors ${
               isLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
             onClick={isLoading ? undefined : handleRefresh}
@@ -428,7 +524,7 @@ const AttendanceTable = ({ employees = [] }) => {
               <RefreshIcon />
             </div>
             {isLoading ? "Refreshing..." : "Refresh"}
-          </div>
+          </div> */}
         </div>
       )}
 
@@ -447,19 +543,35 @@ const AttendanceTable = ({ employees = [] }) => {
             </div>
           </div>
         ) : (
-          <AutoSizer>
+          <AutoSizer onResize={handleResize}>
             {({ height, width }) => (
               <MultiGrid
                 fixedRowCount={1}
-                fixedColumnCount={4} // Original fixed column count
+                fixedColumnCount={4}
                 rowCount={filteredData.length + 1}
                 columnCount={columns.length}
                 columnWidth={({ index }) => columns[index].width}
-                rowHeight={50}
+                rowHeight={({ index }) => {
+                  if (index === 0) return 50;
+
+                  const employee = filteredData[index - 1];
+                  if (!employee) return 50;
+
+                  const hasLongDesignation =
+                    (employee.designation || "").length > 30;
+                  const hasLongDepartment =
+                    (employee.department || "").length > 30;
+
+                  if (hasLongDesignation || hasLongDepartment) {
+                    return 70;
+                  }
+
+                  return 50;
+                }}
                 width={width}
                 height={height}
                 cellRenderer={cellRenderer}
-                style={{ outline: "none" }}
+                style={{ outline: "none", border: "none" }} // No borders
                 scrollToAlignment="start"
                 tabIndex={null}
               />

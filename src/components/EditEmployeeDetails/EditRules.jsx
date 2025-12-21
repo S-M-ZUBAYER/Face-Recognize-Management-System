@@ -64,7 +64,7 @@ const EditRules = () => {
           Rules
         </label>
         <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white flex items-center justify-between">
-          <p className="text-gray-600">rules</p>
+          <p className="text-gray-600">Salary Rules</p>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="18"

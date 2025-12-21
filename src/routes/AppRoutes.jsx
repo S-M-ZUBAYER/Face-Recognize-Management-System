@@ -18,6 +18,7 @@ import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
 import PayPeriodPage from "@/pages/PayPeriodPage";
 import ResignedEmployeePage from "@/pages/ResignedEmployeePage";
 import { useEmployees } from "@/hook/useEmployees";
+import EmailVerification from "@/components/EmailVerification";
 
 const AppLayout = () => {
   useEmployees(); // Fetch and set employees data
@@ -39,36 +40,70 @@ const AppRoutes = () => {
     <Routes>
       {/* Protected routes */}
       <Route element={<PrivateRoute />}>
-        <Route path="/" element={<AppLayout />}>
+        <Route
+          path="/Face_Attendance_Management_System"
+          element={<AppLayout />}
+        >
           <Route index element={<Dashboard />} />
-          <Route path="employee" element={<EmployeePage />} />
-          <Route path="resigned-employee" element={<ResignedEmployeePage />} />
           <Route
-            path="salary-calculation"
+            path="/Face_Attendance_Management_System/employee"
+            element={<EmployeePage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/resigned-employee"
+            element={<ResignedEmployeePage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/salary-calculation"
             element={<SalaryCalculationPage />}
           />
           {/* <Route path="attendance" element={<Warehouse />} /> */}
-          <Route path="device-management" element={<DeviceManagementPage />} />
-          <Route path="admin-management" element={<AdminManagementPage />} />
           <Route
-            path="employee-management"
+            path="/Face_Attendance_Management_System/device-management"
+            element={<DeviceManagementPage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/admin-management"
+            element={<AdminManagementPage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/employee-management"
             element={<EmployeeManagementPage />}
           />
           <Route
-            path="employee-management/editEmployeeDetails/:id/:deviceMac"
+            path="/Face_Attendance_Management_System/employee-management/editEmployeeDetails/:id/:deviceMac"
             element={<EditEmployeeDetailsPage />}
           />
-          <Route path="attendance" element={<AttendancePage />} />
-          <Route path="task-management" element={<TaskManagementPage />} />
-          <Route path="leave-approval" element={<LeaveApprovalPage />} />
-          <Route path="rules" element={<RulesPage />} />
-          <Route path="pay-period" element={<PayPeriodPage />} />
+          <Route
+            path="/Face_Attendance_Management_System/attendance"
+            element={<AttendancePage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/task-management"
+            element={<TaskManagementPage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/leave-approval"
+            element={<LeaveApprovalPage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/rules"
+            element={<RulesPage />}
+          />
+          <Route
+            path="/Face_Attendance_Management_System/pay-period"
+            element={<PayPeriodPage />}
+          />
           <Route path="*" element={<Animated404 />} />
         </Route>
+        <Route path="verification" element={<EmailVerification />} />
       </Route>
 
       {/* Public routes */}
-      <Route path="/signin" element={<SignInPage />} />
+      <Route
+        path="/Face_Attendance_Management_System/signin"
+        element={<SignInPage />}
+      />
     </Routes>
   );
 };

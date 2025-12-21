@@ -27,41 +27,61 @@ import { base64ToImage } from "@/lib/base64Toimage";
 
 // Constants
 const LINKS = [
-  { label: "Dashboard", icon: DashboardIcon, path: "/" },
-  { label: "Employee", icon: EmployeeIcon, path: "/employee" },
+  {
+    label: "Dashboard",
+    icon: DashboardIcon,
+    path: "/Face_Attendance_Management_System",
+  },
+  {
+    label: "Employee",
+    icon: EmployeeIcon,
+    path: "/Face_Attendance_Management_System/employee",
+  },
   {
     label: "Resigned Employee",
     icon: ResignedEmployeeIcon,
-    path: "/resigned-employee",
+    path: "/Face_Attendance_Management_System/resigned-employee",
   },
-  { label: "Attendance", icon: AttendanceIcon, path: "/attendance" },
+  {
+    label: "Attendance",
+    icon: AttendanceIcon,
+    path: "/Face_Attendance_Management_System/attendance",
+  },
   {
     label: "Salary calculation",
     icon: SalaryCalculationIcon,
-    path: "/salary-calculation",
+    path: "/Face_Attendance_Management_System/salary-calculation",
   },
   {
     label: "Employee management",
     icon: EmployeeManagementIcon,
-    path: "/employee-management",
+    path: "/Face_Attendance_Management_System/employee-management",
   },
   {
     label: "Device List",
     icon: DeviceManagementIcon,
-    path: "/device-management",
+    path: "/Face_Attendance_Management_System/device-management",
   },
   {
     label: "Admin management",
     icon: AdminManagementIcon,
-    path: "/admin-management",
+    path: "/Face_Attendance_Management_System/admin-management",
   },
   {
     label: "Leave approval",
     icon: LeaveManagementIcon,
-    path: "/leave-approval",
+    path: "/Face_Attendance_Management_System/leave-approval",
   },
-  { label: "Rules", icon: RulesIcon, path: "/rules" },
-  { label: "PayPeriod", icon: PayPeriodIcon, path: "/pay-period" },
+  {
+    label: "Rules",
+    icon: RulesIcon,
+    path: "/Face_Attendance_Management_System/rules",
+  },
+  {
+    label: "PayPeriod",
+    icon: PayPeriodIcon,
+    path: "/Face_Attendance_Management_System/pay-period",
+  },
 ];
 
 const ANIMATION_VARIANTS = {
@@ -370,7 +390,7 @@ const Sidebar = () => {
         localforage.removeItem("reactQuery"),
       ]);
 
-      window.location.href = "/signin";
+      window.location.href = "/Face_Attendance_Management_System/signin";
     } catch (error) {
       console.error("Logout error:", error);
       setIsLoggingOut(false);

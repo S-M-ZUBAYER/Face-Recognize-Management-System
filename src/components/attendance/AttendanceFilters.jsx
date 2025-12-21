@@ -14,7 +14,8 @@ const AttendanceFilters = memo(() => {
   // Memoize filters array to prevent recreation
   const filters = useMemo(
     () => [
-      { key: "all", label: "All", count: totalCount },
+      { key: "punchData", label: "Original Attendance", count: totalCount },
+      { key: "all", label: "All Records", count: totalCount },
       { key: "present", label: "Present", count: presentCount },
       { key: "absent", label: "Absent", count: absentCount },
       { key: "overtime", label: "Overtime", count: null },
@@ -51,7 +52,7 @@ const AttendanceFilters = memo(() => {
             key={filter.key}
             onClick={() => handleFilterClick(filter.key)}
             disabled={isFilterLoading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors relative ${
+            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-4 md:py-2 whitespace-nowrap ${
               activeFilter === filter.key
                 ? "bg-[#004368] text-[#E6ECF0]"
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0]"

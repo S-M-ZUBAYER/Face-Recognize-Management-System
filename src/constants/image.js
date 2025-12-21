@@ -9,6 +9,8 @@ import settingIcon from "../assets/image/setting.svg";
 import alert from "../assets/image/Alert.svg";
 import calendar from "../assets/image/calendar.svg";
 import product from "../assets/image/Product.png";
+import LoginLogo from "../assets/image/LoginLogo.svg";
+import BrandLogo from "../assets/image/brandLogo.svg";
 
 export default {
   logo,
@@ -22,4 +24,6 @@ export default {
   alert,
   calendar,
   product,
+  LoginLogo,
+  BrandLogo,
 };

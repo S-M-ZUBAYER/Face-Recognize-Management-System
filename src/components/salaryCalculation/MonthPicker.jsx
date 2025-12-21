@@ -95,7 +95,7 @@ const MonthPicker = ({ minYear = 2000, maxYear = 2030, className = "" }) => {
                   onClick={() => handleMonthSelect(index)}
                   className={`px-3 py-2 text-sm rounded-lg transition-colors ${
                     isSelected
-                      ? "bg-blue-500 text-white"
+                      ? "bg-[#004368] text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
