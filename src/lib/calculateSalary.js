@@ -354,19 +354,24 @@ function getWorkingDaysUpToDate(
   };
 }
 
-function identifyShiftType(shift) {
-  if (!shift || !shift.start || !shift.end) {
+function identifyShiftType(shifts) {
+  // If not array or empty array
+  if (!Array.isArray(shifts) || shifts.length === 0) {
     return "No Shift";
   }
 
-  const [startHour, startMin] = shift.start.split(":").map(Number);
-  const [endHour, endMin] = shift.end.split(":").map(Number);
+  const firstShift = shifts[0];
 
-  // Convert to minutes since 00:00
+  if (!firstShift.start || !firstShift.end) {
+    return "No Shift";
+  }
+
+  const [startHour, startMin] = firstShift.start.split(":").map(Number);
+  const [endHour, endMin] = firstShift.end.split(":").map(Number);
+
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
 
-  // Night shift crosses midnight
   return endMinutes <= startMinutes ? "Night Shift" : "Day Shift";
 }
 
