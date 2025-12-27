@@ -528,7 +528,7 @@ export function calculateRangeSalary(
     if (startDate === undefined && endDate === undefined) {
       const firstWeekRange = getSemiMonthlyRange(
         selectedYear,
-        selectedMonth,
+        selectedMonth + 1,
         payPeriod?.startDay,
         0
       );
@@ -541,7 +541,7 @@ export function calculateRangeSalary(
     if (startDate === undefined && endDate === undefined) {
       const firstWeekRange = getMonthlyRollingRange(
         selectedYear,
-        selectedMonth,
+        selectedMonth + 1,
         payPeriod?.startDay
       );
       startDate = firstWeekRange.startDate;

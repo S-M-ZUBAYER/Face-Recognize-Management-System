@@ -9,7 +9,7 @@ import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
 const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
   const [semiMonthlyRange, setSemiMonthlyRange] = useState(() => {
-    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     return getSemiMonthlyRange(selectedYear, selectedMonth, splitEndDate, 0);
   });
   const [salaryData, setSalaryData] = useState(null);
@@ -51,7 +51,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const handlePreviousPeriod = () => {
     const newOffset = periodOffset === 0 ? 1 : 0;
     setPeriodOffset(newOffset);
-    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
@@ -64,7 +64,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const handleNextPeriod = () => {
     const newOffset = periodOffset === 0 ? 1 : 0;
     setPeriodOffset(newOffset);
-    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
@@ -76,7 +76,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
   const handleFirstHalf = () => {
     setPeriodOffset(0);
-    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
@@ -88,7 +88,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
   const handleSecondHalf = () => {
     setPeriodOffset(1);
-    const splitEndDate = selectedEmp?.salaryInfo?.splitEndDate || 15;
+    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     const newRange = getSemiMonthlyRange(
       selectedYear,
       selectedMonth,
@@ -185,13 +185,13 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             <div className="bg-gray-50 border-b p-4">
               <div className="flex items-center justify-between">
                 <Button
-                  onClick={handlePreviousPeriod}
-                  variant="outline"
+                  onClick={handleFirstHalf}
+                  variant={periodOffset === 0 ? "default" : "outline"}
                   size="sm"
-                  className="gap-2"
+                  className={periodOffset === 0 ? "bg-[#004368]" : ""}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {periodOffset === 1 ? "1st Half" : "2nd Half"}
+                  1st Half
                 </Button>
 
                 <div className="text-center">
@@ -210,28 +210,12 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleFirstHalf}
-                    variant={periodOffset === 0 ? "default" : "outline"}
-                    size="sm"
-                    className={periodOffset === 0 ? "bg-[#004368]" : ""}
-                  >
-                    1st Half
-                  </Button>
-                  <Button
                     onClick={handleSecondHalf}
                     variant={periodOffset === 1 ? "default" : "outline"}
                     size="sm"
                     className={periodOffset === 1 ? "bg-[#004368]" : ""}
                   >
                     2nd Half
-                  </Button>
-                  <Button
-                    onClick={handleNextPeriod}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    {periodOffset === 0 ? "2nd Half" : "1st Half"}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -367,7 +351,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     </div>
 
                     {/* Period Information */}
-                    <div className="bg-white p-5 rounded-2xl border shadow-sm">
+                    {/* <div className="bg-white p-5 rounded-2xl border shadow-sm">
                       <h3 className="font-semibold text-gray-800 mb-4 text-sm">
                         Period Information
                       </h3>
@@ -399,7 +383,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Attendance Overview */}
                     <div className="bg-white p-5 rounded-2xl border shadow-sm">
@@ -828,7 +812,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     )}
 
                     {/* Replace Days */}
-                    {salaryData?.replaceDaysArr?.length > 0 && (
+                    {/* {salaryData?.replaceDaysArr?.length > 0 && (
                       <div className="bg-gray-50 p-4 rounded-2xl border">
                         <h3 className="font-semibold text-gray-700 mb-2 text-sm">
                           Replace Days
@@ -856,7 +840,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </div>
                         </div>
                       </div>
-                    )}
+                    )} */}
                   </motion.div>
                 </div>
               ) : (
@@ -920,8 +904,8 @@ function getSemiMonthlyRange(year, month, splitEndDate, direction = 0) {
   const current = ranges[index];
 
   return {
-    startDate: formatDate(year, month, current.start),
-    endDate: formatDate(year, month, current.end),
+    startDate: formatDate(year, month + 1, current.start),
+    endDate: formatDate(year, month + 1, current.end),
     part: index === 0 ? "FIRST_HALF" : "SECOND_HALF",
   };
 }

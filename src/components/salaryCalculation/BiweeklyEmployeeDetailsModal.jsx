@@ -8,6 +8,7 @@ import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
 
 const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
+
   const [biweeklyRange, setBiweeklyRange] = useState(() => {
     return getBiweeklyRangeWithDirection(
       selectedYear,
