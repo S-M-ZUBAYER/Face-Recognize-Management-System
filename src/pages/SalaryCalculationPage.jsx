@@ -26,8 +26,20 @@ function SalaryCalculationPage() {
   const { setIsSubscriptionModal } = useSubscriptionStore();
 
   // Async salary calculation - FIXED DEPENDENCIES
+  // useEffect(() => {
+  //   if (!paymentInfo || paymentInfo.paymentStatus !== 1) return;
   useEffect(() => {
-    if (!paymentInfo || paymentInfo.paymentStatus !== 1) return;
+    if (!paymentInfo) return;
+
+    const expireDate = new Date(paymentInfo.paymentExpireTime);
+    const today = new Date();
+
+    // Normalize both to start of day
+    expireDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    // ⛔ Stop effect if payment already expired
+    if (expireDate < today) return;
     const calculateSalaries = async () => {
       // Check if we have data and not already calculating
       if (Attendance.length > 0 && Employees.length > 0 && !isCalculating) {
@@ -79,7 +91,19 @@ function SalaryCalculationPage() {
     return <FancyLoader />;
   }
 
-  if (paymentInfo?.paymentStatus !== 1) {
+  const isExpired = (() => {
+    if (!paymentInfo?.paymentExpireTime) return true;
+
+    const expireDate = new Date(paymentInfo.paymentExpireTime);
+    const today = new Date();
+
+    expireDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return expireDate < today; // expired
+  })();
+
+  if (isExpired) {
     return (
       <div className="w-full h-[60vh] flex justify-center items-center">
         <div className="w-[50%] bg-white border border-[#E5E9EB] rounded-2xl shadow-md px-8 py-10 flex flex-col items-center gap-6">

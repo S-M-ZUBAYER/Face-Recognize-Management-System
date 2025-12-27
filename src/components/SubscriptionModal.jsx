@@ -356,14 +356,19 @@ const SubscriptionModal = () => {
                             </div> */}
 
                             {/* Package-specific Features */}
-                            {pkg.features.map((feature, idx) => (
-                              <div key={idx} className="flex items-start">
-                                <Check className="w-4 h-4 text-[#004368] mr-2 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm text-gray-600 leading-tight">
-                                  {feature}
-                                </span>
-                              </div>
-                            ))}
+                            {pkg.features
+                              .filter(
+                                (feature) =>
+                                  !feature.includes("https://printernoble.com")
+                              )
+                              .map((feature, idx) => (
+                                <div key={idx} className="flex items-start">
+                                  <Check className="w-4 h-4 text-[#004368] mr-2 mt-0.5 flex-shrink-0" />
+                                  <span className="text-sm text-gray-600 leading-tight">
+                                    {feature}
+                                  </span>
+                                </div>
+                              ))}
                           </div>
 
                           {/* Select/Current Button */}
