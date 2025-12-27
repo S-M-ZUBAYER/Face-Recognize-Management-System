@@ -124,7 +124,9 @@ export default function DocumentProofs() {
       const newMissedPunch = {
         id: Math.floor(10 + Math.random() * 90),
         empId: Number(empId),
-        date: missedPunchDate.toISOString().split("T")[0],
+        date:
+          new Date(missedPunchDate).toLocaleDateString("en-CA") +
+          "T00:00:00.000",
         CutSalary: missedPunchCutSalary,
         image_path: imagePath,
       };
@@ -144,7 +146,7 @@ export default function DocumentProofs() {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log(payload);
+      // console.log(payload);
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
@@ -209,7 +211,8 @@ export default function DocumentProofs() {
       const newLatePunch = {
         id: Math.floor(10 + Math.random() * 90),
         empId: Number(empId),
-        date: latePunchDate.toISOString(),
+        date:
+          new Date(latePunchDate).toLocaleDateString("en-CA") + "T00:00:00.000",
         startTime: startTime || null,
         endTime: endTime || null,
         CutSalary: latePunchCutSalary,
@@ -229,7 +232,11 @@ export default function DocumentProofs() {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log(payload);
+      // console.log(
+      //   payload,
+      //   latePunchDate,
+      //   new Date(latePunchDate).toLocaleDateString("en-CA") + "T00:00:00.000"
+      // );
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",

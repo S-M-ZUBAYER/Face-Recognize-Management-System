@@ -1186,7 +1186,7 @@ export function calculateRangeSalary(
 
   // Calculate absent days
   absent = Math.max(0, workingDaysUpToCurrent - normalPresent);
-  console.log(workingDaysUpToCurrent, normalPresent, absent);
+  // console.log(workingDaysUpToCurrent, normalPresent, absent);
 
   // if (id === "70709913") {
   //   console.log(workingDaysUpToCurrent, normalPresent);
