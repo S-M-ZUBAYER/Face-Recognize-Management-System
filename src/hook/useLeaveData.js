@@ -92,7 +92,11 @@ export const useLeaveData = () => {
     queryFn: fetchLeaves,
     enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
     ...DEFAULT_QUERY_CONFIG,
-    select: (data) => data.sort((a, b) => (b.id || 0) - (a.id || 0)),
+    select: (data) =>
+      data.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
   });
 
   // Update leave mutation
