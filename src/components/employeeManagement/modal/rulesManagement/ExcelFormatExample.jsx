@@ -2,7 +2,7 @@ import React from "react";
 
 const ExcelFormatExample = () => {
   return (
-    <div className="bg-gray-100 rounded-xl  border border-gray-200 mx-4 p-4">
+    <div className="bg-gray-100 rounded-xl  border border-gray-200  p-4">
       <h3 className="font-semibold text-sm  mb-3">Excel Format Example:</h3>
 
       <div className="overflow-x-auto">

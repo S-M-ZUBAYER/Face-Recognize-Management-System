@@ -86,7 +86,16 @@ const PayPeriodModal = ({ isOpen, onCancel }) => {
                           className="flex items-center space-x-2"
                         >
                           <RadioGroupItem value={item.value} id={item.value} />
-                          <Label htmlFor={item.value}>{item.label}</Label>
+                          <Label
+                            htmlFor={item.value}
+                            className={
+                              selectedPeriod === item.value
+                                ? "text-black"
+                                : "text-gray-500"
+                            }
+                          >
+                            {item.label}
+                          </Label>
                         </div>
                       ))}
                     </RadioGroup>

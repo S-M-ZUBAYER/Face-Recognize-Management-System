@@ -8,9 +8,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Checkbox } from "../ui/checkbox";
-import { useUpdateEmployee } from "../../hook/useUpdateEmployee";
+// import { useUpdateEmployee } from "../../hook/useUpdateEmployee";
 import OvertimeModal from "./OvertimeModal";
 import toast from "react-hot-toast";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 
 function EmployeeModal({ employee }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +24,7 @@ function EmployeeModal({ employee }) {
     overtimeStatus: "",
   });
 
-  const updateEmployee = useUpdateEmployee();
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const accordionData = [
     {
@@ -100,23 +101,35 @@ function EmployeeModal({ employee }) {
       } else {
         // For single-select items
         if (groupKey === "workType" || groupKey === "attendanceMethod") {
-          // If clicking "Both", select it
+          const currentValue = prev[groupKey];
+
+          // Clicking "Both"
           if (value === "Both") {
+            // If "Both" is already selected OR all options are selected, unselect all
+            if (
+              currentValue === "Both" ||
+              currentValue === "Home,Onsite" ||
+              currentValue === "Check Out Button,Face attendance"
+            ) {
+              return { ...prev, [groupKey]: "" };
+            }
+            // Otherwise select "Both"
             return { ...prev, [groupKey]: "Both" };
           }
-          // If clicking individual option when "Both" is selected, switch to individual
-          else if (prev[groupKey] === "Both") {
+
+          // Clicking individual option
+          if (currentValue === "Both") {
+            // Switch from "Both" to individual selection
             return { ...prev, [groupKey]: value };
-          }
-          // Normal toggle behavior
-          else {
+          } else {
+            // Normal toggle
             return {
               ...prev,
-              [groupKey]: prev[groupKey] === value ? "" : value,
+              [groupKey]: currentValue === value ? "" : value,
             };
           }
         } else {
-          // Normal single-select behavior for other fields
+          // Normal single-select behavior for overtimeStatus
           return { ...prev, [groupKey]: prev[groupKey] === value ? "" : value };
         }
       }
@@ -129,7 +142,7 @@ function EmployeeModal({ employee }) {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const payload = {
       allowedAttendanceModes: getActualValues(
         "workType",
@@ -142,24 +155,18 @@ function EmployeeModal({ employee }) {
       visibleDataTypes: selectedValues.visibleInfo.join(","),
     };
 
-    console.log("Payload with processed values:", payload);
+    // console.log("Payload with processed values:", payload);
 
-    updateEmployee.mutate(
-      {
-        companyId: employee.deviceMAC,
-        employeeId: employee.employeeId,
-        data: payload,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Employee updated successfully");
-          setIsOpen(false);
-        },
-        onError: () => {
-          toast.error("Failed to update employee");
-        },
-      }
-    );
+    try {
+      await updateEmployee({
+        mac: employee.deviceMAC || "",
+        id: employee.employeeId || employee.id,
+        payload,
+      });
+      toast.success("Employee updated successfully");
+    } catch {
+      toast.error("Failed to update employee");
+    }
   };
 
   return (
@@ -222,7 +229,7 @@ function EmployeeModal({ employee }) {
                 <Accordion type="single" collapsible className="w-full">
                   {accordionData.map((group, idx) => (
                     <AccordionItem key={idx} value={`item-${idx}`}>
-                      <AccordionTrigger className="text-left">
+                      <AccordionTrigger className="text-left hover:no-underline">
                         {group.title}
                       </AccordionTrigger>
                       <AccordionContent className="flex gap-2.5 items-center flex-wrap">
@@ -300,10 +307,10 @@ function EmployeeModal({ employee }) {
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={updateEmployee.isLoading}
+                  disabled={updating}
                   className="w-[8vw] bg-[#004368] text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50 hover:bg-[#003155]"
                 >
-                  {updateEmployee.isLoading ? "Saving..." : "Save"}
+                  {updating ? "Saving..." : "Save"}
                 </button>
               </div>
             </motion.div>

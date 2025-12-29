@@ -254,7 +254,8 @@ const SubscriptionModal = () => {
                     Billing Currency:
                   </span>
                   <div className="flex gap-1 ml-2">
-                    {["USD", "EUR", "SGD", "CNY"].map((curr) => (
+                    {/*// , "EUR", "SGD", "CNY"// */}
+                    {["USD"].map((curr) => (
                       <button
                         key={curr}
                         className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${

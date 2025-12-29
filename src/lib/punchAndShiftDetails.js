@@ -93,12 +93,25 @@ function convertPunchesWithSpecialRules(
     const lastRuleIndex = normalAllRules.length - 1;
 
     // Check if current day IS overnight shift
-    const isCurrentDayOvernight = isTimeGreater(
-      normalAllRules[0],
-      normalAllRules[lastRuleIndex] !== "00:00"
-        ? normalAllRules[lastRuleIndex]
-        : normalAllRules[3]
-    );
+    let isCurrentDayOvernight;
+    // = isTimeGreater(
+    //   normalAllRules[0],
+    //   normalAllRules[lastRuleIndex] !== "00:00"
+    //     ? normalAllRules[lastRuleIndex]
+    //     : normalAllRules[3]
+    // );
+
+    try {
+      isCurrentDayOvernight = isTimeGreater(
+        normalAllRules[0],
+        normalAllRules[lastRuleIndex] !== "00:00"
+          ? normalAllRules[lastRuleIndex]
+          : normalAllRules[3]
+      );
+    } catch (error) {
+      // console.log(id, mac, date, normalAllRules);
+      console.error("Error in isTimeGreater:", error.message);
+    }
 
     // if (id === "3531774215") {
     //   console.log(

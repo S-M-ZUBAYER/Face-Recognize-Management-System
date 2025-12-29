@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CustomPagination from "../CustomPagination";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,25 +10,25 @@ const ITEMS_PER_PAGE = 10;
 
 function AdminTable() {
   const { admins, deleteAdmin, isDeleting } = useAdminData();
-  const [currentPage, setCurrentPage] = useState(1);
+  // const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedAdmins, setSelectedAdmins] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAdmin, setDialogAdmin] = useState(null);
   const [message, setMessage] = useState("");
 
-  console.log(admins);
+  // console.log(admins);
 
   // Memoized calculations
-  const totalPages = useMemo(
-    () => Math.ceil(admins.length / ITEMS_PER_PAGE),
-    [admins.length]
-  );
+  // const totalPages = useMemo(
+  //   () => Math.ceil(admins.length / ITEMS_PER_PAGE),
+  //   [admins.length]
+  // );
 
-  const paginatedAdmins = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return admins.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [currentPage, admins]);
+  // const admins = useMemo(() => {
+  //   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  //   return admins.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  // }, [currentPage, admins]);
 
   // Selection state calculations
   const selectedAdminIdsSet = useMemo(
@@ -37,21 +37,21 @@ function AdminTable() {
   );
 
   const isAllPageSelected = useMemo(() => {
-    if (paginatedAdmins.length === 0) return false;
-    return paginatedAdmins.every((admin) => {
+    if (admins.length === 0) return false;
+    return admins.every((admin) => {
       const id = admin.adminId || admin.id || admin.adminEmail;
       return selectedAdmins.includes(id);
     });
-  }, [paginatedAdmins, selectedAdmins]);
+  }, [admins, selectedAdmins]);
 
   const isIndeterminate = useMemo(() => {
     if (selectedAdmins.length === 0) return false;
     if (isAllPageSelected) return false;
-    return paginatedAdmins.some((admin) => {
+    return admins.some((admin) => {
       const id = admin.adminId || admin.id || admin.adminEmail;
       return selectedAdmins.includes(id);
     });
-  }, [selectedAdmins, isAllPageSelected, paginatedAdmins]);
+  }, [selectedAdmins, isAllPageSelected, admins]);
 
   const selectedAdminsData = useMemo(
     () =>
@@ -63,30 +63,28 @@ function AdminTable() {
   );
 
   // Adjust current page if it becomes invalid after data changes
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [totalPages, currentPage]);
+  // useEffect(() => {
+  //   if (currentPage > totalPages && totalPages > 0) {
+  //     setCurrentPage(totalPages);
+  //   }
+  // }, [totalPages, currentPage]);
 
   // Optimized handlers
   const handleSelectAll = useCallback(() => {
     if (isAllPageSelected) {
       // Unselect current page admins
       const currentPageIds = new Set(
-        paginatedAdmins.map(
-          (admin) => admin.adminId || admin.id || admin.adminEmail
-        )
+        admins.map((admin) => admin.adminId || admin.id || admin.adminEmail)
       );
       setSelectedAdmins((prev) => prev.filter((id) => !currentPageIds.has(id)));
     } else {
       // Select current page admins
-      const currentPageIds = paginatedAdmins.map(
+      const currentPageIds = admins.map(
         (admin) => admin.adminId || admin.id || admin.adminEmail
       );
       setSelectedAdmins((prev) => [...new Set([...prev, ...currentPageIds])]);
     }
-  }, [isAllPageSelected, paginatedAdmins]);
+  }, [isAllPageSelected, admins]);
 
   const handleSelectAdmin = useCallback((adminId) => {
     setSelectedAdmins((prev) =>
@@ -96,14 +94,14 @@ function AdminTable() {
     );
   }, []);
 
-  const handlePageChange = useCallback(
-    (page) => {
-      if (page >= 1 && page <= totalPages) {
-        setCurrentPage(page);
-      }
-    },
-    [totalPages]
-  );
+  // const handlePageChange = useCallback(
+  //   (page) => {
+  //     if (page >= 1 && page <= totalPages) {
+  //       setCurrentPage(page);
+  //     }
+  //   },
+  //   [totalPages]
+  // );
 
   const openDeleteDialog = useCallback((admin) => {
     setDialogAdmin(admin);
@@ -143,7 +141,7 @@ function AdminTable() {
       </div>
     );
   }
-
+  // const doubled = Array.from({ length: 6 }, () => admins).flat();
   return (
     <>
       {/* Select All */}
@@ -160,9 +158,9 @@ function AdminTable() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white ">
+      <div className="overflow-x-auto bg-white max-h-[62vh] h-auto overflow-y-auto">
         <table className="w-full text-left text-sm">
-          <thead className="text-gray-500 border-b">
+          <thead className="text-gray-500 border-b sticky top-0 z-10 bg-[#E6ECF0]">
             <tr className="bg-[#E6ECF0]">
               <th className="p-3 ">Select</th>
               <th className="p-3">Name</th>
@@ -174,7 +172,7 @@ function AdminTable() {
             </tr>
           </thead>
           <tbody>
-            {paginatedAdmins.length === 0 ? (
+            {admins.length === 0 ? (
               <tr>
                 <td colSpan="7" className="p-8 text-center text-gray-500">
                   {admins.length === 0
@@ -183,7 +181,7 @@ function AdminTable() {
                 </td>
               </tr>
             ) : (
-              paginatedAdmins.map((admin, idx) => {
+              admins.map((admin, idx) => {
                 const adminId = admin.adminId || admin.id || admin.adminEmail;
                 const isSelected = selectedAdminIdsSet.has(adminId);
 
@@ -250,19 +248,19 @@ function AdminTable() {
 
       {/* Pagination & Export */}
       {admins.length > 0 && (
-        <div className="flex justify-between items-center mt-4">
-          <p className="text-sm text-gray-500">
+        <div className="flex justify-end items-center mt-4">
+          {/* <p className="text-sm text-gray-500">
             Showing{" "}
             {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, admins.length)} to{" "}
             {Math.min(currentPage * ITEMS_PER_PAGE, admins.length)} of{" "}
             {admins.length} admins
-          </p>
+          </p> */}
           <div className="flex items-center space-x-2">
-            <CustomPagination
+            {/* <CustomPagination
               currentPage={currentPage}
               handlePageChange={handlePageChange}
               totalPages={totalPages}
-            />
+            /> */}
             <AdminExport
               selectedEmployeeData={selectedAdminsData}
               disabled={selectedAdminsData.length === 0}
