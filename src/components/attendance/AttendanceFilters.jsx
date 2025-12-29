@@ -73,8 +73,8 @@ const AttendanceFilters = memo(() => {
             <span
               className={
                 isFilterLoading && activeFilter === filter.key
-                  ? "opacity-0"
-                  : "opacity-100"
+                  ? "opacity-0 text-[0.7vw] "
+                  : "opacity-100 text-[0.7vw] "
               }
             >
               {filter.label}

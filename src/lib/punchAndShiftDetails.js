@@ -448,7 +448,20 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
 
   for (let i = 0; i < sortedAttendance.length; i++) {
     const record = sortedAttendance[i];
-    const punches = JSON.parse(record.checkIn);
+    let punches;
+
+    try {
+      punches = JSON.parse(record.checkIn);
+    } catch (error) {
+      console.error("Invalid punch data - skipping:", {
+        empId: record.empId,
+        macId: record.macId,
+        date: record.date,
+        error: error.message,
+      });
+      continue; // Skip this iteration and move to next record
+    }
+
     const date = record.date;
     const mac = record.macId;
     const id = record.empId;
