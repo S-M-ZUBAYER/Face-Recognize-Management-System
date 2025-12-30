@@ -32,7 +32,7 @@ export const useLeaveData = () => {
       const leavesData = response.flatMap((res) => res.data || []);
 
       // Process leaves with employee data
-      return leavesData.map((leave, index) => {
+      return leavesData.map((leave) => {
         // Find matching employee by employeeId
         const matchingEmployee = Employees?.find(
           (emp) => emp.employeeId === leave.employeeId
@@ -62,7 +62,6 @@ export const useLeaveData = () => {
 
         return {
           ...leave,
-          id: leavesData.length - index,
           approverName,
           description,
           // Add employee image if found

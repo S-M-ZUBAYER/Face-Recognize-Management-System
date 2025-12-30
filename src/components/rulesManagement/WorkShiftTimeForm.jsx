@@ -18,7 +18,7 @@ export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDateForConfig, setSelectedDateForConfig] = useState(null);
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -434,7 +434,7 @@ export const WorkShiftTimeForm = () => {
 
         toast.success(`Shift configuration saved for employee ${employeeId}!`);
       }
-      setRulesIds(0);
+      setGlobalRulesIds(0);
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
       toast.error("Failed to save shift configuration.");

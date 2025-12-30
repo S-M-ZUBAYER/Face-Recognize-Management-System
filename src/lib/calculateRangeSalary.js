@@ -748,7 +748,7 @@ export function calculateRangeSalary(
 
   const rule24 = getRule(24);
 
-  const overtimeAllowed = rule24 ? true : false;
+  const overtimeAllowed = rule24?.param1;
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
   const { checkedTotal, uncheckedTotal } = parseOtherSalary(

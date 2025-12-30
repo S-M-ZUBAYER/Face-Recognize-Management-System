@@ -580,7 +580,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule24 = getRule(24);
 
-  const overtimeAllowed = rule24 ? true : false;
+  const overtimeAllowed = rule24?.param1;
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
   const { checkedTotal, uncheckedTotal } = parseOtherSalary(
@@ -834,9 +834,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         missedPunch += missedCount.missPunchCount;
       }
 
-      if (id === "2109058927") {
-        console.log("Missed punch on", date, missedCount, punches);
-      }
+      // if (id === "2109058927") {
+      //   console.log("Missed punch on", date, missedCount, punches);
+      // }
     }
 
     // NEW: Late count logic (only index 0 and index 2)
@@ -878,9 +878,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         } else if (identifyShiftType(workingDecoded) === "Night Shift") {
           nightLateCount += 1;
         }
-        if (id === "2109058927") {
-          console.log("Late on", date, lateMins, latenessGraceMin);
-        }
+        // if (id === "2109058927") {
+        //   console.log("Late on", date, lateMins, latenessGraceMin);
+        // }
 
         if (rule18) {
           halfDayLateCount += 1;
@@ -1196,9 +1196,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         overtimeWeekend += otMinutes;
       } else {
         overtimeNormal += otMinutes;
-        if (id === "8938086979") {
-          console.log(date, overtimeNormal);
-        }
+        // if (id === "8938086979") {
+        //   console.log(date, overtimeNormal);
+        // }
       }
       if (rule8 && minOTUnit > 0) {
         overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);

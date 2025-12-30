@@ -10,7 +10,7 @@ export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
   const { employees } = useEmployeeStore();
   const Employees = employees();
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -100,7 +100,7 @@ export const WeekendForm = () => {
       });
 
       await Promise.all(updatePromises);
-      setRulesIds(2);
+      setGlobalRulesIds(2);
       toast.success("Weekend days updated successfully!");
     } catch (error) {
       console.error("Error saving weekend days:", error);

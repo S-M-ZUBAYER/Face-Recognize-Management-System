@@ -13,7 +13,7 @@ export const HolidayForm = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees } = useEmployeeStore();
   const Employees = employees();
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   // 🟦 Handle selection — keep dates in local time, normalized
   const handleCalendarSelect = (dates) => {
@@ -108,7 +108,7 @@ export const HolidayForm = () => {
 
       await Promise.all(updatePromises);
 
-      setRulesIds(1);
+      setGlobalRulesIds(1);
 
       toast.success("Holidays updated successfully!");
     } catch (error) {

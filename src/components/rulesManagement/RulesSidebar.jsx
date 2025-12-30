@@ -4,9 +4,9 @@ import { useUserStore } from "@/zustand/useUserStore";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
   const { openDialog } = useAlertDialog();
-  const { rulesIds } = useUserStore();
+  const { globalRulesIds } = useUserStore();
 
-  const existingRuleIds = rulesIds;
+  const existingRuleIds = globalRulesIds;
 
   const hasRuleId = (ruleIdsArray, id) => {
     if (!Array.isArray(ruleIdsArray)) return false;
