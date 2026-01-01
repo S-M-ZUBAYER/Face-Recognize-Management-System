@@ -189,9 +189,6 @@ const EmployeeManagementTable = ({ employees = [] }) => {
           <p className="text-[#8AA9BA] font-semibold">
             Select All ({selectedEmployees.length} selected)
           </p>
-          {selectedEmployees.length > 1 && (
-            <SetModal selectedEmployees={selectedEmployeeData} />
-          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -366,7 +363,11 @@ const EmployeeManagementTable = ({ employees = [] }) => {
               </span>
             )}
           </p>
+
           <div className="flex items-center space-x-2">
+            {selectedEmployees.length > 1 && (
+              <SetModal selectedEmployees={selectedEmployeeData} />
+            )}
             <ExportButton
               selectedEmployeeData={selectedEmployeeData}
               disabled={selectedEmployeeData.length === 0}

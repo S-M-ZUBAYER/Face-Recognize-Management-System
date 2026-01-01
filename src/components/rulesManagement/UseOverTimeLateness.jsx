@@ -3,10 +3,13 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const UseOverTimeLateness = () => {
   const [lateTime, setLateTime] = useState("");
   const [costOverTime, setCostOverTime] = useState("");
+  const { setGlobalRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -80,6 +83,7 @@ export const UseOverTimeLateness = () => {
 
       await Promise.all(updatePromises);
 
+      setGlobalRulesIds(6);
       toast.success("Overtime lateness settings updated successfully!");
     } catch (error) {
       console.error("Error saving overtime lateness settings:", error);

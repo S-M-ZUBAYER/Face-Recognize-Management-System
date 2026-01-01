@@ -52,12 +52,41 @@ function SetModal({ selectedEmployees: sEmployees }) {
       {/* Trigger Button */}
       <motion.button
         onClick={handleOpen}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Changes PayPeriod & Rules to selected employees"
+        // whileHover={{ scale: 1.1 }}
+        // whileTap={{ scale: 0.95 }}
+        className="flex items-center gap-2 border border-[#004368] text-[#004368] px-8 py-1 rounded-lg hover:bg-blue-50 font-bold"
+        // title="Changes PayPeriod & Rules to selected employees"
       >
-        <Settings className="w-5 h-5 text-gray-600 hover:text-[#004368]" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 18 18"
+          fill="none"
+        >
+          <path
+            d="M6.12868 14.8713L14.8713 6.12868C15.2802 5.71974 15.4847 5.51527 15.594 5.2947C15.802 4.87504 15.802 4.38232 15.594 3.96265C15.4847 3.74209 15.2802 3.53761 14.8713 3.12868C14.4624 2.71974 14.2579 2.51528 14.0373 2.40597C13.6176 2.19801 13.125 2.19801 12.7053 2.40597C12.4847 2.51528 12.2802 2.71974 11.8713 3.12868L3.12868 11.8713C2.69513 12.3048 2.47836 12.5216 2.36418 12.7972C2.25 13.0729 2.25 13.3795 2.25 13.9926V15.7499H4.00736C4.62049 15.7499 4.92705 15.7499 5.20271 15.6358C5.47836 15.5216 5.69513 15.3048 6.12868 14.8713Z"
+            stroke="#336986"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9 15.75H13.5"
+            stroke="#336986"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M10.875 4.125L13.875 7.125"
+            stroke="#336986"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <p>Edit PayPeriod & Rules</p>
       </motion.button>
 
       {/* Main Settings Modal */}

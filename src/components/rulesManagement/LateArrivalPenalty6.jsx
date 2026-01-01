@@ -3,10 +3,13 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const LateArrivalPenalty6 = () => {
   const [dayShiftPenalty, setDayShiftPenalty] = useState("");
   const [nightShiftPenalty, setNightShiftPenalty] = useState("");
+  const { setGlobalRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -93,6 +96,8 @@ export const LateArrivalPenalty6 = () => {
       });
 
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(21);
       toast.success("Shift penalty settings updated successfully!");
     } catch (error) {
       console.error("Error saving shift penalty settings:", error);

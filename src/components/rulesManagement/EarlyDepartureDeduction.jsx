@@ -3,9 +3,11 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 export const EarlyDepartureDeduction = () => {
   const [penaltyAmount, setPenaltyAmount] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -80,7 +82,7 @@ export const EarlyDepartureDeduction = () => {
       });
 
       await Promise.all(updatePromises);
-
+      setGlobalRulesIds(16);
       toast.success("Early departure penalty updated successfully!");
     } catch (error) {
       console.error("Error saving early departure penalty:", error);

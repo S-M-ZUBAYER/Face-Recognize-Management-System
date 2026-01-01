@@ -3,6 +3,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const SetTotalLeaveDays = () => {
   const [totalDays, setTotalDays] = useState("");
@@ -17,6 +18,7 @@ export const SetTotalLeaveDays = () => {
     "Rest Leave": "",
     Others: "",
   });
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -181,6 +183,7 @@ export const SetTotalLeaveDays = () => {
 
       await Promise.all(updatePromises);
 
+      setGlobalRulesIds(24);
       toast.success("Leave settings updated successfully!");
     } catch (error) {
       console.error("Error saving leave settings:", error);

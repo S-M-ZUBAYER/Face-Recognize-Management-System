@@ -991,71 +991,62 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
 
     // NEW: Early departure logic (only index 1 and index 3)
-    // Index 1: Lunch out
-    if (punches[1] && punches[1] !== "00:00" && shift[1]) {
-      const punchMins = toMinutes(punches[1]);
-      let shiftMins = toMinutes(shift[1]);
-      if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
-        const shiftStartMins = toMinutes(shift[0]);
-        const lateThresh = shiftStartMins + latenessGraceMin;
-        const dayLateMins = Math.max(0, toMinutes(punches[0]) - lateThresh);
+    // Calculate number of shifts based on workingDecoded array length
+    const numShifts = workingDecoded ? workingDecoded.length : 0;
 
-        if (dayLateMins > 0) {
-          const units = Math.ceil(dayLateMins * perMinExtraUnite);
-          shiftMins = shiftMins + units;
+    // Loop through each shift
+    for (let shiftIndex = 0; shiftIndex < numShifts; shiftIndex++) {
+      // Each shift has: start punch (0, 2, 4...) and end punch (1, 3, 5...)
+      const startPunchIndex = shiftIndex * 2; // 0, 2, 4
+      const endPunchIndex = startPunchIndex + 1; // 1, 3, 5
+
+      // Check shift end (early departure)
+      if (
+        punches[endPunchIndex] &&
+        punches[endPunchIndex] !== "00:00" &&
+        shift[endPunchIndex]
+      ) {
+        const punchMins = toMinutes(punches[endPunchIndex]);
+        let shiftEndMins = toMinutes(shift[endPunchIndex]);
+
+        // Apply flex rule if applicable (only for shift end, not start)
+        if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
+          // Find the corresponding start punch for this shift (the start of this shift block)
+          const shiftStartPunchIndex = startPunchIndex; // This shift's start
+          const shiftStartMins = toMinutes(shift[shiftStartPunchIndex]);
+          const lateThresh = shiftStartMins + latenessGraceMin;
+
+          // Check if there was lateness at the start of this shift
+          if (
+            punches[shiftStartPunchIndex] &&
+            punches[shiftStartPunchIndex] !== "00:00"
+          ) {
+            const dayLateMins = Math.max(
+              0,
+              toMinutes(punches[shiftStartPunchIndex]) - lateThresh
+            );
+
+            if (dayLateMins > 0) {
+              const units = Math.ceil(dayLateMins * perMinExtraUnite);
+              shiftEndMins = shiftEndMins + units;
+            }
+          }
         }
-      }
 
-      if (punchMins < shiftMins) {
-        earlyDepartureCount += 1;
+        if (punchMins < shiftEndMins) {
+          earlyDepartureCount += 1;
 
-        // if (id === "2109058928") {
-        //   console.log(
-        //     "Early departure on",
-        //     date,
-        //     punchMins,
-        //     shiftMins,
-        //     punches[1],
-        //     shift[1],
-        //     "RAW SHIFT MINS:",
-        //     toMinutes(shift[1])
-        //   );
-        // }
-      }
-    }
-
-    // Index 3: Shift end
-    if (punches[3] && punches[3] !== "00:00" && shift[3]) {
-      const punchMins = toMinutes(punches[3]);
-      let shiftEndMins = toMinutes(shift[3]);
-
-      // Apply flex rule if applicable
-      if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
-        const LunchEndMins = toMinutes(shift[2]);
-        const lateThresh = LunchEndMins + latenessGraceMin;
-        const dayLateMins = Math.max(0, toMinutes(punches[2]) - lateThresh);
-
-        if (dayLateMins > 0) {
-          const units = Math.ceil(dayLateMins * perMinExtraUnite);
-          shiftEndMins = shiftEndMins + units;
+          // Debug for specific employee
+          // if (id === "2109058928") {
+          //   console.log(
+          //     `Early departure on shift ${shiftIndex + 1}`,
+          //     date,
+          //     punches[endPunchIndex],
+          //     shift[endPunchIndex],
+          //     "Difference:", shiftEndMins - punchMins, "minutes"
+          //   );
+          // }
         }
-      }
-
-      if (punchMins < shiftEndMins) {
-        earlyDepartureCount += 1;
-
-        // if (id === "2109058928") {
-        //   console.log(
-        //     "Early departure on",
-        //     date,
-        //     punchMins,
-        //     shiftEndMins,
-        //     punches[3],
-        //     shift[3],
-        //     "RAW SHIFT MINS:",
-        //     toMinutes(shift[3])
-        //   );
-        // }
       }
     }
 
