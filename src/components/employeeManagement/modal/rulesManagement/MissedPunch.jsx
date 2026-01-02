@@ -4,10 +4,13 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const MissedPunch = () => {
   const [costPerMissedPunch, setCostPerMissedPunch] = useState("");
   const [missAcceptableTime, setMissAcceptableTime] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -91,6 +94,7 @@ export const MissedPunch = () => {
         });
       });
       await Promise.all(updatePromises);
+      setRulesIds(22);
       toast.success("Missed punch settings updated successfully!");
     } catch (error) {
       console.error("Error saving missed punch settings:", error);

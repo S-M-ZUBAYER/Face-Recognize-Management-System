@@ -4,9 +4,11 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const LateArrivalPenalty3 = () => {
   const [hourlyRate, setHourlyRate] = useState("");
+  const { setRulesIds } = useUserStore();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -78,6 +80,8 @@ export const LateArrivalPenalty3 = () => {
       });
 
       await Promise.all(updatePromises);
+
+      setRulesIds(18);
       toast.success("Hourly late penalty rate updated successfully!");
     } catch (error) {
       console.error("Error saving hourly late penalty rate:", error);

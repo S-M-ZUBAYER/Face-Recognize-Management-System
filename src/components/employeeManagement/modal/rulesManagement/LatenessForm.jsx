@@ -4,9 +4,12 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const LatenessForm = () => {
   const [lateTime, setLateTime] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -76,6 +79,8 @@ export const LatenessForm = () => {
         });
       });
       await Promise.all(updatePromises);
+
+      setRulesIds(4);
 
       toast.success("Lateness setting updated successfully!");
     } catch (error) {

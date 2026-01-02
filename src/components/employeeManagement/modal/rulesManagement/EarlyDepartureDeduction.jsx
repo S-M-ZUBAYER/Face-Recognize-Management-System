@@ -4,10 +4,12 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const EarlyDepartureDeduction = () => {
   const [penaltyAmount, setPenaltyAmount] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { setRulesIds } = useUserStore();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -84,6 +86,8 @@ export const EarlyDepartureDeduction = () => {
       });
 
       await Promise.all(updatePromises);
+
+      setRulesIds(16);
 
       toast.success("Early departure penalty updated successfully!");
     } catch (error) {
