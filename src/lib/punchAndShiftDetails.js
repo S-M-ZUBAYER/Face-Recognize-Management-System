@@ -1,5 +1,6 @@
 import { useGlobalStore } from "@/zustand/useGlobalStore";
 import fastKeepHighMonth from "./fastKeepHighMonth";
+import hasPunchesForShiftWithoutFirstStart from "./hasPunchesForShiftWithoutFirstStart";
 
 function findMiddleTime(startTime, endTime) {
   const toDate = (t) => {
@@ -164,9 +165,19 @@ function convertPunchesWithSpecialRules(
       const targetMinutes = parseTimeToMinutes(normalAllRules[0]);
       const oneHourBefore = targetMinutes - 60;
       const oneHourAfter = targetMinutes + 60;
+      const isCurrentDayHasPunchesForOtherShift =
+        hasPunchesForShiftWithoutFirstStart(workingDecoded, punches);
+
+      // if (id === "70709915") {
+      //   console.log(
+      //     isCurrentDayHasPunchesForOtherShift,
+      //     workingDecoded,
+      //     punches
+      //   );
+      // }
 
       // CASE 1: Current day HAS multiple punches (active overnight shift)
-      if (punches.length > 1) {
+      if (isCurrentDayHasPunchesForOtherShift) {
         // Handle duplicate punches around shift start time
         let eveningPunches = [];
         let otherPunches = [];
@@ -254,7 +265,7 @@ function convertPunchesWithSpecialRules(
         }
       }
       // CASE 2: Current day has NO punches or only ONE punch - RETURN EMPTY
-      else if (punches.length <= 1) {
+      else if (!isCurrentDayHasPunchesForOtherShift) {
         // For overnight shift days with 0 or 1 punch, return all "00:00"
         return {
           punches: normalAllRules.map(() => "00:00"),
