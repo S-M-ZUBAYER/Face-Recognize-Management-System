@@ -3,12 +3,14 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const HolidayOvertime = () => {
   // const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
   const [holidayWorkingTimePercent, setHolidayWorkingTimePercent] =
     useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -97,6 +99,8 @@ export const HolidayOvertime = () => {
       });
 
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(9);
       toast.success("Holiday overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving holiday overtime settings:", error);

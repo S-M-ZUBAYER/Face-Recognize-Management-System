@@ -116,7 +116,11 @@ export const WeekendForm = () => {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-semibold mb-3">Weekend Days</label>
+        <label className="block text-sm font-semibold ">Weekend Days</label>
+        {/* Show selected days count */}
+        <div className="my-2 text-xs text-gray-500">
+          {selectedDays.length}/5 days selected
+        </div>
         <div className="space-y-3">
           {daysOfWeek.map((day) => (
             <label key={day} className="flex items-center gap-2 cursor-pointer">
@@ -139,11 +143,6 @@ export const WeekendForm = () => {
               </span>
             </label>
           ))}
-        </div>
-
-        {/* Show selected days count */}
-        <div className="mt-2 text-xs text-gray-500">
-          {selectedDays.length}/5 days selected
         </div>
       </div>
 

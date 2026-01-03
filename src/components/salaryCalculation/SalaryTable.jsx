@@ -253,12 +253,12 @@ function SalaryTable({ employees }) {
                     </td>
 
                     {/* Employee ID */}
-                    <td className="p-3 text-gray-600 font-mono text-sm">
+                    <td className="p-3 text-gray-900 font-medium ">
                       {emp?.companyEmployeeId || "N/A"}
                     </td>
 
                     {/* Designation */}
-                    <td className="p-3 text-gray-700">
+                    <td className="p-3 text-gray-900 font-medium">
                       {emp.designation || "N/A"}
                     </td>
 

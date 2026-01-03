@@ -4,9 +4,12 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const OvertImeCount = () => {
   const [minOvertimeUnit, setMinOvertimeUnit] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -77,7 +80,7 @@ export const OvertImeCount = () => {
         });
       });
       await Promise.all(updatePromises);
-
+      setRulesIds(7);
       toast.success("Minimum overtime unit updated successfully!");
     } catch (error) {
       console.error("Error saving minimum overtime unit:", error);

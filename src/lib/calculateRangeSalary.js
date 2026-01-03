@@ -208,54 +208,79 @@ function getWorkingDaysInMonth(
   generalDaysSet,
   replaceDaysSet,
   fullDayLeaveDates
+  // id
 ) {
   let workingDays = 0;
   let thisMonthLeave = 0;
   let thisMonthHolidays = 0;
   let thisMonthWeekends = 0;
   const weekends = Array.from(weekendDayNames);
-  const [year, month, day] = startDate.split("-").map(Number);
-  const end = endDate.split("-")[2];
 
-  for (let d = day; d <= end; d++) {
-    const monthStr = String(month).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-    const date = new Date(dateStr);
+  const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
+
+  // Loop through days properly
+  let currentDay = startDay;
+  let currentMonth = startMonth;
+  let currentYear = startYear;
+
+  while (true) {
+    const monthStr = String(currentMonth).padStart(2, "0");
+    const dayStr = String(currentDay).padStart(2, "0");
+    const dateStr = `${currentYear}-${monthStr}-${dayStr}`;
+
+    // Check if we've passed the end date
+    if (
+      currentYear > endYear ||
+      (currentYear === endYear && currentMonth > endMonth) ||
+      (currentYear === endYear &&
+        currentMonth === endMonth &&
+        currentDay > endDay)
+    ) {
+      break;
+    }
+
+    const date = new Date(currentYear, currentMonth - 1, currentDay);
     const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
 
-    // Check if it's a full day leave - skip this day
+    // Check if it's a full day leave
     if (fullDayLeaveDates.includes(dateStr)) {
       thisMonthLeave++;
-      continue;
     }
-
-    // Check replacement days first (these override everything)
-    if (replaceDaysSet.has(dateStr)) {
+    // Check replacement days first
+    else if (replaceDaysSet.has(dateStr)) {
       workingDays++;
-      continue;
     }
-
     // Check holidays
-    if (holidaysSet.has(dateStr)) {
+    else if (holidaysSet.has(dateStr)) {
       thisMonthHolidays++;
-      continue;
     }
-
     // Check general working days
-    if (generalDaysSet.has(dateStr)) {
+    else if (generalDaysSet.has(dateStr)) {
       workingDays++;
-      continue;
     }
-
     // Check weekends
-    if (weekends.includes(dayName)) {
+    else if (weekends.includes(dayName)) {
       thisMonthWeekends++;
-      continue;
     }
-
     // Normal working day
-    workingDays++;
+    else {
+      workingDays++;
+    }
+    // if (id === "2109058927") {
+    //   console.log(dateStr, dayName, weekendDayNames);
+    // }
+    // Move to next day
+    currentDay++;
+    const lastDayOfMonth = new Date(currentYear, currentMonth, 0).getDate();
+    if (currentDay > lastDayOfMonth) {
+      currentDay = 1;
+      currentMonth++;
+      if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear++;
+      }
+    }
   }
 
   return { workingDays, thisMonthLeave, thisMonthHolidays, thisMonthWeekends };
@@ -269,7 +294,7 @@ function getWorkingDaysUpToDate(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet,
-  fullDayLeaveDates // Add this parameter
+  fullDayLeaveDates
   // id
 ) {
   let workingDays = 0;
@@ -279,73 +304,83 @@ function getWorkingDaysUpToDate(
   let futureAbsent = 0;
   const weekends = Array.from(weekendDayNames);
 
-  const [year, month, day] = startDate.split("-").map(Number);
-  const end = endDate.split("-")[2];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const current = new Date(currentDay);
 
-  for (let d = day; d <= end; d++) {
-    const monthStr = String(month).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-    const date = new Date(dateStr);
-    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+  // if (id === "2109058927") {
+  //   console.log(startDate, endDate, currentDay);
+  // }
 
-    if (weekends.includes(dayName)) {
-      continue;
+  // Reset start and end times to avoid timezone issues
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  current.setHours(0, 0, 0, 0);
+
+  // First loop: Count future absent days
+  let tempDate = new Date(currentDay);
+  while (tempDate <= end) {
+    const dateStr = tempDate.toISOString().split("T")[0];
+    const dayName = new Date(dateStr).toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
+    if (!weekends.includes(dayName) && !holidaysSet.has(dateStr)) {
+      futureAbsent++;
     }
 
-    // Check holidays
-    if (holidaysSet.has(dateStr)) {
-      continue;
-    }
-    futureAbsent++;
+    tempDate.setDate(tempDate.getDate() + 1);
   }
 
-  for (let d = day; d <= end; d++) {
-    const monthStr = String(month).padStart(2, "0");
-    const dayStr = String(d).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
-    const date = new Date(dateStr);
-    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+  // Second loop: Calculate working days and other counts
+  tempDate = new Date(start);
+  while (tempDate <= current) {
+    const dateStr = tempDate.toISOString().split("T")[0];
+    const dayName = new Date(dateStr).toLocaleDateString("en-US", {
+      weekday: "long",
+    });
 
     // Check if it's a full day leave - skip this day
     if (fullDayLeaveDates.includes(dateStr)) {
       thisMonthLeave++;
+      tempDate.setDate(tempDate.getDate() + 1);
       continue;
     }
-    // if (id === "70709903") {
-    //   console.log(
-    //     fullDayLeaveDates,
-    //     fullDayLeaveDates.includes(dateStr),
-    //     dateStr
-    //   );
-    // }
 
     // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
       workingDays++;
+      tempDate.setDate(tempDate.getDate() + 1);
       continue;
     }
 
     // Check holidays
     if (holidaysSet.has(dateStr)) {
       thisMonthHolidays++;
+      tempDate.setDate(tempDate.getDate() + 1);
       continue;
     }
 
     // Check general working days
     if (generalDaysSet.has(dateStr)) {
       workingDays++;
+      tempDate.setDate(tempDate.getDate() + 1);
       continue;
     }
 
     // Check weekends
     if (weekends.includes(dayName)) {
       thisMonthWeekends++;
+      tempDate.setDate(tempDate.getDate() + 1);
       continue;
     }
 
     // Normal working day
     workingDays++;
+    // if (id === "2109058927") {
+    //   console.log(tempDate, dateStr, dayName, weekendDayNames);
+    // }
+    tempDate.setDate(tempDate.getDate() + 1);
   }
 
   return {
@@ -356,7 +391,6 @@ function getWorkingDaysUpToDate(
     futureAbsent,
   };
 }
-
 function identifyShiftType(shifts) {
   // If not array or empty array
   if (!Array.isArray(shifts) || shifts.length === 0) {
@@ -377,6 +411,41 @@ function identifyShiftType(shifts) {
 
   return endMinutes <= startMinutes ? "Night Shift" : "Day Shift";
 }
+function isDateInLatePunchDocuments(latePunchDocuments, date) {
+  if (!latePunchDocuments || latePunchDocuments.length === 0) return false;
+
+  const targetDateStr = new Date(date).toISOString().split("T")[0];
+
+  return latePunchDocuments.some((doc) => {
+    const docDateStr = doc.date.split("T")[0];
+    return docDateStr === targetDateStr;
+  });
+}
+
+// Helper function to get startTime from latePunchDocuments for a specific date
+function getStartTimeFromLateDoc(latePunchDocuments, date) {
+  if (!latePunchDocuments || latePunchDocuments.length === 0) return null;
+
+  return (
+    latePunchDocuments.find((doc) => doc.date.split("T")[0] === date)
+      ?.startTime || null
+  );
+}
+
+// Helper function to check if punch time is near approved start time
+function isPunchNearApprovedTime(
+  punchTime,
+  approvedStartTime,
+  toleranceMinutes = 60
+) {
+  if (!punchTime || !approvedStartTime) return false;
+
+  const punchMins = toMinutes(punchTime);
+  const approvedMins = toMinutes(approvedStartTime);
+
+  return Math.abs(punchMins - approvedMins) <= toleranceMinutes;
+}
+
 function getFirstWeekRange(year, month, weekStartDay = 0) {
   // weekStartDay: 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
 
@@ -634,6 +703,8 @@ export function calculateRangeSalary(
 
   const rule11 = getRule(11);
 
+  const latePunchDocuments = salaryRules.latePunchDocuments || [];
+
   // const mLeaves = salaryRules.m_leaves || [];
   // const marLeaves = salaryRules.mar_leaves || [];
   // const pLeaves = salaryRules.p_leaves || [];
@@ -677,7 +748,7 @@ export function calculateRangeSalary(
 
   const rule24 = getRule(24);
 
-  const overtimeAllowed = rule24 ? true : false;
+  const overtimeAllowed = rule24?.param1;
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
   const { checkedTotal, uncheckedTotal } = parseOtherSalary(
@@ -728,7 +799,7 @@ export function calculateRangeSalary(
   // }
 
   const now = new Date();
-  const currentDay = now.getDate();
+  const currentDay = now.toISOString().split("T")[0];
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
@@ -744,18 +815,18 @@ export function calculateRangeSalary(
     salaryRules.o_leaves,
   ]);
 
-  // console.log(currentMonth, currentYear, month, year);
+  // console.log(currentMonth, currentYear, selectedMonth, selectedYear);
   let workingDaysUpToCurrent;
   let thisMonthLeave = 0;
   let thisMonthHolidays = 0;
   let thisMonthWeekends = 0;
   let futureAbsent = 0;
 
-  if (selectedYear === currentYear && selectedMonth === currentMonth) {
+  if (selectedYear === currentYear && selectedMonth + 1 === currentMonth) {
     const details = getWorkingDaysUpToDate(
       startDate,
       endDate,
-      currentDay,
+      currentDay < endDate ? currentDay : endDate,
       weekendDayNames,
       holidaysSet,
       generalDaysSet,
@@ -937,13 +1008,34 @@ export function calculateRangeSalary(
     }
 
     // NEW: Late count logic (only index 0 and index 2)
-    // Index 0: Shift start
     if (!rule6 && punches[0] && punches[0] !== "00:00" && shift[0]) {
       const punchMins = toMinutes(punches[0]);
       const shiftMins = toMinutes(shift[0]);
       const lateThresh = shiftMins + latenessGraceMin;
+      const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
+      const approvedStartTime = getStartTimeFromLateDoc(
+        latePunchDocuments,
+        date
+      );
 
-      if (punchMins > lateThresh) {
+      // Skip late count if punch is near approved start time from late document
+      const shouldSkipLate =
+        hasLateDoc &&
+        (approvedStartTime !== null
+          ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+          : true);
+
+      // if (id === "2109058927") {
+      //   console.log(
+      //     hasLateDoc,
+      //     shouldSkipLate,
+      //     date,
+      //     approvedStartTime,
+      //     isPunchNearApprovedTime(punches[0], approvedStartTime)
+      //   );
+      // }
+
+      if (punchMins > lateThresh && !shouldSkipLate) {
         const lateMins = punchMins - lateThresh;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
@@ -953,8 +1045,7 @@ export function calculateRangeSalary(
         } else if (identifyShiftType(workingDecoded) === "Night Shift") {
           nightLateCount += 1;
         }
-
-        // if (id === "44141318") {
+        // if (id === "2109058927") {
         //   console.log("Late on", date, lateMins, latenessGraceMin);
         // }
 
@@ -964,17 +1055,25 @@ export function calculateRangeSalary(
       }
     }
 
-    // if (id === "70709917") {
-    //   console.log(latenessGraceMin);
-    // }
-
     // Index 2: Lunch in
     if (!rule6 && punches[2] && punches[2] !== "00:00" && shift[2]) {
       const punchMins = toMinutes(punches[2]);
       const shiftMins = toMinutes(shift[2]);
       const lateThresh = shiftMins + latenessGraceMin;
+      const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
+      const approvedStartTime = getStartTimeFromLateDoc(
+        latePunchDocuments,
+        date
+      );
 
-      if (punchMins > lateThresh) {
+      // Skip late count if punch is near approved start time from late document
+      const shouldSkipLate =
+        hasLateDoc &&
+        (approvedStartTime !== null
+          ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+          : true);
+
+      if (punchMins > lateThresh && !shouldSkipLate) {
         const lateMins = punchMins - lateThresh;
         lateCount += 1;
         totalLatenessMinutes += lateMins;
@@ -984,21 +1083,76 @@ export function calculateRangeSalary(
         } else if (identifyShiftType(workingDecoded) === "Night Shift") {
           nightLateCount += 1;
         }
-        // if (id === "44141318") {
-        //   console.log(
-        //     "Late on",
-        //     date,
-        //     lateMins,
-        //     latenessGraceMin,
-        //     workingDecoded,
-        //     identifyShiftType(workingDecoded)
-        //   );
-        // }
+        if (id === "2109058927") {
+          console.log(
+            "Late on",
+            date,
+            lateMins,
+            latenessGraceMin
+            // workingDecoded,
+            // identifyShiftType(workingDecoded)
+          );
+        }
 
         if (rule18 && punches[0] === "00:00" && punches[1] === "00:00") {
           fullDayLateCount += 1;
         } else if (rule18) {
           halfDayLateCount += 1;
+        }
+      }
+    }
+    // Dynamically handle additional shifts (3rd, 4th, 5th, etc.)
+    if (workingDecoded && workingDecoded.length > 2) {
+      // Start from 3rd shift (index 4, since indices: 0=1st, 2=2nd, 4=3rd)
+      for (let shiftNum = 3; shiftNum <= workingDecoded.length; shiftNum++) {
+        const punchIndex = (shiftNum - 1) * 2; // 4 for 3rd shift, 6 for 4th, etc.
+
+        if (
+          !rule6 &&
+          shift[punchIndex] &&
+          punches[punchIndex] &&
+          punches[punchIndex] !== "00:00"
+        ) {
+          const punchMins = toMinutes(punches[punchIndex]);
+          const shiftMins = toMinutes(shift[punchIndex]);
+          const lateThresh = shiftMins + latenessGraceMin;
+
+          // Check if date has late punch document
+          const hasLateDoc = isDateInLatePunchDocuments(
+            latePunchDocuments,
+            date
+          );
+          const approvedStartTime = getStartTimeFromLateDoc(
+            latePunchDocuments,
+            date
+          );
+
+          // Skip late count if punch is near approved start time from late document
+          const shouldSkipLate =
+            hasLateDoc &&
+            (approvedStartTime !== null
+              ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+              : true);
+          if (punchMins > lateThresh && !shouldSkipLate) {
+            const lateMins = punchMins - lateThresh;
+            lateCount += 1;
+            totalLatenessMinutes += lateMins;
+
+            if (identifyShiftType(workingDecoded) === "Day Shift") {
+              dayLateCount += 1;
+            } else if (identifyShiftType(workingDecoded) === "Night Shift") {
+              nightLateCount += 1;
+            }
+
+            if (rule18) {
+              halfDayLateCount += 1;
+            }
+
+            // Optional: Debug log
+            // if (id === "44141318") {
+            //   console.log(`Late on shift ${shiftNum}`, date, lateMins);
+            // }
+          }
         }
       }
     }
@@ -1186,16 +1340,15 @@ export function calculateRangeSalary(
 
   // Calculate absent days
   absent = Math.max(0, workingDaysUpToCurrent - normalPresent);
-  // console.log(workingDaysUpToCurrent, normalPresent, absent);
 
-  // if (id === "70709913") {
-  //   console.log(workingDaysUpToCurrent, normalPresent);
+  // if (id === "2109058927") {
+  //   console.log(workingDaysUpToCurrent, normalPresent, absent, futureAbsent);
   // }
 
   let presentDaysSalary = 0;
   let earnedSalary = 0;
 
-  if (selectedYear === currentYear && selectedMonth === currentMonth) {
+  if (selectedYear === currentYear && selectedMonth + 1 === currentMonth) {
     if (rule14 && daysPenaltyPerAbsence > 0) {
       presentDaysSalary =
         normalPresent > 0
@@ -1472,6 +1625,7 @@ export function calculateRangeSalary(
     standardPay,
     earnedSalary,
     presentDaysSalary,
+    workingDays: workingDaysUpToCurrent,
     totalPay,
     Present: { normalPresent, holidayPresent, weekendPresent },
     absent,

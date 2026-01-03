@@ -59,30 +59,46 @@ function generateEmployeeDataJSON(input) {
     holidays: safeStringify(input.holidays || []),
     generalDays: safeStringify(input.generalDays || []),
     replaceDays: safeStringify(
-      input.replaceDays.map((l) => JSON.stringify(l)) || []
+      input.replaceDays?.map((l) => JSON.stringify(l)) ?? []
     ),
     punchDocuments: safeStringify(
-      input.punchDocuments.map((l) => JSON.stringify(l)) || []
+      input.punchDocuments?.map((l) => JSON.stringify(l)) ?? []
     ),
-    ...(input.latePunchDocuments && {
-      latePunchDocuments: safeStringify(
-        input.latePunchDocuments.map((l) => JSON.stringify(l)) || []
-      ),
-    }),
+
+    latePunchDocuments: safeStringify(
+      input.latePunchDocuments?.map((l) => JSON.stringify(l)) ?? []
+    ),
+
     timeTables: safeStringify(
       input.timeTables.map((tt) => JSON.stringify(normalizeTimeTable(tt)))
     ),
-    m_leaves: safeStringify(input.m_leaves.map((l) => JSON.stringify(l)) || []),
-    mar_leaves: safeStringify(
-      input.mar_leaves.map((l) => JSON.stringify(l)) || []
+    m_leaves: safeStringify(
+      input.m_leaves?.map((l) => JSON.stringify(l)) ?? []
     ),
-    p_leaves: safeStringify(input.p_leaves.map((l) => JSON.stringify(l)) || []),
-    s_leaves: safeStringify(input.s_leaves.map((l) => JSON.stringify(l)) || []),
-    c_leaves: safeStringify(input.c_leaves.map((l) => JSON.stringify(l)) || []),
-    e_leaves: safeStringify(input.e_leaves.map((l) => JSON.stringify(l)) || []),
-    w_leaves: safeStringify(input.w_leaves.map((l) => JSON.stringify(l)) || []),
-    r_leaves: safeStringify(input.r_leaves.map((l) => JSON.stringify(l)) || []),
-    o_leaves: safeStringify(input.o_leaves.map((l) => JSON.stringify(l)) || []),
+    mar_leaves: safeStringify(
+      input.mar_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    p_leaves: safeStringify(
+      input.p_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    s_leaves: safeStringify(
+      input.s_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    c_leaves: safeStringify(
+      input.c_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    e_leaves: safeStringify(
+      input.e_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    w_leaves: safeStringify(
+      input.w_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    r_leaves: safeStringify(
+      input.r_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
+    o_leaves: safeStringify(
+      input.o_leaves?.map((l) => JSON.stringify(l)) ?? []
+    ),
   };
 }
 

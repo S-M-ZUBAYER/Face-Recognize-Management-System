@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import formatDateForStorage from "@/lib/formatDateForStorage";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
@@ -22,6 +23,8 @@ export const LeaveForm = () => {
   const [leaveDetails, setLeaveDetails] = useState({});
   const [timePopovers, setTimePopovers] = useState({});
   const [tempTimeRanges, setTempTimeRanges] = useState({});
+  const { setGlobalRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -93,9 +96,6 @@ export const LeaveForm = () => {
         };
       }
     });
-
-    console.log("Updated time ranges for dates:", newDates);
-    console.log("New time ranges:", newTimeRanges);
 
     setLeaveDetails((prev) => ({
       ...prev,
@@ -393,6 +393,8 @@ export const LeaveForm = () => {
         });
       });
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(10);
       toast.success("Leave configuration updated successfully!");
     } catch (error) {
       console.error("Error saving leave configuration:", error);

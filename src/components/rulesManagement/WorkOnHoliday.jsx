@@ -10,7 +10,7 @@ export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
   const { employees } = useEmployeeStore();
   const Employees = employees();
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -106,7 +106,7 @@ export const WorkOnHoliday = () => {
       });
       await Promise.all(updatePromises);
 
-      setRulesIds(3);
+      setGlobalRulesIds(3);
 
       toast.success("Work on holiday days updated successfully!");
     } catch (error) {

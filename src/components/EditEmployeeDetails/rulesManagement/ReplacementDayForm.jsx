@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -13,6 +12,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useAttendanceData } from "@/hook/useAttendanceData";
+import getWeekendAndHolidayDates from "@/lib/getWeekendAndHolidayDates";
 
 export const ReplacementDayForm = () => {
   const [replacementDays, setReplacementDays] = useState([]);
@@ -20,86 +21,208 @@ export const ReplacementDayForm = () => {
   const [selectedDates, setSelectedDates] = useState({});
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { Attendance } = useAttendanceData();
 
-  // Load existing replacement days from selectedEmployee
+  // Use refs to track previous values and prevent infinite loops
+  const prevSalaryRulesRef = useRef(null);
+  const prevEmployeeIdRef = useRef(null);
+  const prevAttendanceRef = useRef(null);
+  const isInitializedRef = useRef(false);
+
+  // Memoize the generated dates with deep equality check
+  const generatedDates = useMemo(() => {
+    try {
+      if (
+        !selectedEmployee?.salaryRules ||
+        !Attendance ||
+        !selectedEmployee?.employeeId
+      ) {
+        return [];
+      }
+
+      const salaryRulesStr = JSON.stringify(selectedEmployee.salaryRules);
+      const attendanceStr = JSON.stringify(Attendance);
+      const employeeId = selectedEmployee.employeeId;
+
+      // Check if values have actually changed
+      if (
+        salaryRulesStr === prevSalaryRulesRef.current?.salaryRulesStr &&
+        attendanceStr === prevAttendanceRef.current?.attendanceStr &&
+        employeeId === prevEmployeeIdRef.current?.employeeId &&
+        isInitializedRef.current
+      ) {
+        return prevSalaryRulesRef.current?.generatedDates || [];
+      }
+
+      const dates = getWeekendAndHolidayDates(
+        selectedEmployee.salaryRules,
+        Attendance,
+        selectedEmployee.employeeId
+      );
+
+      // Store current values
+      prevSalaryRulesRef.current = {
+        salaryRulesStr,
+        generatedDates: dates,
+      };
+      prevAttendanceRef.current = { attendanceStr };
+      prevEmployeeIdRef.current = { employeeId };
+
+      return dates || [];
+    } catch (error) {
+      console.error("Error generating dates:", error);
+      return [];
+    }
+  }, [selectedEmployee?.salaryRules, Attendance, selectedEmployee?.employeeId]);
+
+  // Stable initialize function
+  const initializeReplacementDays = useCallback(() => {
+    if (!selectedEmployee?.salaryRules || !Attendance) {
+      return [];
+    }
+
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      let allReplacementDays = [];
+
+      // Load existing replacement days
+      if (salaryRules.replaceDays) {
+        const replaceDays =
+          typeof salaryRules.replaceDays === "string"
+            ? JSON.parse(salaryRules.replaceDays)
+            : salaryRules.replaceDays || [];
+
+        // Transform existing data for UI
+        const transformedDays = replaceDays.map((day, index) => ({
+          id: day.id || index + 1,
+          date: day.date,
+          selectedDate: day.rdate ? new Date(day.rdate) : null,
+          hasReplacement: !!day.rdate,
+        }));
+
+        allReplacementDays = [...transformedDays];
+      }
+
+      // Add generated dates if any
+      if (generatedDates && generatedDates.length > 0) {
+        // Get existing dates to avoid duplicates
+        const existingDates = allReplacementDays.map((day) => day.date);
+
+        // Add new dates from generated list
+        generatedDates.forEach((generatedDate) => {
+          if (!existingDates.includes(generatedDate)) {
+            // Generate a unique ID for new entries
+            const newId =
+              allReplacementDays.length > 0
+                ? Math.max(...allReplacementDays.map((d) => d.id || 0)) + 1
+                : 1;
+
+            allReplacementDays.push({
+              id: newId,
+              date: generatedDate,
+              selectedDate: null,
+              hasReplacement: false,
+            });
+          }
+        });
+      }
+
+      return allReplacementDays;
+    } catch (error) {
+      console.error("Error parsing replacement days:", error);
+      return [];
+    }
+  }, [selectedEmployee?.salaryRules, Attendance, generatedDates]);
+
+  // Load replacement days - with guard against infinite loops
   useEffect(() => {
-    if (selectedEmployee?.salaryRules) {
-      try {
-        const salaryRules = selectedEmployee.salaryRules;
+    // Only run if we have the necessary data
+    if (!selectedEmployee?.salaryRules || !Attendance) {
+      return;
+    }
 
-        // Load replacement days
-        if (salaryRules.replaceDays) {
-          const replaceDays =
-            typeof salaryRules.replaceDays === "string"
-              ? JSON.parse(salaryRules.replaceDays)
-              : salaryRules.replaceDays || [];
+    // Create a stable key to check if data has changed
+    const currentKey = `${JSON.stringify(
+      selectedEmployee.salaryRules
+    )}-${JSON.stringify(Attendance)}`;
 
-          // Transform data for UI
-          const transformedDays = replaceDays.map((day) => ({
-            id: day.id,
-            date: day.date, // Original date
-            selectedDate: day.rdate ? new Date(day.rdate) : null, // Replacement date
-            hasReplacement: !!day.rdate, // Flag to check if already has replacement
-          }));
+    // Skip if data hasn't changed and we've already initialized
+    if (
+      isInitializedRef.current &&
+      currentKey === prevSalaryRulesRef.current?.dataKey
+    ) {
+      return;
+    }
 
-          setReplacementDays(transformedDays);
+    const initializedDays = initializeReplacementDays();
 
-          // Initialize selected dates state
-          const initialSelectedDates = {};
-          transformedDays.forEach((day) => {
-            if (!day.hasReplacement) {
-              initialSelectedDates[day.id] = day.selectedDate;
-            }
-          });
-          setSelectedDates(initialSelectedDates);
+    // Only update if days have actually changed
+    const currentDaysStr = JSON.stringify(initializedDays);
+    const prevDaysStr = JSON.stringify(replacementDays);
+
+    if (currentDaysStr !== prevDaysStr) {
+      setReplacementDays(initializedDays);
+
+      // Initialize selected dates state
+      const initialSelectedDates = {};
+      initializedDays.forEach((day) => {
+        if (!day.hasReplacement) {
+          initialSelectedDates[day.id] = day.selectedDate;
         }
-      } catch (error) {
-        console.error("Error parsing replacement days:", error);
+      });
+      setSelectedDates(initialSelectedDates);
+
+      // Mark as initialized and store current key
+      isInitializedRef.current = true;
+      if (prevSalaryRulesRef.current) {
+        prevSalaryRulesRef.current.dataKey = currentKey;
       }
     }
-  }, [selectedEmployee]);
+  }, [
+    initializeReplacementDays,
+    selectedEmployee?.salaryRules,
+    Attendance,
+    replacementDays,
+  ]);
 
   const handleDateSelect = (id, date) => {
-    // Only allow selection for days without existing replacement
     if (!date) return;
 
-    // ✅ FIX: Fix timezone issue by creating dates with correct timezone
     const fixedDate = (() => {
-      // Create date without timezone offset issues
       const year = date.getFullYear();
       const month = date.getMonth();
       const day = date.getDate();
       return new Date(year, month, day);
     })();
 
-    // Check if day already has replacement
     const replacementDay = replacementDays.find((d) => d.id === id);
     if (replacementDay && replacementDay.hasReplacement) {
       toast.error("This date already has a replacement and cannot be modified");
       return;
     }
 
-    // Update selected dates
     setSelectedDates((prev) => ({
       ...prev,
       [id]: fixedDate,
     }));
 
-    // Close popover
     setOpenPopovers((prev) => ({ ...prev, [id]: false }));
   };
 
-  const togglePopover = (id, isOpen) => {
-    // Only allow opening popover if no replacement date is set
-    const day = replacementDays.find((d) => d.id === id);
-    if (day && day.hasReplacement) {
-      toast.error("This date already has a replacement and cannot be modified");
-      return;
-    }
-    setOpenPopovers((prev) => ({ ...prev, [id]: isOpen }));
-  };
+  const togglePopover = useCallback(
+    (id, isOpen) => {
+      const day = replacementDays.find((d) => d.id === id);
+      if (day && day.hasReplacement) {
+        toast.error(
+          "This date already has a replacement and cannot be modified"
+        );
+        return;
+      }
+      setOpenPopovers((prev) => ({ ...prev, [id]: isOpen }));
+    },
+    [replacementDays]
+  );
 
-  // 🟦 Format for backend (always YYYY-MM-DDT00:00:00.000)
   const formatDateForStorage = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -107,14 +230,12 @@ export const ReplacementDayForm = () => {
     return `${y}-${m}-${d}T00:00:00.000`;
   };
 
-  // Save all replacement days configuration
   const handleSave = async () => {
     if (!selectedEmployee?.employeeId) {
       toast.error("No employee selected");
       return;
     }
 
-    // Check if any dates are selected
     const hasSelectedDates = Object.values(selectedDates).some(
       (date) => date !== null
     );
@@ -128,7 +249,6 @@ export const ReplacementDayForm = () => {
       const existingRules = salaryRules.rules || [];
       const empId = selectedEmployee.employeeId.toString();
 
-      // Ensure ruleId === 12 exists
       let ruleTwelve = existingRules.find(
         (rule) => rule.ruleId === 12 || rule.ruleId === "12"
       );
@@ -148,17 +268,13 @@ export const ReplacementDayForm = () => {
         };
       }
 
-      // Update the replacement days with selected dates
       const updatedReplaceDays = replacementDays.map((day) => {
-        // If day already has replacement, keep it as is
         if (day.hasReplacement) {
           return {
             ...day,
-            // Keep existing replacement date
           };
         }
 
-        // If new date is selected for this day, update it
         const selectedDate = selectedDates[day.id];
         if (selectedDate) {
           return {
@@ -168,11 +284,9 @@ export const ReplacementDayForm = () => {
           };
         }
 
-        // No change for this day
         return day;
       });
 
-      // Transform back to API format
       const apiReplaceDays = updatedReplaceDays.map((day) => ({
         id: day.id,
         empId: Number(empId),
@@ -180,7 +294,6 @@ export const ReplacementDayForm = () => {
         rdate: day.selectedDate ? formatDateForStorage(day.selectedDate) : null,
       }));
 
-      // Generate final JSON using your helper
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         empId: empId,
         rules: {
@@ -198,8 +311,8 @@ export const ReplacementDayForm = () => {
         payload,
       });
 
+      // Update state after successful save
       setReplacementDays(updatedReplaceDays);
-      // Clear selected dates after successful save
       setSelectedDates({});
       toast.success("Replacement days saved successfully!");
     } catch (error) {
@@ -210,24 +323,33 @@ export const ReplacementDayForm = () => {
 
   const formatDateForDisplay = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return "";
+    }
   };
 
   const formatSelectedDate = (date) => {
     if (!date) return "";
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    try {
+      if (isNaN(date.getTime())) return "";
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return "";
+    }
   };
 
-  // Count pending and completed replacements
   const pendingCount = replacementDays.filter(
     (day) => !day.hasReplacement
   ).length;
@@ -251,12 +373,80 @@ export const ReplacementDayForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      // Reset and reinitialize
+      isInitializedRef.current = false;
+      const initializedDays = initializeReplacementDays();
+      setReplacementDays(initializedDays);
+      setSelectedDates({});
+
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
     }
   };
+
+  // Memoize the render logic for each row to prevent unnecessary re-renders
+  const renderRow = useCallback(
+    (day) => {
+      const isCompleted = day.hasReplacement;
+      const selectedDate = selectedDates[day.id];
+
+      return (
+        <tr key={day.id} className="border-b last:border-b-0 hover:bg-gray-50">
+          <td className="py-3 px-4 text-sm text-gray-900">{day.id}</td>
+          <td className="py-3 px-4 text-sm text-gray-900 text-right">
+            {formatDateForDisplay(day.date)}
+          </td>
+          <td className="py-3 px-4 text-right">
+            {isCompleted ? (
+              <div className="flex items-center justify-end">
+                <span className="text-sm text-gray-700 bg-green-50 px-3 py-1 rounded border border-green-200">
+                  {formatSelectedDate(day.selectedDate)}
+                </span>
+              </div>
+            ) : (
+              <Popover
+                open={openPopovers[day.id]}
+                onOpenChange={(isOpen) => togglePopover(day.id, isOpen)}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-48 justify-between font-normal bg-white border-gray-300 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={image.calendar}
+                        alt="calendar"
+                        className="w-4 h-4"
+                      />
+                      <span className="text-gray-700">
+                        {selectedDate
+                          ? formatSelectedDate(selectedDate)
+                          : "Select date"}
+                      </span>
+                    </div>
+                    <ChevronDownIcon className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => handleDateSelect(day.id, date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          </td>
+        </tr>
+      );
+    },
+    [openPopovers, selectedDates, togglePopover]
+  );
 
   return (
     <div className="space-y-6">
@@ -291,62 +481,7 @@ export const ReplacementDayForm = () => {
                 </td>
               </tr>
             ) : (
-              replacementDays.map((day) => (
-                <tr
-                  key={day.id}
-                  className="border-b last:border-b-0 hover:bg-gray-50"
-                >
-                  <td className="py-3 px-4 text-sm text-gray-900">{day.id}</td>
-                  <td className="py-3 px-4 text-sm text-gray-900 text-right">
-                    {formatDateForDisplay(day.date)}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    {day.hasReplacement ? (
-                      // Show existing replacement date (read-only)
-                      <div className="flex items-center justify-end">
-                        <span className="text-sm text-gray-700 bg-green-50 px-3 py-1 rounded border border-green-200">
-                          {formatSelectedDate(day.selectedDate)}
-                        </span>
-                      </div>
-                    ) : (
-                      // Allow selection for days without replacement
-                      <Popover
-                        open={openPopovers[day.id]}
-                        onOpenChange={(isOpen) => togglePopover(day.id, isOpen)}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-48 justify-between font-normal bg-white border-gray-300 hover:bg-gray-50"
-                          >
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={image.calendar}
-                                alt="calendar"
-                                className="w-4 h-4"
-                              />
-                              <span className="text-gray-700">
-                                {selectedDates[day.id]
-                                  ? formatSelectedDate(selectedDates[day.id])
-                                  : "Select date"}
-                              </span>
-                            </div>
-                            <ChevronDownIcon className="h-4 w-4 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={selectedDates[day.id]}
-                            onSelect={(date) => handleDateSelect(day.id, date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  </td>
-                </tr>
-              ))
+              replacementDays.map(renderRow)
             )}
           </tbody>
         </table>
@@ -399,14 +534,12 @@ export const ReplacementDayForm = () => {
       </div>
 
       {/* Save Button */}
-
-      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+      <div className="flex items-center w-full justify-between mt-4 gap-4">
         {/* Delete */}
-
         <button
           onClick={handleDelete}
           disabled={updating}
-          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-[50%] bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Deleting..." : "Delete"}
         </button>
@@ -414,7 +547,7 @@ export const ReplacementDayForm = () => {
         <button
           onClick={handleSave}
           disabled={updating || newlySelectedCount === 0}
-          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Saving..." : "Save"}
         </button>

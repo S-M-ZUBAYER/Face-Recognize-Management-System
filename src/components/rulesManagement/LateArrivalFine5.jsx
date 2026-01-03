@@ -3,10 +3,12 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const LateArrivalFine5 = () => {
   const [incrementalAmount, setIncrementalAmount] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -83,6 +85,7 @@ export const LateArrivalFine5 = () => {
 
       await Promise.all(updatePromises);
 
+      setGlobalRulesIds(20);
       toast.success("Incremental late penalty updated successfully!");
     } catch (error) {
       console.error("Error saving incremental late penalty:", error);

@@ -4,17 +4,27 @@ import {
   Loader2,
   User,
   DollarSign,
-  BadgeCheck,
-  CalendarIcon,
+  Badge,
+  Mail,
+  Briefcase,
+  Smartphone,
+  Clock,
+  Calendar,
+  Building,
+  Award,
+  CreditCard,
+  ShieldCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// Direct imports - NO LAZY LOADING
-import { Calendar } from "@/components/ui/calendar";
+// Direct imports
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverTrigger,
@@ -26,11 +36,18 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
   const [selectedStatus, setSelectedStatus] = useState(
     selectedEmp?.address?.type || "active"
   );
+  const [employeeData, setEmployeeData] = useState([]);
   const [effectiveDate, setEffectiveDate] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { updateEmployee: updateEmployeeField } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  const primaryColor = "#004368";
+
+  useEffect(() => {
+    setEmployeeData(selectedEmp);
+  }, [selectedEmp]);
 
   // Escape key support
   useEffect(() => {
@@ -46,62 +63,60 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
 
   // Set effective date
   useEffect(() => {
-    if (selectedEmp?.address?.r_date) {
+    if (employeeData?.address?.r_date) {
       try {
-        setEffectiveDate(new Date(selectedEmp.address.r_date));
+        setEffectiveDate(new Date(employeeData.address.r_date));
       } catch {
-        console.error("Invalid date format:", selectedEmp.address.r_date);
         setEffectiveDate(null);
       }
     }
-  }, [selectedEmp?.address?.r_date]);
+  }, [employeeData?.address?.r_date]);
 
   // Pre-computed data
   const employeeName = useMemo(
-    () => selectedEmp?.name?.split("<")[0] || "",
-    [selectedEmp?.name]
+    () => employeeData?.name?.split("<")[0] || "",
+    [employeeData?.name]
   );
 
   const basicInfoFields = useMemo(
     () => [
       { label: "Name", value: employeeName, icon: User },
-      { label: "Email", value: selectedEmp?.email, icon: User },
+      { label: "Email", value: employeeData?.email, icon: Mail },
       {
         label: "Employee ID",
-        value: selectedEmp?.companyEmployeeId,
-        icon: BadgeCheck,
+        value: employeeData?.companyEmployeeId,
+        icon: CreditCard,
       },
-      { label: "Department", value: selectedEmp?.department, icon: User },
-      { label: "Designation", value: selectedEmp?.designation, icon: User },
-      { label: "Device MAC", value: selectedEmp?.deviceMAC, icon: User },
-      { label: "Shift", value: selectedEmp?.salaryInfo?.shift, icon: User },
+      { label: "Department", value: employeeData?.department, icon: Building },
+      { label: "Designation", value: employeeData?.designation, icon: Award },
+      { label: "Device MAC", value: employeeData?.deviceMAC, icon: Smartphone },
+      { label: "Shift", value: employeeData?.salaryInfo?.shift, icon: Clock },
       {
         label: "Pay Period",
-        value: selectedEmp?.salaryInfo?.payPeriod,
-        icon: User,
+        value: employeeData?.salaryInfo?.payPeriod,
+        icon: Calendar,
       },
     ],
-    [selectedEmp, employeeName]
+    [employeeData, employeeName]
   );
 
   const salaryInfoFields = useMemo(
     () => [
       {
         label: "Salary",
-        value: selectedEmp?.salaryInfo?.salary,
+        value: employeeData?.salaryInfo?.salary,
         icon: DollarSign,
       },
       {
         label: "Hourly Rate",
-        value: selectedEmp?.salaryInfo?.overtimeSalary,
+        value: employeeData?.salaryInfo?.overtimeSalary,
         icon: DollarSign,
       },
-      { label: "Shift", value: selectedEmp?.salaryInfo?.shift, icon: User },
+      { label: "Shift", value: employeeData?.salaryInfo?.shift, icon: Clock },
     ],
-    [selectedEmp]
+    [employeeData]
   );
 
-  // Simple handlers
   const handleStatusChange = useCallback((newStatus) => {
     setSelectedStatus(newStatus);
     if (newStatus === "active") {
@@ -111,13 +126,13 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
 
   const handleSaveStatusChange = useCallback(async () => {
     if (selectedStatus === "resigned" && !effectiveDate) {
-      toast.error("Please select an effective date for this status change");
+      toast.error("Please select an effective date");
       return;
     }
 
     const payload = {
       address: JSON.stringify({
-        ...selectedEmp.address,
+        ...employeeData.address,
         type: selectedStatus,
         r_date:
           effectiveDate && selectedStatus === "resigned"
@@ -128,28 +143,26 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
 
     try {
       await updateEmployee({
-        mac: selectedEmp.deviceMAC || "",
-        id: selectedEmp.employeeId || selectedEmp.id,
+        mac: employeeData.deviceMAC || "",
+        id: employeeData.employeeId || employeeData.id,
         payload,
       });
 
-      updateEmployeeField(selectedEmp.employeeId || selectedEmp.id, {
+      updateEmployeeField(employeeData.employeeId || employeeData.id, {
         address: JSON.parse(payload.address),
       });
 
-      toast.success("employee status update success");
-
+      toast.success("Status updated successfully");
       setSaveSuccess(true);
       setTimeout(() => {
         setSaveSuccess(false);
         setSelectedEmp(null);
       }, 1500);
-    } catch (error) {
-      console.error("Failed to update employee status:", error);
-      toast.error("Failed to update employee status. Please try again.");
+    } catch {
+      toast.error("Failed to update status");
     }
   }, [
-    selectedEmp,
+    employeeData,
     selectedStatus,
     effectiveDate,
     updateEmployee,
@@ -157,286 +170,321 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
     setSelectedEmp,
   ]);
 
-  const getStatusButtonColor = useCallback((status) => {
+  const getStatusColor = useCallback((status) => {
     const colors = {
-      active: "bg-green-50 border-green-200 text-green-700",
-      notice: "bg-yellow-50 border-yellow-200 text-yellow-700",
-      resigned: "bg-red-50 border-red-200 text-red-700",
+      active: "border-green-200 bg-green-50 text-green-700",
+      notice: "border-yellow-200 bg-yellow-50 text-yellow-700",
+      resigned: "border-red-200 bg-red-50 text-red-700",
     };
-    return colors[status] || "bg-gray-50 border-gray-200 text-gray-700";
+    return colors[status] || "border-gray-200 bg-gray-50 text-gray-700";
   }, []);
 
-  const getStatusDescription = useCallback(() => {
-    const descriptions = {
-      active: "Employee is currently active and working.",
-      notice: "Employee is serving notice period.",
-      resigned: "Employee has resigned from the company.",
-    };
-    return descriptions[selectedStatus] || "";
-  }, [selectedStatus]);
+  const getInitials = (name) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map((n) => n[0] || "")
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
-  if (!selectedEmp) return null;
+  if (!employeeData) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm ">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/3"
-        onClick={() => !updating && setSelectedEmp(null)}
-      />
-
-      {/* Modal */}
-      <div
-        className="relative bg-white rounded-xl shadow-lg w-full max-w-[55vw] max-h-[95vh] overflow-hidden z-10 flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/5 backdrop-blur-sm"
       >
-        {/* Header */}
-        <div className="bg-[#004368] p-4 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold truncate">Employee Details</h2>
-              <p className="text-blue-100 text-sm truncate">{employeeName}</p>
-            </div>
-            <button
-              onClick={() => !updating && setSelectedEmp(null)}
-              className="p-1 hover:bg-white/20 rounded flex-shrink-0 ml-2"
-              disabled={updating}
-            >
-              <X size={18} />
-            </button>
-          </div>
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/5"
+          onClick={() => !updating && setSelectedEmp(null)}
+        />
 
-          {/* Status Badge */}
+        {/* Modal */}
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="relative bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden z-10 flex flex-col shadow-2xl border border-gray-100 custom-scrollbar "
+        >
+          {/* Header */}
           <div
-            className={cn(
-              "inline-flex px-3 py-1 rounded-full text-xs font-semibold mt-2 border",
-              getStatusButtonColor(selectedStatus)
-            )}
+            className="px-6 py-5 text-white border-b border-white/20"
+            style={{ backgroundColor: primaryColor }}
           >
-            {selectedStatus?.toUpperCase()}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {/* Basic Info Section */}
-          <div className="mb-6">
-            <h3 className="text-md font-semibold text-gray-800 mb-3">
-              Basic Information
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {basicInfoFields.map((field) => {
-                const IconComponent = field.icon;
-                return (
-                  <div
-                    key={field.label}
-                    className="bg-gray-50 rounded-lg p-3 border border-gray-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconComponent
-                        size={14}
-                        className="text-gray-500 flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-500 truncate">
-                          {field.label}
-                        </p>
-                        <p className="text-gray-800 font-medium text-sm truncate">
-                          {field.value || "Not provided"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className=" px-3 py-2">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={employeeData.image} />
+                    <AvatarFallback className="bg-white/20 text-white font-medium">
+                      {getInitials(employeeName)}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <div>
+                  <h2 className="text-xl font-medium">{employeeName}</h2>
+                  <p className="text-sm text-white/80">Employee Details</p>
+                </div>
+              </div>
+              <button
+                onClick={() => !updating && setSelectedEmp(null)}
+                className="p-2 hover:bg-white/10 rounded"
+                disabled={updating}
+              >
+                <X size={20} />
+              </button>
             </div>
           </div>
 
-          {/* Salary Info Section */}
-          <div className="mb-6">
-            <h3 className="text-md font-semibold text-gray-800 mb-3">
-              Salary Information
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {salaryInfoFields.map((field) => {
-                const IconComponent = field.icon;
-                const isMoney =
-                  field.label.includes("Salary") ||
-                  field.label.includes("Rate");
-                return (
-                  <div
-                    key={field.label}
-                    className="bg-green-50 rounded-lg p-3 border border-green-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      <IconComponent
-                        size={14}
-                        className="text-green-600 flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-500 truncate">
-                          {field.label}
-                        </p>
-                        <p className="text-gray-800 font-medium text-sm truncate">
-                          {field.value
-                            ? isMoney
-                              ? `${Number(field.value).toLocaleString()}`
-                              : field.value
-                            : "Not provided"}
-                        </p>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Basic Info */}
+            <div className="mb-8">
+              <h3 className="text-base font-medium text-gray-800 mb-4 pb-2 border-b">
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {basicInfoFields.map((field, index) => {
+                  const IconComponent = field.icon;
+                  return (
+                    <motion.div
+                      key={field.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <IconComponent size={16} className="text-gray-500" />
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium mb-1">
+                            {field.label}
+                          </p>
+                          <p className="text-gray-800 font-medium">
+                            {field.value || "—"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Status Section */}
-          <div className="mb-4">
-            <h3 className="text-md font-semibold text-gray-800 mb-3">
-              Employment Status
-            </h3>
-
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              {/* Status Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                {[
-                  {
-                    value: "active",
-                    label: "Active",
-                    description: "Currently working",
-                  },
-                  {
-                    value: "notice",
-                    label: "Notice Period",
-                    description: "Serving notice",
-                  },
-                  {
-                    value: "resigned",
-                    label: "Resigned",
-                    description: "Left company",
-                  },
-                ].map((status) => (
-                  <button
-                    key={status.value}
-                    onClick={() => handleStatusChange(status.value)}
-                    disabled={updating}
-                    className={cn(
-                      "rounded-lg p-3 text-left transition-colors",
-                      selectedStatus === status.value
-                        ? getStatusButtonColor(status.value) +
-                            " ring-2 ring-offset-1"
-                        : "bg-white border border-gray-300 hover:bg-gray-50"
-                    )}
-                  >
-                    <div className="font-medium text-gray-900 mb-1">
-                      {status.label}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {status.description}
-                    </div>
-                  </button>
-                ))}
+            {/* Salary Info */}
+            <div className="mb-8">
+              <h3 className="text-base font-medium text-gray-800 mb-4 pb-2 border-b">
+                Salary Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {salaryInfoFields.map((field, index) => {
+                  const IconComponent = field.icon;
+                  const isMoney =
+                    field.label.includes("Salary") ||
+                    field.label.includes("Rate");
+                  return (
+                    <motion.div
+                      key={field.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05 }}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <IconComponent size={16} className="text-gray-500" />
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium mb-1">
+                            {field.label}
+                          </p>
+                          <p className="text-gray-800 font-medium">
+                            {field.value
+                              ? isMoney
+                                ? `$${Number(field.value).toLocaleString()}`
+                                : field.value
+                              : "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Status Description */}
-              <div className="text-sm p-3 bg-white rounded border border-gray-200 mb-4">
-                <p className="text-gray-600">{getStatusDescription()}</p>
-              </div>
+            {/* Status Section */}
+            <div className="mb-6">
+              <h3 className="text-base font-medium text-gray-800 mb-4 pb-2 border-b flex items-center gap-2">
+                <ShieldCheck size={18} />
+                Employment Status
+              </h3>
 
-              {/* Date Picker for Resigned Status */}
-              {selectedStatus === "resigned" && (
-                <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Resignation Effective Date
-                  </label>
+              <div className="space-y-6">
+                {/* Status Options */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {["active", "notice", "resigned"].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(status)}
+                      disabled={updating}
+                      className={cn(
+                        "border rounded-lg p-4 text-left transition-all",
+                        selectedStatus === status
+                          ? `${getStatusColor(status)} border-2`
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                    >
+                      <div className="font-medium text-gray-900 capitalize mb-1">
+                        {status}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {status === "active" && "Currently working"}
+                        {status === "notice" && "Serving notice period"}
+                        {status === "resigned" && "Left the company"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
 
-                  {/* SIMPLE POPOVER WITH CALENDAR - NO LAZY LOADING */}
-                  <Popover
-                    open={isCalendarOpen}
-                    onOpenChange={setIsCalendarOpen}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
+                {/* Status Info */}
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Badge size={16} className="text-gray-600" />
+                    <span className="text-sm text-gray-700 font-medium">
+                      Current Status:{" "}
+                      <span
                         className={cn(
-                          "w-full justify-start text-left font-normal h-10",
-                          !effectiveDate && "text-muted-foreground"
+                          "font-medium",
+                          getStatusColor(selectedStatus)
+                            .replace("bg-", "text-")
+                            .split(" ")[0]
                         )}
-                        disabled={updating}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {effectiveDate
-                          ? format(effectiveDate, "PPP")
-                          : "Pick a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={effectiveDate}
-                        onSelect={(date) => {
-                          setEffectiveDate(date);
-                          setIsCalendarOpen(false);
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  <p className="text-xs text-gray-500 mt-2">
-                    Select the date when this status change becomes effective
-                    (past dates allowed)
+                        {selectedStatus.toUpperCase()}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {selectedStatus === "active" &&
+                      "Employee is currently active and working."}
+                    {selectedStatus === "notice" &&
+                      "Employee is serving notice period."}
+                    {selectedStatus === "resigned" &&
+                      "Employee has resigned from the company."}
                   </p>
                 </div>
-              )}
+
+                {/* Date Picker */}
+                <AnimatePresence>
+                  {selectedStatus === "resigned" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Resignation Effective Date
+                      </label>
+                      <Popover
+                        open={isCalendarOpen}
+                        onOpenChange={setIsCalendarOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal h-11",
+                              !effectiveDate && "text-gray-400"
+                            )}
+                          >
+                            <Calendar size={16} className="mr-2" />
+                            {effectiveDate
+                              ? format(effectiveDate, "PPP")
+                              : "Select date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={effectiveDate}
+                            onSelect={(date) => {
+                              setEffectiveDate(date);
+                              setIsCalendarOpen(false);
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="border-t border-gray-200 bg-gray-50 p-4">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="flex items-center gap-2">
-              {saveSuccess && (
-                <div className="flex items-center gap-2 text-green-600 font-medium text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Status updated!
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 w-full sm:w-auto">
-              <button
-                onClick={() => setSelectedEmp(null)}
-                disabled={updating}
-                className="flex-1 sm:flex-none px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium text-sm disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleSaveStatusChange}
-                disabled={
-                  updating || (selectedStatus === "resigned" && !effectiveDate)
-                }
-                className="flex-1 sm:flex-none px-4 py-2 bg-[#004368] text-white rounded-lg hover:bg-[#003152] font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {updating ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Saving...
-                  </span>
-                ) : (
-                  "Save Changes"
+          {/* Footer */}
+          <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <AnimatePresence>
+                {saveSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="flex items-center gap-2 text-green-600 font-medium text-sm"
+                  >
+                    <div className="w-2 h-2 bg-green-500 rounded"></div>
+                    Status updated
+                  </motion.div>
                 )}
-              </button>
+              </AnimatePresence>
+
+              <div className="flex gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setSelectedEmp(null)}
+                  disabled={updating}
+                  className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded font-medium text-sm hover:bg-gray-50 flex-1 sm:flex-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveStatusChange}
+                  disabled={
+                    updating ||
+                    (selectedStatus === "resigned" && !effectiveDate)
+                  }
+                  className={cn(
+                    "px-5 py-2.5 text-white rounded font-medium text-sm flex items-center justify-center gap-2 flex-1 sm:flex-none",
+                    (updating ||
+                      (selectedStatus === "resigned" && !effectiveDate)) &&
+                      "opacity-50"
+                  )}
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {updating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

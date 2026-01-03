@@ -29,15 +29,15 @@ const SearchBox = memo(
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+          className="w-[13vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
         />
         <button
           onClick={handleSearch}
           disabled={!searchInput.trim()}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             searchInput.trim()
-              ? "bg-[#004368] text-white hover:bg-[#003155]"
-              : "bg-gray-400 text-white cursor-not-allowed"
+              ? "bg-[#004368] text-white "
+              : "bg-[#004368] text-white cursor-not-allowed"
           }`}
         >
           Search
@@ -45,7 +45,7 @@ const SearchBox = memo(
         {searchQuery && (
           <button
             onClick={handleReset}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 bg-[#004368] text-white rounded-md text-sm  transition-colors"
           >
             Reset
           </button>

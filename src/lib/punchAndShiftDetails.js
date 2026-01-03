@@ -1,5 +1,6 @@
 import { useGlobalStore } from "@/zustand/useGlobalStore";
 import fastKeepHighMonth from "./fastKeepHighMonth";
+import hasPunchesForShiftWithoutFirstStart from "./hasPunchesForShiftWithoutFirstStart";
 
 function findMiddleTime(startTime, endTime) {
   const toDate = (t) => {
@@ -93,12 +94,25 @@ function convertPunchesWithSpecialRules(
     const lastRuleIndex = normalAllRules.length - 1;
 
     // Check if current day IS overnight shift
-    const isCurrentDayOvernight = isTimeGreater(
-      normalAllRules[0],
-      normalAllRules[lastRuleIndex] !== "00:00"
-        ? normalAllRules[lastRuleIndex]
-        : normalAllRules[3]
-    );
+    let isCurrentDayOvernight;
+    // = isTimeGreater(
+    //   normalAllRules[0],
+    //   normalAllRules[lastRuleIndex] !== "00:00"
+    //     ? normalAllRules[lastRuleIndex]
+    //     : normalAllRules[3]
+    // );
+
+    try {
+      isCurrentDayOvernight = isTimeGreater(
+        normalAllRules[0],
+        normalAllRules[lastRuleIndex] !== "00:00"
+          ? normalAllRules[lastRuleIndex]
+          : normalAllRules[3]
+      );
+    } catch (error) {
+      // console.log(id, mac, date, normalAllRules);
+      console.error("Error in isTimeGreater:", error.message);
+    }
 
     // if (id === "3531774215") {
     //   console.log(
@@ -151,9 +165,19 @@ function convertPunchesWithSpecialRules(
       const targetMinutes = parseTimeToMinutes(normalAllRules[0]);
       const oneHourBefore = targetMinutes - 60;
       const oneHourAfter = targetMinutes + 60;
+      const isCurrentDayHasPunchesForOtherShift =
+        hasPunchesForShiftWithoutFirstStart(workingDecoded, punches);
+
+      // if (id === "70709915") {
+      //   console.log(
+      //     isCurrentDayHasPunchesForOtherShift,
+      //     workingDecoded,
+      //     punches
+      //   );
+      // }
 
       // CASE 1: Current day HAS multiple punches (active overnight shift)
-      if (punches.length > 1) {
+      if (isCurrentDayHasPunchesForOtherShift) {
         // Handle duplicate punches around shift start time
         let eveningPunches = [];
         let otherPunches = [];
@@ -241,7 +265,7 @@ function convertPunchesWithSpecialRules(
         }
       }
       // CASE 2: Current day has NO punches or only ONE punch - RETURN EMPTY
-      else if (punches.length <= 1) {
+      else if (!isCurrentDayHasPunchesForOtherShift) {
         // For overnight shift days with 0 or 1 punch, return all "00:00"
         return {
           punches: normalAllRules.map(() => "00:00"),
@@ -435,7 +459,20 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
 
   for (let i = 0; i < sortedAttendance.length; i++) {
     const record = sortedAttendance[i];
-    const punches = JSON.parse(record.checkIn);
+    let punches;
+
+    try {
+      punches = JSON.parse(record.checkIn);
+    } catch (error) {
+      console.error("Invalid punch data - skipping:", {
+        empId: record.empId,
+        macId: record.macId,
+        date: record.date,
+        error: error.message,
+      });
+      continue; // Skip this iteration and move to next record
+    }
+
     const date = record.date;
     const mac = record.macId;
     const id = record.empId;

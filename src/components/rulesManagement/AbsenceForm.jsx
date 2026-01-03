@@ -3,10 +3,12 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const AbsenceForm = () => {
   const [penaltyDays, setPenaltyDays] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -77,6 +79,7 @@ export const AbsenceForm = () => {
         });
       });
       await Promise.all(updatePromises);
+      setGlobalRulesIds(13);
       toast.success("Penalty days updated successfully!");
     } catch (error) {
       console.error("Error saving penalty days:", error);

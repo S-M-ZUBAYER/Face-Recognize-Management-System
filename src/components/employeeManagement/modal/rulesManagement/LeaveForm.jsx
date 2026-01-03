@@ -16,6 +16,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import formatDateForStorage from "@/lib/formatDateForStorage";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
@@ -23,6 +24,8 @@ export const LeaveForm = () => {
   const [leaveDetails, setLeaveDetails] = useState({});
   const [timePopovers, setTimePopovers] = useState({});
   const [tempTimeRanges, setTempTimeRanges] = useState({});
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -337,7 +340,7 @@ export const LeaveForm = () => {
           }
         });
 
-        console.log("Final updated leave data:", updatedLeaveData);
+        // console.log("Final updated leave data:", updatedLeaveData);
 
         // Prepare ruleId === 10 data
         const ruleTenData = Array(9)
@@ -395,6 +398,7 @@ export const LeaveForm = () => {
         });
       });
       await Promise.all(updatePromises);
+      setRulesIds(10);
       toast.success("Leave configuration updated successfully!");
     } catch (error) {
       console.error("Error saving leave configuration:", error);

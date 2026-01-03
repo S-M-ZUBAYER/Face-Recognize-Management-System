@@ -753,7 +753,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     </div>
 
                     {/* Rule 11 Info */}
-                    {salaryData?.rule11LeaveInfo?.hasRule11 && (
+                    {/* {salaryData?.rule11LeaveInfo?.hasRule11 && (
                       <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
                         <h3 className="font-semibold text-lg mb-2 text-blue-800">
                           Rule 11 Leave Information
@@ -786,10 +786,10 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </div>
                         </div>
                       </div>
-                    )}
+                    )} */}
 
                     {/* Replace Days */}
-                    {salaryData?.replaceDaysArr?.length > 0 && (
+                    {/* {salaryData?.replaceDaysArr?.length > 0 && (
                       <div className="bg-gray-50 p-4 rounded-2xl border">
                         <h3 className="font-semibold text-gray-700 mb-2 text-sm">
                           Replace Days
@@ -817,7 +817,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </div>
                         </div>
                       </div>
-                    )}
+                    )} */}
                   </motion.div>
                 </div>
               ) : (
@@ -866,11 +866,7 @@ function getFirstWeekRange(year, month, weekStartDay = 0, direction = 0) {
   }
 
   const directionOffset = direction * 7;
-  const startDate = new Date(
-    year,
-    month - 1,
-    1 + daysToStart + directionOffset
-  );
+  const startDate = new Date(year, month, 1 + daysToStart + directionOffset);
   const endDate = new Date(year, month, 1 + daysToStart + directionOffset + 6);
 
   return {

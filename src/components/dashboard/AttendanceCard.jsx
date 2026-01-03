@@ -186,7 +186,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
   const handleRedirect = useCallback(() => {
     try {
       const filter = filterMap[title];
-      if (filter) {
+      if (filter !== "late") {
         setActiveFilter(filter);
         navigate("/Face_Attendance_Management_System/attendance");
       }

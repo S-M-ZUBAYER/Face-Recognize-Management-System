@@ -4,10 +4,13 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
 
 export const FlexibleWork = () => {
   const [lateMinutes, setLateMinutes] = useState("");
   const [leaveLateMinutes, setLeaveLateMinutes] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
@@ -93,6 +96,8 @@ export const FlexibleWork = () => {
       });
 
       await Promise.all(updatePromises);
+
+      setRulesIds(5);
       toast.success("Flexible work settings updated successfully!");
     } catch (error) {
       console.error("Error saving flexible work settings:", error);
