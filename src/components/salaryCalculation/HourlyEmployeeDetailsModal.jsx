@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
-import calculateWorkedTime from "@/lib/calculateWorkedTime";
+import calculateWorkedTime from "@/lib/calculateSalary/calculateWorkedTime";
 
 const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore();

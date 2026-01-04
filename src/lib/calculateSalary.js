@@ -1,9 +1,9 @@
-import calculateHourlySalary from "./calculateHourlySalary";
-import calculateLeaveDeductions from "./calculateLeaveDeductions";
+import calculateHourlySalary from "./calculateSalary/calculateHourlySalary";
+import calculateLeaveDeductions from "./calculateSalary/calculateLeaveDeductions";
 import { calculateRangeSalary } from "./calculateRangeSalary";
-import calculateWorkedTime from "./calculateWorkedTime";
-import countWorkingMissPunch from "./countWorkingMissPunch";
-import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
+import calculateWorkedTime from "./calculateSalary/calculateWorkedTime";
+import countWorkingMissPunch from "./calculateSalary/countWorkingMissPunch";
+import { getFullDayLeaveDates } from "./calculateSalary/getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 
 function toMinutes(time) {
@@ -455,7 +455,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     let endDate = undefined;
     return calculateRangeSalary(payPeriod, salaryRules, startDate, endDate, id);
   }
-  // if (id === "3531774215") {
+  // if (id === "7070969796") {
   //   console.log(attendanceRecords);
   // }
 
@@ -834,14 +834,20 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         missedPunch += missedCount.missPunchCount;
       }
 
-      // if (id === "2109058927") {
+      // if (id === "70709908") {
       //   console.log("Missed punch on", date, missedCount, punches);
       // }
     }
 
     // NEW: Late count logic (only index 0 and index 2)
     // Index 0: Shift start
-    if (!rule6 && punches[0] && punches[0] !== "00:00" && shift[0]) {
+    if (
+      !rule6 &&
+      punches[0] &&
+      punches[0] !== "00:00" &&
+      shift[0] &&
+      workingDecoded.length > 1
+    ) {
       const punchMins = toMinutes(punches[0]);
       const shiftMins = toMinutes(shift[0]);
       const lateThresh = shiftMins + latenessGraceMin;
@@ -889,7 +895,13 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     }
 
     // Index 2: Lunch in
-    if (!rule6 && punches[2] && punches[2] !== "00:00" && shift[2]) {
+    if (
+      !rule6 &&
+      punches[2] &&
+      punches[2] !== "00:00" &&
+      shift[2] &&
+      workingDecoded.length > 1
+    ) {
       const punchMins = toMinutes(punches[2]);
       const shiftMins = toMinutes(shift[2]);
       const lateThresh = shiftMins + latenessGraceMin;

@@ -1,8 +1,8 @@
 import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
-import calculateLeaveDeductions from "./calculateLeaveDeductions";
-import calculateWorkedTime from "./calculateWorkedTime";
-import countWorkingMissPunch from "./countWorkingMissPunch";
-import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
+import calculateLeaveDeductions from "./calculateSalary/calculateLeaveDeductions";
+import calculateWorkedTime from "./calculateSalary/calculateWorkedTime";
+import countWorkingMissPunch from "./calculateSalary/countWorkingMissPunch";
+import { getFullDayLeaveDates } from "./calculateSalary/getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 import { useDateStore } from "@/zustand/useDateStore";
 

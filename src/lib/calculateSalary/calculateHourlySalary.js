@@ -1,4 +1,4 @@
-import punchAndShiftDetails from "./punchAndShiftDetails";
+import punchAndShiftDetails from "../punchAndShiftDetails";
 
 function calculateWorkedMinutes(workingDecoded, punches) {
   // convert HH:mm → minutes
