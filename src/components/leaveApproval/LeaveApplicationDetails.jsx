@@ -267,7 +267,7 @@ const LeaveApplicationDetails = ({ data }) => {
       const updatedData = {
         id: editedData.id,
         employeeId: editedData.employeeId,
-        employeeName: editedData.employeeName,
+        employeeName: editedData.employeeName.split("<")[0],
         approverName: JSON.stringify(editedData.approverName),
         deviceMAC: editedData.deviceMAC,
         startDate: formatDateForStorage(editedData.startDate) || null,
@@ -299,7 +299,7 @@ const LeaveApplicationDetails = ({ data }) => {
       const updatedData = {
         id: data.id,
         employeeId: data.employeeId,
-        employeeName: data.employeeName,
+        employeeName: data.employeeName.split("<")[0],
         approverName: updateJsonString("admin", user?.userName),
         deviceMAC: data.deviceMAC,
         startDate: data.startDate,

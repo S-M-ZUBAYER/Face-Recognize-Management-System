@@ -1,6 +1,6 @@
 // Updated: useSingleEmployeeDetails.js
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 import { useGlobalSalary } from "./useGlobalSalary";
 import { usePayPeriod } from "./usePayPeriod";
 import { parseNormalData } from "@/lib/parseNormalData";
@@ -63,12 +63,12 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
           (rule) => rule.deviceMAC === mac
         );
 
-        console.log("✅ Matched Data:", {
-          matchedPayPeriod,
-          matchedRule,
-          employeeId,
-          mac,
-        });
+        // console.log("✅ Matched Data:", {
+        //   matchedPayPeriod,
+        //   matchedRule,
+        //   employeeId,
+        //   mac,
+        // });
 
         if (
           (emp.salaryRules === 999 || emp.salaryRules === "999") &&
@@ -128,16 +128,16 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
 
       // toast.success("Employee details updated successfully!");
     },
-    onError: (error) => {
-      console.error("❌ Failed to update employee:", error);
+    // onError: (error) => {
+    //   console.error("❌ Failed to update employee:", error);
 
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to update employee";
+    //   const errorMessage =
+    //     error.response?.data?.message ||
+    //     error.message ||
+    //     "Failed to update employee";
 
-      toast.error(errorMessage);
-    },
+    //   toast.error(errorMessage);
+    // },
   });
 
   return {

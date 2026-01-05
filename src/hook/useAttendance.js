@@ -41,7 +41,16 @@ export const useAttendance = (selectedDate) => {
     .filter(Boolean)
     .flat();
 
-  const isLoading = attendanceQueries.some((q) => q.isLoading) || macsLoading;
+  // Fixed loading logic: Only show loading if:
+  // 1. MACs are still loading OR
+  // 2. We have enabled queries and at least one is still loading/fetching for the first time
+  const hasEnabledQueries =
+    !!selectedDate && deviceMACs.length > 0 && !macsLoading;
+  const isInitialLoading = attendanceQueries.some(
+    (q) => q.isLoading && !q.isFetched
+  );
+
+  const isLoading = macsLoading || (hasEnabledQueries && isInitialLoading);
   const isError = attendanceQueries.some((q) => q.isError);
   const isFetching = attendanceQueries.some((q) => q.isFetching);
 

@@ -541,24 +541,24 @@ export const WorkShiftTimeForm = () => {
         }
 
         // Check each special date has at least one working time and overtime
-        for (const date of specialDates) {
-          const dateStr = formatDateForDisplay(date);
-          const config = dateConfigs[dateStr];
+        // for (const date of specialDates) {
+        //   const dateStr = formatDateForDisplay(date);
+        //   const config = dateConfigs[dateStr];
 
-          if (
-            !config ||
-            !config.workingTimes ||
-            config.workingTimes.length === 0
-          ) {
-            toast.error(`Please add at least one working time for ${dateStr}!`);
-            return;
-          }
+        //   if (
+        //     !config ||
+        //     !config.workingTimes ||
+        //     config.workingTimes.length === 0
+        //   ) {
+        //     toast.error(`Please add at least one working time for ${dateStr}!`);
+        //     return;
+        //   }
 
-          if (!config || !config.overtimes || config.overtimes.length === 0) {
-            toast.error(`Please add at least one overtime for ${dateStr}!`);
-            return;
-          }
-        }
+        //   if (!config || !config.overtimes || config.overtimes.length === 0) {
+        //     toast.error(`Please add at least one overtime for ${dateStr}!`);
+        //     return;
+        //   }
+        // }
       }
 
       // Validation for normal shift type
@@ -986,14 +986,6 @@ export const WorkShiftTimeForm = () => {
       </div>
 
       <div className=" flex items-center w-full justify-between mt-4 gap-4">
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          disabled={updating}
-          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {updating ? "Saving..." : "Save"}
-        </button>
         {/* Delete */}
 
         <button
@@ -1002,6 +994,14 @@ export const WorkShiftTimeForm = () => {
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

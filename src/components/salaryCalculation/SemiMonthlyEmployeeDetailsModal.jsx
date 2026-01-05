@@ -48,31 +48,31 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   }, [selectedEmp, semiMonthlyRange]);
 
   // Handle semi-monthly navigation
-  const handlePreviousPeriod = () => {
-    const newOffset = periodOffset === 0 ? 1 : 0;
-    setPeriodOffset(newOffset);
-    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
-    const newRange = getSemiMonthlyRange(
-      selectedYear,
-      selectedMonth,
-      splitEndDate,
-      newOffset
-    );
-    setSemiMonthlyRange(newRange);
-  };
+  // const handlePreviousPeriod = () => {
+  //   const newOffset = periodOffset === 0 ? 1 : 0;
+  //   setPeriodOffset(newOffset);
+  //   const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
+  //   const newRange = getSemiMonthlyRange(
+  //     selectedYear,
+  //     selectedMonth,
+  //     splitEndDate,
+  //     newOffset
+  //   );
+  //   setSemiMonthlyRange(newRange);
+  // };
 
-  const handleNextPeriod = () => {
-    const newOffset = periodOffset === 0 ? 1 : 0;
-    setPeriodOffset(newOffset);
-    const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
-    const newRange = getSemiMonthlyRange(
-      selectedYear,
-      selectedMonth,
-      splitEndDate,
-      newOffset
-    );
-    setSemiMonthlyRange(newRange);
-  };
+  // const handleNextPeriod = () => {
+  //   const newOffset = periodOffset === 0 ? 1 : 0;
+  //   setPeriodOffset(newOffset);
+  //   const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
+  //   const newRange = getSemiMonthlyRange(
+  //     selectedYear,
+  //     selectedMonth,
+  //     splitEndDate,
+  //     newOffset
+  //   );
+  //   setSemiMonthlyRange(newRange);
+  // };
 
   const handleFirstHalf = () => {
     setPeriodOffset(0);
@@ -776,7 +776,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     </div>
 
                     {/* Rule 11 Info */}
-                    {salaryData?.rule11LeaveInfo?.hasRule11 && (
+                    {/* {salaryData?.rule11LeaveInfo?.hasRule11 && (
                       <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
                         <h3 className="font-semibold text-lg mb-2 text-blue-800">
                           Rule 11 Leave Information
@@ -809,7 +809,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </div>
                         </div>
                       </div>
-                    )}
+                    )} */}
 
                     {/* Replace Days */}
                     {/* {salaryData?.replaceDaysArr?.length > 0 && (

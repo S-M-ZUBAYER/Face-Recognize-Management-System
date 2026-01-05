@@ -233,34 +233,61 @@ function convertPunchesWithNormalRules(
     punches = perfectPunches;
   }
 
-  // If isNightShiftSimple is FALSE or not all night shift, run original code without night shift logic
+  let takenPunches;
 
-  // Match punches against the time points (existing logic)
-  const takenPunches = normalAllRules.map((currentTime, i, arr) => {
-    const previousTime = arr[(i - 1 + arr.length) % arr.length];
-    const nextTime = arr[(i + 1) % arr.length];
+  if (isNightShift) {
+    takenPunches = normalAllRules.map((currentTime, i, arr) => {
+      const previousTime = arr[(i - 1 + arr.length) % arr.length];
+      const nextTime = arr[(i + 1) % arr.length];
 
-    const leftBorder = findMiddleTime(previousTime, currentTime);
-    const rightBorder = findMiddleTime(currentTime, nextTime);
+      const leftBorder = findMiddleTime(previousTime, currentTime);
+      const rightBorder = findMiddleTime(currentTime, nextTime);
 
-    // Check punches within the interval
-    for (let j = 0; j < punches.length; j++) {
-      if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
-        const punch = punches.splice(j, 1)[0];
-        return punch;
+      // Check punches within the interval
+      for (let j = 0; j < punches.length; j++) {
+        if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
+          const punch = punches.splice(j, 1)[0];
+          return punch;
+        }
       }
-    }
 
-    // Second chance: between previousTime and currentTime
-    for (let j = punches.length - 1; j >= 0; j--) {
-      if (inclusiveInorNot(previousTime, currentTime, punches[j])) {
-        const punch = punches.splice(j, 1)[0];
-        return punch;
+      // Second chance: between previousTime and currentTime
+      // for (let j = punches.length - 1; j >= 0; j--) {
+      //   if (inclusiveInorNot(previousTime, currentTime, punches[j])) {
+      //     const punch = punches.splice(j, 1)[0];
+      //     return punch;
+      //   }
+      // }
+
+      return "00:00";
+    });
+  } else {
+    takenPunches = normalAllRules.map((currentTime, i, arr) => {
+      const previousTime = arr[(i - 1 + arr.length) % arr.length];
+      const nextTime = arr[(i + 1) % arr.length];
+
+      const leftBorder = findMiddleTime(previousTime, currentTime);
+      const rightBorder = findMiddleTime(currentTime, nextTime);
+
+      // Check punches within the interval
+      for (let j = 0; j < punches.length; j++) {
+        if (inclusiveInorNot(leftBorder, rightBorder, punches[j])) {
+          const punch = punches.splice(j, 1)[0];
+          return punch;
+        }
       }
-    }
 
-    return "00:00";
-  });
+      // Second chance: between previousTime and currentTime
+      for (let j = punches.length - 1; j >= 0; j--) {
+        if (inclusiveInorNot(previousTime, currentTime, punches[j])) {
+          const punch = punches.splice(j, 1)[0];
+          return punch;
+        }
+      }
+
+      return "00:00";
+    });
+  }
 
   // Return all matched punches including overtime
   return {
@@ -272,7 +299,7 @@ function convertPunchesWithNormalRules(
   };
 }
 
-function punchAndShiftDetails(monthlyAttendance, salaryRules) {
+function punchAndShiftDetails(monthlyAttendance, salaryRules, run = false) {
   const rulesModel = salaryRules.rules.find((item) => item.ruleId === 0) || {
     param1: [],
     param2: [],
@@ -349,8 +376,8 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules) {
       punchesDetails.push(overtime);
     }
   }
-
-  return rulesModel.param3 === "special" || isNightShift
+  // console.log(run);
+  return !run && (rulesModel.param3 === "special" || isNightShift)
     ? fastKeepLowMonth(punchesDetails)
     : punchesDetails;
 }
