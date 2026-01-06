@@ -690,9 +690,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const standardPay = monthlySalary + uncheckedTotal;
   const dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
-  // if (id === "70709903") {
-  //   console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
-  // }
+  if (id === "70709903") {
+    console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
+  }
 
   const punchDocs = Array.isArray(salaryRules.punchDocuments)
     ? salaryRules.punchDocuments

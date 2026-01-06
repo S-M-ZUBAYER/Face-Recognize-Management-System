@@ -767,11 +767,16 @@ export function calculateRangeSalary(
 
   // NEW: Get reconciled punch and shift details
 
-  const punchDetails = punchAndShiftDetails(
-    attendanceRecords,
-    salaryRules,
-    true
-  );
+  let punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules, 2);
+
+  if (startDate && endDate) {
+    punchDetails = punchDetails.filter((item) => {
+      const current = new Date(item.date).getTime();
+      const start = startDate ? new Date(startDate).getTime() : -Infinity;
+      const end = endDate ? new Date(endDate).getTime() : Infinity;
+      return current >= start && current <= end;
+    });
+  }
   // let punchDetails = [];
   // try {
   //    punchDetails = punchAndShiftDetails(attendanceRecords, salaryRules);
@@ -826,7 +831,10 @@ export function calculateRangeSalary(
   let thisMonthWeekends = 0;
   let futureAbsent = 0;
 
-  if (selectedYear === currentYear && selectedMonth + 1 === currentMonth) {
+  if (
+    payPeriod.payPeriod === "monthly" ||
+    (selectedYear === currentYear && selectedMonth + 1 === currentMonth)
+  ) {
     const details = getWorkingDaysUpToDate(
       startDate,
       endDate,
@@ -861,10 +869,14 @@ export function calculateRangeSalary(
   }
 
   const standardPay = monthlySalary + uncheckedTotal;
-  const dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
-  // if (id === "70709903") {
-  //   console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
-  // }
+  let dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
+  if (id === "70709907") {
+    console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
+  }
+
+  if (id === "70709907") {
+    console.log(futureAbsent, dailyRate);
+  }
 
   const punchDocs = Array.isArray(salaryRules.punchDocuments)
     ? salaryRules.punchDocuments
@@ -1343,22 +1355,34 @@ export function calculateRangeSalary(
   let presentDaysSalary = 0;
   let earnedSalary = 0;
 
-  if (selectedYear === currentYear && selectedMonth + 1 === currentMonth) {
+  if (
+    payPeriod.payPeriod === "semiMonthly" ||
+    payPeriod.payPeriod === "weekly" ||
+    payPeriod === "biWeekly"
+  ) {
+    dailyRate = monthlySalary / workingDaysUpToCurrent || 0;
+    console.log(dailyRate);
+  }
+
+  if (
+    payPeriod.payPeriod === "monthly" ||
+    (selectedYear === currentYear && selectedMonth + 1 === currentMonth)
+  ) {
     if (rule14 && daysPenaltyPerAbsence > 0) {
       presentDaysSalary =
         normalPresent > 0
           ? standardPay - dailyRate * (absent + futureAbsent)
           : 0;
       earnedSalary = presentDaysSalary;
-      // if (id === "2109058927") {
-      //   console.log(
-      //     standardPay - dailyRate * (absent + futureAbsent),
-      //     standardPay,
-      //     absent,
-      //     futureAbsent,
-      //     dailyRate
-      //   );
-      // }
+      if (id === "70709907") {
+        console.log(
+          // standardPay - dailyRate * (absent + futureAbsent),
+          // standardPay,
+          // absent,
+          // futureAbsent,
+          dailyRate
+        );
+      }
     } else {
       presentDaysSalary = monthlySalary + uncheckedTotal;
       earnedSalary = standardPay;

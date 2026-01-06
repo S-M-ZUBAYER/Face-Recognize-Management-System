@@ -299,7 +299,7 @@ function convertPunchesWithNormalRules(
   };
 }
 
-function punchAndShiftDetails(monthlyAttendance, salaryRules, run = false) {
+function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
   const rulesModel = salaryRules.rules.find((item) => item.ruleId === 0) || {
     param1: [],
     param2: [],
@@ -377,9 +377,27 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run = false) {
     }
   }
   // console.log(run);
-  return !run && (rulesModel.param3 === "special" || isNightShift)
-    ? fastKeepLowMonth(punchesDetails)
-    : punchesDetails;
+  let result = punchesDetails;
+
+  // Case 1
+  if (run === 0 && rulesModel?.param3 === "special") {
+    result = fastKeepLowMonth(punchesDetails);
+  }
+
+  // Case 2
+  else if (run === 2) {
+    result = punchesDetails;
+  }
+
+  // Case 3
+  else if (
+    (run == null || run === 0) && // handles undefined or null
+    (rulesModel?.param3 === "special" || isNightShift)
+  ) {
+    result = fastKeepLowMonth(punchesDetails);
+  }
+
+  return result;
 }
 
 export default punchAndShiftDetails;
