@@ -5,6 +5,7 @@ import countWorkingMissPunch from "./calculateSalary/countWorkingMissPunch";
 import { getFullDayLeaveDates } from "./calculateSalary/getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 import { useDateStore } from "@/zustand/useDateStore";
+import { addDays, format } from "date-fns";
 
 function toMinutes(time) {
   if (!time && time !== 0) return 0;
@@ -308,7 +309,7 @@ function getWorkingDaysUpToDate(
   const end = new Date(endDate);
   const current = new Date(currentDay);
 
-  // if (id === "2109058927") {
+  // if (id === "70709907") {
   //   console.log(startDate, endDate, currentDay);
   // }
 
@@ -318,7 +319,7 @@ function getWorkingDaysUpToDate(
   current.setHours(0, 0, 0, 0);
 
   // First loop: Count future absent days
-  let tempDate = new Date(currentDay);
+  let tempDate = addDays(new Date(currentDay), 1);
   while (tempDate <= end) {
     const dateStr = tempDate.toISOString().split("T")[0];
     const dayName = new Date(dateStr).toLocaleDateString("en-US", {
@@ -326,6 +327,9 @@ function getWorkingDaysUpToDate(
     });
 
     if (!weekends.includes(dayName) && !holidaysSet.has(dateStr)) {
+      // if (id === "70709907") {
+      //   console.log(dateStr, tempDate);
+      // }
       futureAbsent++;
     }
 
@@ -619,14 +623,29 @@ export function calculateRangeSalary(
   }
   const allAttendance = useAllAttendanceStore.getState().attendanceArray;
 
-  const attendanceRecords = allAttendance.filter((item) => {
+  let attendanceRecords;
+
+  const rulesModel = salaryRules.rules.find((item) => item.ruleId === 0) || {
+    param1: [],
+    param2: [],
+    param3: "normal",
+  };
+
+  // If rule is "special", extend end date by +1 day
+  const finalEndDate =
+    rulesModel.param3 === "special"
+      ? format(addDays(new Date(endDate), 1), "yyyy-MM-dd")
+      : endDate;
+
+  attendanceRecords = allAttendance.filter((item) => {
     return (
       String(item.empId) === String(id) &&
       item.date >= startDate &&
-      item.date <= endDate
+      item.date <= finalEndDate
     );
   });
-  //   console.log(attendanceRecords, startDate, endDate, id);
+
+  // console.log(attendanceRecords, startDate, endDate, id);
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
     : tryParseMaybeString(salaryRules.rules);
@@ -870,13 +889,13 @@ export function calculateRangeSalary(
 
   const standardPay = monthlySalary + uncheckedTotal;
   let dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
-  if (id === "70709907") {
-    console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
-  }
+  // if (id === "70709907") {
+  //   console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
+  // }
 
-  if (id === "70709907") {
-    console.log(futureAbsent, dailyRate);
-  }
+  // if (id === "70709907") {
+  //   console.log(futureAbsent, dailyRate);
+  // }
 
   const punchDocs = Array.isArray(salaryRules.punchDocuments)
     ? salaryRules.punchDocuments
@@ -1360,8 +1379,8 @@ export function calculateRangeSalary(
     payPeriod.payPeriod === "weekly" ||
     payPeriod === "biWeekly"
   ) {
-    dailyRate = monthlySalary / workingDaysUpToCurrent || 0;
-    console.log(dailyRate);
+    dailyRate = monthlySalary / (workingDaysUpToCurrent + futureAbsent) || 0;
+    // console.log(dailyRate, workingDaysUpToCurrent, futureAbsent);
   }
 
   if (
@@ -1375,13 +1394,13 @@ export function calculateRangeSalary(
           : 0;
       earnedSalary = presentDaysSalary;
       if (id === "70709907") {
-        console.log(
-          // standardPay - dailyRate * (absent + futureAbsent),
-          // standardPay,
-          // absent,
-          // futureAbsent,
-          dailyRate
-        );
+        // console.log(
+        //   standardPay - dailyRate * (absent + futureAbsent),
+        //   standardPay,
+        //   absent,
+        //   futureAbsent,
+        //   dailyRate
+        // );
       }
     } else {
       presentDaysSalary = monthlySalary + uncheckedTotal;

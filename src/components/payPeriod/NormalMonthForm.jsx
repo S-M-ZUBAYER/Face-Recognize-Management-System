@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -39,8 +39,8 @@ function NormalMonthForm() {
   });
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
-  const { selectedEmployees, updateEmployeeSalaryInfo } =
-    useSelectedEmployeeStore();
+  const { employees } = useEmployeeStore();
+  const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Calculate other salary total
@@ -166,7 +166,7 @@ function NormalMonthForm() {
 
   // Save handler
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
+    if (Employees.length === 0) {
       toast.error("No employees have !");
       return;
     }
@@ -174,7 +174,7 @@ function NormalMonthForm() {
     const otherSalaryArray = getOtherSalaryArray();
 
     try {
-      const updatePromises = selectedEmployees.map(async (employee) => {
+      const updatePromises = Employees.map(async (employee) => {
         const payPeriodJSON = convertJsonForPayPeriod(
           employee?.salaryInfo || {},
           {
@@ -212,8 +212,6 @@ function NormalMonthForm() {
         );
         const parsed = JSON.parse(payPeriodJSON);
         parsed.otherSalary = JSON.parse(parsed.otherSalary);
-        updateEmployeeSalaryInfo(employee.employeeId, parsed);
-
         return updateEmployee({
           mac: employee?.deviceMAC || "",
           id: employee?.employeeId,
@@ -222,9 +220,7 @@ function NormalMonthForm() {
       });
 
       await Promise.all(updatePromises);
-      toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`
-      );
+      toast.success(`Successfully updated ${Employees.length} employee(s)`);
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update employees");

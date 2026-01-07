@@ -10,7 +10,12 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
   const [semiMonthlyRange, setSemiMonthlyRange] = useState(() => {
     const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
-    return getSemiMonthlyRange(selectedYear, selectedMonth, splitEndDate, 0);
+    return getSemiMonthlyRange(
+      selectedYear,
+      selectedMonth + 1,
+      splitEndDate,
+      0
+    );
   });
   const [salaryData, setSalaryData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,6 +32,8 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       const id = selectedEmp.employeeId;
       const startDate = semiMonthlyRange.startDate;
       const endDate = semiMonthlyRange.endDate;
+
+      // console.log(startDate, endDate);
       try {
         const data = await calculateRangeSalary(
           payPeriod,
@@ -79,7 +86,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     const newRange = getSemiMonthlyRange(
       selectedYear,
-      selectedMonth,
+      selectedMonth + 1,
       splitEndDate,
       0
     );
@@ -91,7 +98,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     const splitEndDate = selectedEmp?.salaryInfo?.startDay || 15;
     const newRange = getSemiMonthlyRange(
       selectedYear,
-      selectedMonth,
+      selectedMonth + 1,
       splitEndDate,
       1
     );
@@ -892,6 +899,8 @@ function getSemiMonthlyRange(year, month, splitEndDate, direction = 0) {
   // Note: month is 1-12 (January = 1)
   const lastDayOfMonth = new Date(year, month, 0).getDate();
 
+  // console.log(year, month, splitEndDate, direction, lastDayOfMonth);
+
   // Ensure splitEndDate is valid (1 to lastDayOfMonth-1)
   const safeSplit = Math.max(1, Math.min(splitEndDate, lastDayOfMonth - 1));
 
@@ -904,8 +913,8 @@ function getSemiMonthlyRange(year, month, splitEndDate, direction = 0) {
   const current = ranges[index];
 
   return {
-    startDate: formatDate(year, month + 1, current.start),
-    endDate: formatDate(year, month + 1, current.end),
+    startDate: formatDate(year, month, current.start),
+    endDate: formatDate(year, month, current.end),
     part: index === 0 ? "FIRST_HALF" : "SECOND_HALF",
   };
 }

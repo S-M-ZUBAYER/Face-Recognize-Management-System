@@ -55,25 +55,43 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   // Handle biweekly navigation
   const handlePreviousBiweekly = () => {
     const newOffset = biweeklyOffset - 1;
-    setBiweeklyOffset(newOffset);
+
     const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
       newOffset
     );
-    setBiweeklyRange(newRange);
+
+    const newDate = new Date(newRange.startDate);
+    const newYear = Number(format(newDate, "yyyy"));
+    const newMonth = Number(format(newDate, "MM"));
+
+    console.log(selectedMonth + 1, newMonth, selectedYear, newYear);
+
+    if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
+      setBiweeklyOffset(newOffset);
+      setBiweeklyRange(newRange);
+    }
   };
 
   const handleNextBiweekly = () => {
     const newOffset = biweeklyOffset + 1;
-    setBiweeklyOffset(newOffset);
+
     const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
       newOffset
     );
+    const newDate = new Date(newRange.startDate);
+    const newYear = Number(format(newDate, "yyyy"));
+    const newMonth = Number(format(newDate, "MM"));
+
+    if (selectedMonth + 1 !== newMonth && selectedYear !== newYear) {
+      return;
+    }
+    setBiweeklyOffset(newOffset);
     setBiweeklyRange(newRange);
   };
 
@@ -762,73 +780,6 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Rule 11 Info */}
-                    {salaryData?.rule11LeaveInfo?.hasRule11 && (
-                      <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
-                        <h3 className="font-semibold text-lg mb-2 text-blue-800">
-                          Rule 11 Leave Information
-                        </h3>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-blue-600">Daily Hours:</span>
-                            <div className="font-semibold">
-                              {salaryData.rule11LeaveInfo.dailyWorkingHours}h
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-blue-600">Rate Type:</span>
-                            <div className="font-semibold">
-                              {salaryData.rule11LeaveInfo.isFixedHourlyRate
-                                ? "Fixed"
-                                : "Calculated"}
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="text-blue-600">
-                              Total Leave Deductions:
-                            </span>
-                            <div className="font-semibold">
-                              -
-                              {formatNumber(
-                                salaryData.rule11LeaveInfo.totalLeaveDeductions
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Replace Days */}
-                    {salaryData?.replaceDaysArr?.length > 0 && (
-                      <div className="bg-gray-50 p-4 rounded-2xl border">
-                        <h3 className="font-semibold text-gray-700 mb-2 text-sm">
-                          Replace Days
-                        </h3>
-                        <div className="text-xs text-gray-600">
-                          <p className="mb-2">
-                            {salaryData.replaceDaysArr.length} replacement
-                            day(s) applied
-                          </p>
-                          <div className="space-y-1 max-h-20 overflow-y-auto">
-                            {salaryData.replaceDaysArr.map((day, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-2 p-1 bg-white rounded"
-                              >
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span>
-                                  {day.date.slice(0, 10)} →{" "}
-                                  {day.rdate
-                                    ? day.rdate.slice(0, 10)
-                                    : "No replacement"}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </motion.div>
                 </div>
               ) : (
@@ -873,6 +824,8 @@ function getBiweeklyRangeWithDirection(
   const firstDay = new Date(year, month, 1); // Month is 0-indexed
   const jsDay = firstDay.getDay();
   const normalizedDay = (jsDay + 6) % 7;
+
+  // console.log(year, month, weekStartDay);
 
   let daysToStart;
   if (normalizedDay <= weekStartDay) {
