@@ -5,7 +5,8 @@ import countWorkingMissPunch from "./calculateSalary/countWorkingMissPunch";
 import { getFullDayLeaveDates } from "./calculateSalary/getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 import { useDateStore } from "@/zustand/useDateStore";
-import { addDays, format } from "date-fns";
+import { addDays, format, isAfter } from "date-fns";
+import getBiweeklyRangeWithDirection from "./calculateSalary/getBiweeklyRangeWithDirection";
 
 function toMinutes(time) {
   if (!time && time !== 0) return 0;
@@ -250,7 +251,7 @@ function getWorkingDaysInMonth(
     }
     // Check replacement days first
     else if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
+      thisMonthLeave++;
     }
     // Check holidays
     else if (holidaysSet.has(dateStr)) {
@@ -303,88 +304,74 @@ function getWorkingDaysUpToDate(
   let thisMonthHolidays = 0;
   let thisMonthWeekends = 0;
   let futureAbsent = 0;
+
   const weekends = Array.from(weekendDayNames);
 
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const current = new Date(currentDay);
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const current = new Date(`${currentDay}T00:00:00`);
 
-  // if (id === "70709907") {
-  //   console.log(startDate, endDate, currentDay);
-  // }
+  // console.log(replaceDaysSet, holidaysSet);
 
-  // Reset start and end times to avoid timezone issues
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-  current.setHours(0, 0, 0, 0);
+  // ✅ FUTURE ABSENT LOOP (FIXED)
+  let tempDate = addDays(current, 1);
 
-  // First loop: Count future absent days
-  let tempDate = addDays(new Date(currentDay), 1);
-  while (tempDate <= end) {
-    const dateStr = tempDate.toISOString().split("T")[0];
-    const dayName = new Date(dateStr).toLocaleDateString("en-US", {
-      weekday: "long",
-    });
+  while (!isAfter(tempDate, end)) {
+    const dateStr = format(tempDate, "yyyy-MM-dd");
+    const dayName = format(tempDate, "EEEE");
+    // if (id === "70709907") {
+    //   console.log(dateStr, tempDate, end);
+    // }
 
-    if (!weekends.includes(dayName) && !holidaysSet.has(dateStr)) {
-      // if (id === "70709907") {
-      //   console.log(dateStr, tempDate);
-      // }
+    if (
+      !weekends.includes(dayName) &&
+      !holidaysSet.has(dateStr) &&
+      !replaceDaysSet.has(dateStr)
+    ) {
       futureAbsent++;
     }
 
-    tempDate.setDate(tempDate.getDate() + 1);
+    tempDate = addDays(tempDate, 1);
   }
 
-  // Second loop: Calculate working days and other counts
-  tempDate = new Date(start);
-  while (tempDate <= current) {
-    const dateStr = tempDate.toISOString().split("T")[0];
-    const dayName = new Date(dateStr).toLocaleDateString("en-US", {
-      weekday: "long",
-    });
+  // ✅ WORKING DAYS LOOP (FIXED)
+  tempDate = start;
 
-    // Check if it's a full day leave - skip this day
+  while (!isAfter(tempDate, current)) {
+    const dateStr = format(tempDate, "yyyy-MM-dd");
+    const dayName = format(tempDate, "EEEE");
+
     if (fullDayLeaveDates.includes(dateStr)) {
       thisMonthLeave++;
-      tempDate.setDate(tempDate.getDate() + 1);
+      tempDate = addDays(tempDate, 1);
       continue;
     }
 
-    // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
-      tempDate.setDate(tempDate.getDate() + 1);
+      tempDate = addDays(tempDate, 1);
       continue;
     }
 
-    // Check holidays
     if (holidaysSet.has(dateStr)) {
       thisMonthHolidays++;
-      tempDate.setDate(tempDate.getDate() + 1);
+      tempDate = addDays(tempDate, 1);
       continue;
     }
 
-    // Check general working days
     if (generalDaysSet.has(dateStr)) {
       workingDays++;
-      tempDate.setDate(tempDate.getDate() + 1);
+      tempDate = addDays(tempDate, 1);
       continue;
     }
 
-    // Check weekends
     if (weekends.includes(dayName)) {
       thisMonthWeekends++;
-      tempDate.setDate(tempDate.getDate() + 1);
+      tempDate = addDays(tempDate, 1);
       continue;
     }
 
-    // Normal working day
     workingDays++;
-    // if (id === "2109058927") {
-    //   console.log(tempDate, dateStr, dayName, weekendDayNames);
-    // }
-    tempDate.setDate(tempDate.getDate() + 1);
+    tempDate = addDays(tempDate, 1);
   }
 
   return {
@@ -395,6 +382,7 @@ function getWorkingDaysUpToDate(
     futureAbsent,
   };
 }
+
 function identifyShiftType(shifts) {
   // If not array or empty array
   if (!Array.isArray(shifts) || shifts.length === 0) {
@@ -477,36 +465,7 @@ function getFirstWeekRange(year, month, weekStartDay = 0) {
     endDate: endDate.toISOString().slice(0, 10),
   };
 }
-function getBiweeklyRangeWithDirection(
-  year,
-  month,
-  weekStartDay = 0,
-  direction = 0
-) {
-  // direction: 0 = current, 1 = next biweekly, -1 = previous biweekly
 
-  const firstDay = new Date(year, month, 1);
-  const jsDay = firstDay.getDay();
-  const normalizedDay = (jsDay + 6) % 7;
-
-  let daysToStart;
-  if (normalizedDay <= weekStartDay) {
-    daysToStart = weekStartDay - normalizedDay;
-  } else {
-    daysToStart = 7 - (normalizedDay - weekStartDay);
-  }
-
-  // Apply direction offset (14 days per biweekly period)
-  const directionOffset = direction * 14;
-
-  const startDate = new Date(year, month, 1 + daysToStart + directionOffset);
-  const endDate = new Date(year, month, 1 + daysToStart + directionOffset + 13);
-
-  return {
-    startDate: startDate.toISOString().slice(0, 10),
-    endDate: endDate.toISOString().slice(0, 10),
-  };
-}
 function formatDate(year, month, day) {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
@@ -589,8 +548,9 @@ export function calculateRangeSalary(
     if (startDate === undefined && endDate === undefined) {
       const firstWeekRange = getBiweeklyRangeWithDirection(
         selectedYear,
-        selectedMonth,
-        payPeriod?.startDay + 1,
+        selectedMonth + 1,
+        payPeriod?.startWeek,
+        payPeriod?.startDay,
         0
       );
       startDate = firstWeekRange.startDate;
@@ -658,9 +618,10 @@ export function calculateRangeSalary(
   const generalDaysArr = Array.isArray(salaryRules.generalDays)
     ? salaryRules.generalDays
     : tryParseMaybeString(salaryRules.generalDays);
-  const replaceDaysArr = Array.isArray(salaryRules.replaceDays)
-    ? salaryRules.replaceDays
-    : tryParseMaybeString(salaryRules.replaceDays);
+  const replaceDaysArr = (salaryRules?.replaceDays ?? [])
+    .filter((item) => item?.rdate)
+    .map((item) => item.rdate.split("T")[0])
+    .filter(Boolean);
 
   const holidaysSet = new Set(
     (holidaysArr || []).map(normalizeDate).filter(Boolean)
@@ -1377,10 +1338,10 @@ export function calculateRangeSalary(
   if (
     payPeriod.payPeriod === "semiMonthly" ||
     payPeriod.payPeriod === "weekly" ||
-    payPeriod === "biWeekly"
+    payPeriod.payPeriod === "biWeekly"
   ) {
     dailyRate = monthlySalary / (workingDaysUpToCurrent + futureAbsent) || 0;
-    // console.log(dailyRate, workingDaysUpToCurrent, futureAbsent);
+    console.log(dailyRate, workingDaysUpToCurrent, futureAbsent);
   }
 
   if (
@@ -1394,13 +1355,14 @@ export function calculateRangeSalary(
           : 0;
       earnedSalary = presentDaysSalary;
       if (id === "70709907") {
-        // console.log(
-        //   standardPay - dailyRate * (absent + futureAbsent),
-        //   standardPay,
-        //   absent,
-        //   futureAbsent,
-        //   dailyRate
-        // );
+        console.log(
+          standardPay - dailyRate * (absent + futureAbsent),
+          standardPay,
+          absent,
+          futureAbsent,
+          workingDaysUpToCurrent,
+          dailyRate
+        );
       }
     } else {
       presentDaysSalary = monthlySalary + uncheckedTotal;

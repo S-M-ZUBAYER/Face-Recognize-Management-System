@@ -232,7 +232,7 @@ function getWorkingDaysInMonth(
 
     // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
+      thisMonthLeave++;
       continue;
     }
 
@@ -296,6 +296,10 @@ function getWorkingDaysUpToDate(
     if (holidaysSet.has(dateStr)) {
       continue;
     }
+
+    if (replaceDaysSet.has(dateStr)) {
+      continue;
+    }
     futureAbsent++;
   }
 
@@ -321,7 +325,7 @@ function getWorkingDaysUpToDate(
 
     // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
+      thisMonthLeave++;
       continue;
     }
 
@@ -471,9 +475,10 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const generalDaysArr = Array.isArray(salaryRules.generalDays)
     ? salaryRules.generalDays
     : tryParseMaybeString(salaryRules.generalDays);
-  const replaceDaysArr = Array.isArray(salaryRules.replaceDays)
-    ? salaryRules.replaceDays
-    : tryParseMaybeString(salaryRules.replaceDays);
+  const replaceDaysArr = (salaryRules?.replaceDays ?? [])
+    .filter((item) => item?.rdate)
+    .map((item) => item.rdate.split("T")[0])
+    .filter(Boolean);
 
   const holidaysSet = new Set(
     (holidaysArr || []).map(normalizeDate).filter(Boolean)

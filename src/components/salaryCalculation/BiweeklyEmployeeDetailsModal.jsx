@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
+import getBiweeklyRangeWithDirection from "@/lib/calculateSalary/getBiweeklyRangeWithDirection";
 
 const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
@@ -12,8 +13,9 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const [biweeklyRange, setBiweeklyRange] = useState(() => {
     return getBiweeklyRangeWithDirection(
       selectedYear,
-      selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      selectedMonth + 1,
+      selectedEmp?.salaryInfo?.startWeek,
+      selectedEmp?.salaryInfo?.startDay,
       0
     );
   });
@@ -58,8 +60,9 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
     const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
-      selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      selectedMonth + 1,
+      selectedEmp?.salaryInfo?.startWeek,
+      selectedEmp?.salaryInfo?.startDay,
       newOffset
     );
 
@@ -67,7 +70,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     const newYear = Number(format(newDate, "yyyy"));
     const newMonth = Number(format(newDate, "MM"));
 
-    console.log(selectedMonth + 1, newMonth, selectedYear, newYear);
+    // console.log(selectedMonth + 1, newMonth, selectedYear, newYear);
 
     if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
       setBiweeklyOffset(newOffset);
@@ -80,27 +83,28 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
     const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
-      selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      selectedMonth + 1,
+      selectedEmp?.salaryInfo?.startWeek,
+      selectedEmp?.salaryInfo?.startDay,
       newOffset
     );
     const newDate = new Date(newRange.startDate);
     const newYear = Number(format(newDate, "yyyy"));
     const newMonth = Number(format(newDate, "MM"));
 
-    if (selectedMonth + 1 !== newMonth && selectedYear !== newYear) {
-      return;
+    if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
+      setBiweeklyOffset(newOffset);
+      setBiweeklyRange(newRange);
     }
-    setBiweeklyOffset(newOffset);
-    setBiweeklyRange(newRange);
   };
 
   const handleCurrentBiweekly = () => {
     setBiweeklyOffset(0);
     const newRange = getBiweeklyRangeWithDirection(
       selectedYear,
-      selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
+      selectedMonth + 1,
+      selectedEmp?.salaryInfo?.startWeek,
+      selectedEmp?.salaryInfo?.startDay,
       0
     );
     setBiweeklyRange(newRange);
@@ -813,37 +817,5 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     </AnimatePresence>
   );
 };
-
-// Helper function
-function getBiweeklyRangeWithDirection(
-  year,
-  month,
-  weekStartDay = 0,
-  direction = 0
-) {
-  const firstDay = new Date(year, month, 1); // Month is 0-indexed
-  const jsDay = firstDay.getDay();
-  const normalizedDay = (jsDay + 6) % 7;
-
-  // console.log(year, month, weekStartDay);
-
-  let daysToStart;
-  if (normalizedDay <= weekStartDay) {
-    daysToStart = weekStartDay - normalizedDay;
-  } else {
-    daysToStart = 7 - (normalizedDay - weekStartDay);
-  }
-
-  // Apply direction offset (14 days per biweekly period)
-  const directionOffset = direction * 14;
-
-  const startDate = new Date(year, month, 1 + daysToStart + directionOffset);
-  const endDate = new Date(year, month, 1 + daysToStart + directionOffset + 13);
-
-  return {
-    startDate: startDate.toISOString().slice(0, 10),
-    endDate: endDate.toISOString().slice(0, 10),
-  };
-}
 
 export default BiweeklyEmployeeDetailsModal;
