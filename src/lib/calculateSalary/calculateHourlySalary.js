@@ -87,7 +87,7 @@ function calculateHourlySalary(
     });
   }
 
-  // console.log(range);
+  // console.log(range, punchDetails);
 
   let totalWorkedMinutes = 0;
 

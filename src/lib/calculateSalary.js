@@ -839,123 +839,123 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         missedPunch += missedCount.missPunchCount;
       }
 
-      // if (id === "70709908") {
-      //   console.log("Missed punch on", date, missedCount, punches);
-      // }
+      if (id === "7070969796") {
+        console.log("Missed punch on", date, missedCount, punches);
+      }
     }
 
     // NEW: Late count logic (only index 0 and index 2)
     // Index 0: Shift start
-    if (
-      !rule6 &&
-      punches[0] &&
-      punches[0] !== "00:00" &&
-      shift[0] &&
-      workingDecoded.length > 1
-    ) {
-      const punchMins = toMinutes(punches[0]);
-      const shiftMins = toMinutes(shift[0]);
-      const lateThresh = shiftMins + latenessGraceMin;
-      const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
-      const approvedStartTime = getStartTimeFromLateDoc(
-        latePunchDocuments,
-        date
-      );
+    // if (
+    //   !rule6 &&
+    //   punches[0] &&
+    //   punches[0] !== "00:00" &&
+    //   shift[0] &&
+    //   workingDecoded.length > 1
+    // ) {
+    //   const punchMins = toMinutes(punches[0]);
+    //   const shiftMins = toMinutes(shift[0]);
+    //   const lateThresh = shiftMins + latenessGraceMin;
+    //   const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
+    //   const approvedStartTime = getStartTimeFromLateDoc(
+    //     latePunchDocuments,
+    //     date
+    //   );
 
-      // Skip late count if punch is near approved start time from late document
-      const shouldSkipLate =
-        hasLateDoc &&
-        (approvedStartTime !== null
-          ? isPunchNearApprovedTime(punches[0], approvedStartTime)
-          : true);
+    //   // Skip late count if punch is near approved start time from late document
+    //   const shouldSkipLate =
+    //     hasLateDoc &&
+    //     (approvedStartTime !== null
+    //       ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+    //       : true);
 
-      // if (id === "2109058927") {
-      //   console.log(
-      //     hasLateDoc,
-      //     shouldSkipLate,
-      //     date,
-      //     approvedStartTime,
-      //     isPunchNearApprovedTime(punches[0], approvedStartTime)
-      //   );
-      // }
+    //   // if (id === "2109058927") {
+    //   //   console.log(
+    //   //     hasLateDoc,
+    //   //     shouldSkipLate,
+    //   //     date,
+    //   //     approvedStartTime,
+    //   //     isPunchNearApprovedTime(punches[0], approvedStartTime)
+    //   //   );
+    //   // }
 
-      if (punchMins > lateThresh && !shouldSkipLate) {
-        const lateMins = punchMins - lateThresh;
-        lateCount += 1;
-        totalLatenessMinutes += lateMins;
+    //   if (punchMins > lateThresh && !shouldSkipLate) {
+    //     const lateMins = punchMins - lateThresh;
+    //     lateCount += 1;
+    //     totalLatenessMinutes += lateMins;
 
-        if (identifyShiftType(workingDecoded) === "Day Shift") {
-          dayLateCount += 1;
-        } else if (identifyShiftType(workingDecoded) === "Night Shift") {
-          nightLateCount += 1;
-        }
-        // if (id === "2109058927") {
-        //   console.log("Late on", date, lateMins, latenessGraceMin);
-        // }
+    //     if (identifyShiftType(workingDecoded) === "Day Shift") {
+    //       dayLateCount += 1;
+    //     } else if (identifyShiftType(workingDecoded) === "Night Shift") {
+    //       nightLateCount += 1;
+    //     }
+    //     // if (id === "2109058927") {
+    //     //   console.log("Late on", date, lateMins, latenessGraceMin);
+    //     // }
 
-        if (rule18) {
-          halfDayLateCount += 1;
-        }
-      }
-    }
+    //     if (rule18) {
+    //       halfDayLateCount += 1;
+    //     }
+    //   }
+    // }
 
-    // Index 2: Lunch in
-    if (
-      !rule6 &&
-      punches[2] &&
-      punches[2] !== "00:00" &&
-      shift[2] &&
-      workingDecoded.length > 1
-    ) {
-      const punchMins = toMinutes(punches[2]);
-      const shiftMins = toMinutes(shift[2]);
-      const lateThresh = shiftMins + latenessGraceMin;
-      const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
-      const approvedStartTime = getStartTimeFromLateDoc(
-        latePunchDocuments,
-        date
-      );
+    // // Index 2: Lunch in
+    // if (
+    //   !rule6 &&
+    //   punches[2] &&
+    //   punches[2] !== "00:00" &&
+    //   shift[2] &&
+    //   workingDecoded.length > 1
+    // ) {
+    //   const punchMins = toMinutes(punches[2]);
+    //   const shiftMins = toMinutes(shift[2]);
+    //   const lateThresh = shiftMins + latenessGraceMin;
+    //   const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
+    //   const approvedStartTime = getStartTimeFromLateDoc(
+    //     latePunchDocuments,
+    //     date
+    //   );
 
-      // Skip late count if punch is near approved start time from late document
-      const shouldSkipLate =
-        hasLateDoc &&
-        (approvedStartTime !== null
-          ? isPunchNearApprovedTime(punches[0], approvedStartTime)
-          : true);
+    //   // Skip late count if punch is near approved start time from late document
+    //   const shouldSkipLate =
+    //     hasLateDoc &&
+    //     (approvedStartTime !== null
+    //       ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+    //       : true);
 
-      if (punchMins > lateThresh && !shouldSkipLate) {
-        const lateMins = punchMins - lateThresh;
-        lateCount += 1;
-        totalLatenessMinutes += lateMins;
+    //   if (punchMins > lateThresh && !shouldSkipLate) {
+    //     const lateMins = punchMins - lateThresh;
+    //     lateCount += 1;
+    //     totalLatenessMinutes += lateMins;
 
-        if (identifyShiftType(workingDecoded) === "Day Shift") {
-          dayLateCount += 1;
-        } else if (identifyShiftType(workingDecoded) === "Night Shift") {
-          nightLateCount += 1;
-        }
-        if (id === "2109058927") {
-          console.log(
-            "Late on",
-            date,
-            lateMins,
-            latenessGraceMin
-            // workingDecoded,
-            // identifyShiftType(workingDecoded)
-          );
-        }
+    //     if (identifyShiftType(workingDecoded) === "Day Shift") {
+    //       dayLateCount += 1;
+    //     } else if (identifyShiftType(workingDecoded) === "Night Shift") {
+    //       nightLateCount += 1;
+    //     }
+    //     if (id === "2109058927") {
+    //       console.log(
+    //         "Late on",
+    //         date,
+    //         lateMins,
+    //         latenessGraceMin
+    //         // workingDecoded,
+    //         // identifyShiftType(workingDecoded)
+    //       );
+    //     }
 
-        if (rule18 && punches[0] === "00:00" && punches[1] === "00:00") {
-          fullDayLateCount += 1;
-        } else if (rule18) {
-          halfDayLateCount += 1;
-        }
-      }
-    }
+    //     if (rule18 && punches[0] === "00:00" && punches[1] === "00:00") {
+    //       fullDayLateCount += 1;
+    //     } else if (rule18) {
+    //       halfDayLateCount += 1;
+    //     }
+    //   }
+    // }
     // Dynamically handle additional shifts (3rd, 4th, 5th, etc.)
-    if (workingDecoded && workingDecoded.length > 2) {
-      // Start from 3rd shift (index 4, since indices: 0=1st, 2=2nd, 4=3rd)
-      for (let shiftNum = 3; shiftNum <= workingDecoded.length; shiftNum++) {
-        const punchIndex = (shiftNum - 1) * 2; // 4 for 3rd shift, 6 for 4th, etc.
+    if (workingDecoded) {
+      // Start from 1st shift to handle all shifts in workingDecoded
+      for (let shiftNum = 1; shiftNum <= workingDecoded.length; shiftNum++) {
+        const punchIndex = (shiftNum - 1) * 2; // 0 for 1st shift, 2 for 2nd, 4 for 3rd, etc.
 
         if (
           !rule6 &&
@@ -999,9 +999,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
             }
 
             // Optional: Debug log
-            // if (id === "44141318") {
-            //   console.log(`Late on shift ${shiftNum}`, date, lateMins);
-            // }
+            if (id === "7070969796") {
+              console.log(`Late on shift ${shiftNum}`, date, lateMins);
+            }
           }
         }
       }

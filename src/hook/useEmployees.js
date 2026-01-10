@@ -6,7 +6,7 @@ import { useGlobalSalary } from "./useGlobalSalary";
 import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
-import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
+import { ALWAYS_FRESH_CONFIG } from "./queryConfig";
 import parseAddress from "@/lib/parseAddress";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useEffect, useRef } from "react";
@@ -18,9 +18,8 @@ export const useEmployees = () => {
   const { payPeriodData, isLoading: payPeriodLoading } = usePayPeriod();
   const { globalSalaryRules, isLoading: rulesLoading } = useGlobalSalary();
   const { setEmployeesArray } = useEmployeeStore();
-  const prevRef = useRef([]);
-
-  // console.log(globalSalaryRules);
+  const prevEmployeesRef = useRef(null);
+  const prevQueriesDataRef = useRef([]);
 
   const employeeQueries = useQueries({
     queries: deviceMACs.map((mac) => ({
@@ -52,7 +51,7 @@ export const useEmployees = () => {
           return []; // Return empty array instead of failing
         }
       },
-      ...DEFAULT_QUERY_CONFIG,
+      ...ALWAYS_FRESH_CONFIG,
       enabled: deviceMACs.length > 0 && !payPeriodLoading && !rulesLoading,
     })),
   });
@@ -148,30 +147,44 @@ export const useEmployees = () => {
     };
   });
 
-  // ✅ FIX: update Zustand AFTER render
+  // ✅ FIXED: Always update Zustand when API data changes
   useEffect(() => {
-    // avoid unnecessary updates
-    if (!isEqual(prevRef.current, EmployeesArray)) {
-      prevRef.current = EmployeesArray;
+    // Track current queries data
+    const currentQueriesData = employeeQueries.map((q) => q.data);
+
+    // Check if any query data has changed (including from null/undefined to actual data)
+    const hasDataChanged = employeeQueries.some((q, index) => {
+      const currentData = q.data;
+      const prevData = prevQueriesDataRef.current?.[index];
+
+      // Check if data has changed
+      return !isEqual(currentData, prevData);
+    });
+
+    // Check if EmployeesArray has changed (data type or structure)
+    const hasEmployeesChanged = !isEqual(
+      prevEmployeesRef.current,
+      EmployeesArray
+    );
+
+    // Update if either queries data or EmployeesArray changed
+    if (hasDataChanged || hasEmployeesChanged) {
+      prevQueriesDataRef.current = currentQueriesData;
+      prevEmployeesRef.current = EmployeesArray;
       setEmployeesArray(EmployeesArray);
     }
-  }, [EmployeesArray, setEmployeesArray]);
+  }, [employeeQueries, EmployeesArray, setEmployeesArray]);
 
   const refresh = () => {
+    // Invalidate all employee queries
     deviceMACs.forEach((mac) =>
       queryClient.invalidateQueries(["employees", mac.deviceMAC])
     );
+
+    // Reset refs to force update on next data change
+    prevEmployeesRef.current = null;
+    prevQueriesDataRef.current = [];
   };
-
-  // const today = new Date().toISOString().split("T")[0];
-
-  // const Employees = EmployeesArray.filter(
-  //   (e) => e.address?.type !== "resigned" || e.address?.r_date >= today
-  // );
-
-  // const resignedEmployees = EmployeesArray.filter(
-  //   (e) => e.address?.type === "resigned" && e.address?.r_date < today
-  // );
 
   const isDependencyLoading = payPeriodLoading || rulesLoading;
   const isLoading =
@@ -179,8 +192,6 @@ export const useEmployees = () => {
   const isError = employeeQueries.some((q) => q.isError);
 
   return {
-    // Employees: EmployeesArray,
-    // resignedEmployees,
     employeeCounts: deviceMACs.map((mac, idx) => ({
       deviceMAC: mac.deviceMAC,
       count: employeeQueries[idx].data?.length || 0,

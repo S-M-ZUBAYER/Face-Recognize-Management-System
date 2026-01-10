@@ -56,9 +56,11 @@ export function realAbsentCount(employeeData, inputDate) {
     );
   }
 
-  const rdates = employeeData.replaceDays
-    .filter((item) => item.rdate !== null)
-    .map((item) => item.rdate.split("T")[0]);
+  const replaceDaysSet = new Set(
+    employeeData.replaceDays
+      .filter((item) => item?.rdate)
+      .map((item) => item.rdate.split("T")[0])
+  );
 
   // ------------------------------
   // 4️⃣ Now Check if date is blocked
@@ -68,7 +70,7 @@ export function realAbsentCount(employeeData, inputDate) {
   const isHoliday = holidays.has(dateStr);
   const isLeave = leaveDates.has(dateStr);
   const isWeekend = weekendDays.has(dayName);
-  const isReplace = rdates.has(dateStr);
+  const isReplace = replaceDaysSet.has(dateStr);
 
   if (isHoliday || isLeave || isWeekend || isReplace) {
     return false; // ❌ invalid
