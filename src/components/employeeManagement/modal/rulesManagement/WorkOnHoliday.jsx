@@ -62,6 +62,8 @@ export const WorkOnHoliday = () => {
           formatDateForStorage(date)
         );
 
+        const existGeneralDays = selectedEmployee.salaryRules.generalDays || [];
+
         // Find or create rule with ruleId = 3
         let ruleFour = existingRules.find(
           (rule) => rule.ruleId === 3 || rule.ruleId === "3"
@@ -94,7 +96,7 @@ export const WorkOnHoliday = () => {
             filter: (r) => r.ruleId === 3 || r.ruleId === "3",
             newValue: ruleFour, // update ruleId=3 object
           },
-          generalDays: generalDaysArray, // update generalDays with selected dates
+          generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
         });
 
         updateEmployeeSalaryRules(

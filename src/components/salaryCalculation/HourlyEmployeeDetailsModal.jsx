@@ -12,6 +12,7 @@ import { addDays, format, parseISO } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import calculateHourlySalary from "@/lib/calculateSalary/calculateHourlySalary";
 import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
+import isNightShiftSimple from "@/lib/isNightShiftSimple";
 
 const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore();
@@ -111,9 +112,10 @@ const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       };
 
       startDateStr = formatDateForComparison(dateRange.start);
+      const isNightShift = isNightShiftSimple(rulesModel);
 
       endDateStr =
-        rulesModel.param3 === "special"
+        rulesModel.param3 === "special" || isNightShift
           ? formatDateForComparison(addDays(dateRange.end, 1))
           : formatDateForComparison(dateRange.end);
 

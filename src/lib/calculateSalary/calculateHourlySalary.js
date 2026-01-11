@@ -87,12 +87,12 @@ function calculateHourlySalary(
     });
   }
 
-  // console.log(range, punchDetails);
+  console.log(range, punchDetails);
 
   let totalWorkedMinutes = 0;
 
   punchDetails.forEach((dayData) => {
-    const { punches, workingDecoded, overtimeDecoded } = dayData;
+    const { punches, workingDecoded, overtimeDecoded, date } = dayData;
     const workedMinutes = calculateWorkedMinutes(
       [...workingDecoded, ...overtimeDecoded],
       punches
@@ -100,7 +100,7 @@ function calculateHourlySalary(
     if (payPeriod.hourlyRate < workedMinutes) {
       totalWorkedMinutes += workedMinutes;
     }
-    // console.log(date, workedMinutes / 60);
+    console.log(date, workedMinutes / 60);
   });
   const hourlySalaryRate = payPeriod.salary;
 

@@ -57,7 +57,7 @@ export function realAbsentCount(employeeData, inputDate) {
   }
 
   const replaceDaysSet = new Set(
-    employeeData.replaceDays
+    (employeeData.replaceDays ?? [])
       .filter((item) => item?.rdate)
       .map((item) => item.rdate.split("T")[0])
   );

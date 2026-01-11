@@ -2,6 +2,7 @@ import { useGlobalStore } from "@/zustand/useGlobalStore";
 import isNightShiftSimple from "./isNightShiftSimple";
 import getPerfectPunches from "./calculateSalary/getPerfectPunches";
 import fastKeepLowMonth from "./fastKeepLowMonth";
+import { addDays, format } from "date-fns";
 
 function findMiddleTime(startTime, endTime) {
   const toDate = (t) => {
@@ -327,6 +328,9 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
   const sortedAttendance = [...monthlyAttendance].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   );
+  const attendanceByDate = new Map(
+    monthlyAttendance.map((item) => [item.date, item.checkIn])
+  );
 
   for (let i = 0; i < sortedAttendance.length; i++) {
     const record = sortedAttendance[i];
@@ -348,10 +352,22 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
     const mac = record.macId;
     const id = record.empId;
 
-    const nextDayPunches =
-      i < sortedAttendance.length - 1
-        ? JSON.parse(sortedAttendance[i + 1].checkIn)
-        : [];
+    // 👉 calculate next calendar date
+    const nextDateStr = format(
+      addDays(new Date(`${date}T00:00:00`), 1),
+      "yyyy-MM-dd"
+    );
+
+    // 👉 get next day punches safely
+    let nextDayPunches = [];
+
+    if (attendanceByDate.has(nextDateStr)) {
+      try {
+        nextDayPunches = JSON.parse(attendanceByDate.get(nextDateStr));
+      } catch {
+        nextDayPunches = [];
+      }
+    }
 
     const overtime =
       rulesModel.param3 === "special"

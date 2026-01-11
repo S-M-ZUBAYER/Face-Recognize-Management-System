@@ -459,9 +459,6 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     let endDate = undefined;
     return calculateRangeSalary(payPeriod, salaryRules, startDate, endDate, id);
   }
-  // if (id === "7070969796") {
-  //   console.log(attendanceRecords);
-  // }
 
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
@@ -526,6 +523,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule7 = getRule(7);
   const rule7Enabled = !!rule7;
+  const lateTimeModular = Number(rule7?.param1 || 0);
+  const lateTimeCost = Number(rule7?.param2 || 0);
 
   const rule8 = getRule(8);
   const minOTUnit = Number(firstNumericParam(rule8) || 0);
@@ -839,9 +838,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         missedPunch += missedCount.missPunchCount;
       }
 
-      if (id === "7070969796") {
-        console.log("Missed punch on", date, missedCount, punches);
-      }
+      // if (id === "7070969796") {
+      //   console.log("Missed punch on", date, missedCount, punches);
+      // }
     }
 
     // NEW: Late count logic (only index 0 and index 2)
@@ -999,9 +998,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
             }
 
             // Optional: Debug log
-            if (id === "7070969796") {
-              console.log(`Late on shift ${shiftNum}`, date, lateMins);
-            }
+            // if (id === "7070969796") {
+            //   console.log(`Late on shift ${shiftNum}`, date, lateMins);
+            // }
           }
         }
       }
@@ -1067,6 +1066,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       }
     }
 
+    // if (isWeekend) {
+    //   if (id === "7070969796") {
+    //     console.log(
+    //       workingDecoded && overtimeDecoded && punches.length >= 2,
+    //       date
+    //     );
+    //   }
+    // }
     // NEW: Overtime calculation
     if (workingDecoded && overtimeDecoded && punches.length >= 2) {
       // Calculate working time (if needed)
@@ -1116,6 +1123,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         overtimeHoliday += calculateWorkedTime(workingDecoded, punches);
       } else if (isWeekend) {
         overtimeWeekend += calculateWorkedTime(workingDecoded, punches);
+        // if (id === "70709908") {
+        //   console.log(
+        //     date,
+        //     workingDecoded,
+        //     punches,
+        //     calculateWorkedTime(workingDecoded, punches)
+        //   );
+        // }
       } else {
         overtimeNormal += otMinutes;
         // if (id === "8938086979") {
@@ -1157,9 +1172,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         overtimeWeekend += otMinutes;
       } else {
         overtimeNormal += otMinutes;
-        if (id === "8938086979") {
-          console.log(date, overtimeNormal);
-        }
+        // if (id === "8938086979") {
+        //   console.log(date, overtimeNormal);
+        // }
       }
       if (rule8 && minOTUnit > 0) {
         overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
@@ -1296,19 +1311,29 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   // }
 
   if (rule7Enabled && totalLatenessMinutes > 0) {
-    let remaining = totalLatenessMinutes;
-    const useFromHoliday = Math.min(remaining, overtimeHoliday);
-    overtimeHoliday -= useFromHoliday;
-    remaining -= useFromHoliday;
-    if (remaining > 0) {
+    const lateness = (lateTimeCost / lateTimeModular) * totalLatenessMinutes;
+    let remaining = lateness;
+
+    // Deduct from holiday overtime
+    if (overtimeHoliday > 0) {
+      const useFromHoliday = Math.min(remaining, overtimeHoliday);
+      overtimeHoliday -= useFromHoliday;
+      remaining -= useFromHoliday;
+      totalLatenessMinutes = 0;
+    }
+    // Deduct from weekend overtime
+    else if (overtimeWeekend > 0) {
       const useFromWeekend = Math.min(remaining, overtimeWeekend);
       overtimeWeekend -= useFromWeekend;
       remaining -= useFromWeekend;
+      totalLatenessMinutes = 0;
     }
-    if (remaining > 0) {
+    // Deduct from normal overtime
+    else if (overtimeNormal > 0) {
       const useFromNormal = Math.min(remaining, overtimeNormal);
       overtimeNormal -= useFromNormal;
       remaining -= useFromNormal;
+      totalLatenessMinutes = 0;
     }
   }
 
