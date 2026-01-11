@@ -55,6 +55,7 @@ export const HolidayForm = () => {
         const existingRules = Array.isArray(salaryRules.rules)
           ? salaryRules.rules
           : [];
+        const alreadyExistHoliday = selectedEmployee.salaryRules.holidays || [];
 
         // Find or create ruleId "1"
         let ruleOne = existingRules.find(
@@ -78,13 +79,13 @@ export const HolidayForm = () => {
         }
 
         const formattedHolidays = specialDates.map(formatDateForStorage);
-
-        // console.log(formattedHolidays);
+        const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
+        // console.log(formattedHolidays, alreadyExistHoliday, finalHoliday);
 
         // 🧩 Build final JSON
         const updatedJSON = finalJsonForUpdate(salaryRules, {
           empId: empId,
-          holidays: formattedHolidays, // raw array, helper stringifies
+          holidays: finalHoliday, // raw array, helper stringifies
           rules: {
             filter: (r) => r.ruleId === 1 || r.ruleId === "1",
             newValue: ruleOne,

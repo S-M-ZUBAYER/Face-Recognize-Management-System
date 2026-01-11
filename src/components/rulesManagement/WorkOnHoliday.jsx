@@ -56,6 +56,8 @@ export const WorkOnHoliday = () => {
         const existingRules = salaryRules.rules || [];
         const empId = selectedEmployee.employeeId.toString();
 
+        const existGeneralDays = selectedEmployee.salaryRules.generalDays || [];
+
         // Format dates for storage
         const generalDaysArray = specialDates.map((date) =>
           formatDateForStorage(date)
@@ -93,7 +95,7 @@ export const WorkOnHoliday = () => {
             filter: (r) => r.ruleId === 3 || r.ruleId === "3",
             newValue: ruleFour, // update ruleId=3 object
           },
-          generalDays: generalDaysArray, // update generalDays with selected dates
+          generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
         });
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };

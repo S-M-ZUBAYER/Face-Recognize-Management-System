@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import ErrorModal from "./components/ErrorModal";
 import SubscriptionModal from "./components/SubscriptionModal";
 import SubscriptionRequiredModal from "./components/SubscriptionRequiredModal";
+import WarningModal from "./components/WarningModal";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <ErrorModal />
       <SubscriptionModal />
       <SubscriptionRequiredModal />
+      <WarningModal />
     </BrowserRouter>
   );
 }

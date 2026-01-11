@@ -1,6 +1,6 @@
 // Create: hooks/queryConfig.js
 export const DEFAULT_QUERY_CONFIG = {
-  staleTime: 1000, // 1 second
+  staleTime: 0,
   cacheTime: 10 * 60 * 1000, // 10 minutes
   retry: 2,
   retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

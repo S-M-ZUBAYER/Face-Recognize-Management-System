@@ -340,7 +340,16 @@ function getDayType(salaryRules, date) {
 
   const dateOnly = date.split("T")[0];
 
+  const rdates = salaryRules.replaceDays
+    .filter((item) => item.rdate !== null)
+    .map((item) => item.rdate.split("T")[0]);
+
   // ---- LOGIC ----
+
+  //ReplaceDays
+  if (rdates.includes(dateOnly)) {
+    return ["Replace Day"];
+  }
 
   // Weekend check
   if (weekendNames.includes(dayName)) {

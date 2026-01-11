@@ -215,7 +215,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
           {searchQuery && (
             <button
               onClick={handleReset}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
+              className="px-4 py-2  hover:bg-gray-600  bg-[#004368] text-white rounded-md text-sm  transition-colors"
             >
               Reset
             </button>

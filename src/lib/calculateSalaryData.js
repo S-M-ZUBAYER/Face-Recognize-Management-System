@@ -1,5 +1,6 @@
 // utils/salaryCalculation.js
 import { calculateSalary } from "@/lib/calculateSalary";
+import isNightShiftSimple from "./isNightShiftSimple";
 
 // ---------------------------------------------------------
 // 🔹 Function 1: Get selected month attendance
@@ -25,15 +26,15 @@ function getEmployeeMonthlyAttendance(
 // ---------------------------------------------------------
 // 🔹 Function 2: Get selected month + previous last day
 // ---------------------------------------------------------
-function getEmployeeMonthlyAttendanceWithPreDay(
+function getEmployeeMonthlyAttendanceWithNextDay(
   empId,
   deviceMAC,
   Attendance,
   selectedMonth,
   selectedYear
 ) {
-  const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
-  const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+  const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1;
+  const nextYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear;
 
   const currentMonthData = getEmployeeMonthlyAttendance(
     empId,
@@ -43,23 +44,23 @@ function getEmployeeMonthlyAttendanceWithPreDay(
     selectedYear
   );
 
-  const prevMonthData = Attendance.filter((record) => {
+  const nextMonthData = Attendance.filter((record) => {
     const d = new Date(record.date);
     return (
-      d.getMonth() === prevMonth &&
-      d.getFullYear() === prevYear &&
+      d.getMonth() === nextMonth &&
+      d.getFullYear() === nextYear &&
       record.empId === empId &&
       record.macId === deviceMAC
     );
   });
 
-  // Find last day of previous month
-  const lastDayPrevMonth = [...prevMonthData].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
+  // Find first day of next month
+  const firstDayNextMonth = [...nextMonthData].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
   )[0];
 
-  return lastDayPrevMonth
-    ? [lastDayPrevMonth, ...currentMonthData]
+  return firstDayNextMonth
+    ? [...currentMonthData, firstDayNextMonth]
     : currentMonthData;
 }
 
@@ -80,10 +81,12 @@ export function calculateSalaryData(
     const rules = emp.salaryRules?.rules || [];
     const ruleObj = rules.find((item) => item.ruleId === 0) || {};
 
+    const isNightShift = isNightShiftSimple(ruleObj);
+
     // Choose logic based on param3
     const monthlyAttendance =
-      ruleObj?.param3 === "special"
-        ? getEmployeeMonthlyAttendanceWithPreDay(
+      ruleObj?.param3 === "special" || isNightShift
+        ? getEmployeeMonthlyAttendanceWithNextDay(
             emp.employeeId,
             emp.deviceMAC,
             Attendance,
@@ -136,11 +139,12 @@ export async function calculateSalaryDataAsync(
     const batchResults = batch.map((emp) => {
       const rules = emp.salaryRules?.rules || [];
       const ruleObj = rules.find((item) => item.ruleId === 0) || {};
+      const isNightShift = isNightShiftSimple(ruleObj);
 
       // Choose logic based on param3
       const monthlyAttendance =
-        ruleObj?.param3 === "special"
-          ? getEmployeeMonthlyAttendanceWithPreDay(
+        ruleObj?.param3 === "special" || isNightShift
+          ? getEmployeeMonthlyAttendanceWithNextDay(
               emp.employeeId,
               emp.deviceMAC,
               Attendance,

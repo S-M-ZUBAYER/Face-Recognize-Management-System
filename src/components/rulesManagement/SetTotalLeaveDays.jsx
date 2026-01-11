@@ -219,6 +219,7 @@ export const SetTotalLeaveDays = () => {
               type="number"
               value={totalDays}
               onChange={(e) => handleTotalDaysChange(e.target.value)}
+              disabled
               placeholder="0"
               min="0"
               className="w-50 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#004368] focus:border-transparent"
