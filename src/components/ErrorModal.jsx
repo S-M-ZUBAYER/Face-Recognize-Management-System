@@ -192,7 +192,7 @@ const ErrorModal = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => window.location.reload()}
-                  className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-[#004368] transition-all duration-200 shadow-lg flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-[#004368] transition-all duration-200 shadow-lg flex items-center justify-center gap-2  border-slate-200 rounded-xl "
                 >
                   <RefreshCw className="w-4 h-4" />
                   Try Again

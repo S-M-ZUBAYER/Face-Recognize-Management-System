@@ -1,15 +1,13 @@
 import FancyLoader from "@/components/FancyLoader";
 import ResignedEmployeeTable from "@/components/resignedEmployee/ResignedEmployeeTable";
-import { useEmployees } from "@/hook/useEmployees";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const ResignedEmployeePage = () => {
-  const { isLoading } = useEmployees();
   const { resignedEmployees } = useEmployeeStore();
 
-  if (isLoading) {
-    <FancyLoader />;
-  }
+  // if (isLoading) {
+  //   <FancyLoader />;
+  // }
   return (
     <div className="p-4 space-y-4">
       <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F]">

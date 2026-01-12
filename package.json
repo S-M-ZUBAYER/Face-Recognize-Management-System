@@ -47,6 +47,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.62.0",
     "react-hot-toast": "^2.6.0",
+    "react-loading-indicators": "^1.0.1",
     "react-router-dom": "^7.7.1",
     "react-virtualized": "^9.22.6",
     "react-virtuoso": "^4.14.0",

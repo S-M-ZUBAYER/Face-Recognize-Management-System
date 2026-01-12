@@ -1,12 +1,13 @@
 // Updated: useSingleEmployeeDetails.js
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // import toast from "react-hot-toast";
-import { useGlobalSalary } from "./useGlobalSalary";
-import { usePayPeriod } from "./usePayPeriod";
+// import { useGlobalSalary } from "./useGlobalSalary";
+// import { usePayPeriod } from "./usePayPeriod";
 import { parseNormalData } from "@/lib/parseNormalData";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 // === Fetch employee details ===
 const fetchEmployeeDetails = async ({ employeeId, mac }) => {
@@ -36,19 +37,18 @@ const patchEmployeeDetails = async ({ mac, id, payload }) => {
 // === Main hook ===
 export const useSingleEmployeeDetails = (employeeId, mac) => {
   const queryClient = useQueryClient();
-  const { payPeriodData, isLoading: payPeriodLoading } = usePayPeriod();
-  const { globalSalaryRules, isLoading: rulesLoading } = useGlobalSalary();
+  const { payPeriodData, globalRules } = useGlobalStore();
 
   // --- Fetch employee details ---
   const employeeQuery = useQuery({
     queryKey: ["employee-details", employeeId, mac],
     queryFn: async () => {
-      if (payPeriodLoading || rulesLoading) {
-        console.warn("⏳ Waiting for global data to load...");
-        return null;
-      }
+      // if (payPeriodLoading) {
+      //   console.warn("⏳ Waiting for global data to load...");
+      //   return null;
+      // }
 
-      if (!payPeriodData || !globalSalaryRules) {
+      if (!payPeriodData || !globalRules) {
         console.warn("⚠️ Global data not available yet");
         return null;
       }
@@ -59,9 +59,7 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
         const matchedPayPeriod = payPeriodData?.find(
           (d) => d.deviceMAC === mac
         );
-        const matchedRule = globalSalaryRules?.find(
-          (rule) => rule.deviceMAC === mac
-        );
+        const matchedRule = globalRules?.find((rule) => rule.deviceMAC === mac);
 
         // console.log("✅ Matched Data:", {
         //   matchedPayPeriod,
@@ -113,7 +111,7 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
       }
     },
     ...DEFAULT_QUERY_CONFIG,
-    enabled: !!employeeId && !!mac && !payPeriodLoading && !rulesLoading,
+    enabled: !!employeeId && !!mac,
   });
 
   // --- Patch mutation for updating employee ---
@@ -144,6 +142,5 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
     ...employeeQuery,
     updateEmployee: updateEmployeeMutation.mutateAsync,
     updating: updateEmployeeMutation.isPending,
-    isLoadingGlobalData: payPeriodLoading || rulesLoading,
   };
 };

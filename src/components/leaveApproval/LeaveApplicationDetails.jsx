@@ -901,4 +901,4 @@ const LeaveApplicationDetails = ({ data }) => {
   );
 };
 
-export default React.memo(LeaveApplicationDetails);
+export default LeaveApplicationDetails;

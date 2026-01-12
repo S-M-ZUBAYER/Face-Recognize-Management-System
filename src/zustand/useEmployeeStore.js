@@ -2,9 +2,13 @@ import { create } from "zustand";
 
 export const useEmployeeStore = create((set, get) => ({
   employeesArray: [],
+  employeeCounts: [],
+  deviceCount: 0,
 
   // --- Set full array ---
   setEmployeesArray: (data) => set({ employeesArray: data }),
+  setEmployeeCount: (count) => set({ employeeCounts: count }),
+  setDeviceCount: (count) => set({ deviceCount: count }),
 
   // --- Computed Active Employees ---
   employees: () => {

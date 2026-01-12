@@ -2,13 +2,11 @@ import React, { useState } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeTable from "@/components/employee/EmployeeTable";
 import FancyLoader from "@/components/FancyLoader";
-import { useEmployees } from "@/hook/useEmployees";
 import { useDesignation } from "../hook/useDesignation";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 function EmployeePage() {
   const [activeFilter, setActiveFilter] = useState("All Employees");
-  const { isLoading: EmployeesLoading } = useEmployees();
 
   const { employees } = useEmployeeStore();
 
@@ -19,7 +17,7 @@ function EmployeePage() {
     return employees().filter((emp) => emp.department === activeFilter);
   };
 
-  if (EmployeesLoading || designationLoading) {
+  if (designationLoading) {
     <FancyLoader />;
   }
 

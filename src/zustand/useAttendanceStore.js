@@ -340,14 +340,16 @@ function getDayType(salaryRules, date) {
 
   const dateOnly = date.split("T")[0];
 
-  const rdates = salaryRules.replaceDays
-    .filter((item) => item.rdate !== null)
-    .map((item) => item.rdate.split("T")[0]);
+  const replaceDaysSet = new Set(
+    (salaryRules.replaceDays ?? [])
+      .filter((item) => item?.rdate)
+      .map((item) => item.rdate.split("T")[0])
+  );
 
   // ---- LOGIC ----
 
   //ReplaceDays
-  if (rdates.includes(dateOnly)) {
+  if (replaceDaysSet.has(dateOnly)) {
     return ["Replace Day"];
   }
 

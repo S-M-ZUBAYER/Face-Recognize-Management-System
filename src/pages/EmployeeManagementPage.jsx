@@ -74,7 +74,7 @@ function EmployeeManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className=" bg-white  ">
       <PageHeader />
       <EmployeeManagementContent
         activeFilter={activeFilter}
