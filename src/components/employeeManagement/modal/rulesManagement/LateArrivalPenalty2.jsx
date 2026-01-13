@@ -4,6 +4,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LateArrivalPenalty2 = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
@@ -11,6 +12,7 @@ export const LateArrivalPenalty2 = () => {
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save rule configuration
   const handleSave = async () => {
@@ -62,7 +64,7 @@ export const LateArrivalPenalty2 = () => {
             newValue: ruleSeventeen, // update ruleId=17 object
           },
         });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -70,6 +72,13 @@ export const LateArrivalPenalty2 = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
       setRulesIds(17);

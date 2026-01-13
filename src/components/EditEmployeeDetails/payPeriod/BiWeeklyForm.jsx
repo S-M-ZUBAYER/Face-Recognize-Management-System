@@ -17,6 +17,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 function BiWeeklyForm() {
   const [basic, setBasic] = useState("");
@@ -30,6 +32,7 @@ function BiWeeklyForm() {
   const [selectedWeekday, setSelectedWeekday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const { selectedEmployee } = useEditEmployeeStore();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -73,7 +76,7 @@ function BiWeeklyForm() {
       }
     }
 
-    return dates;
+    return dates.length > 4 ? dates.slice(0, 4) : dates;
   };
 
   useEffect(() => {
@@ -245,6 +248,11 @@ function BiWeeklyForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) }
+      );
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");

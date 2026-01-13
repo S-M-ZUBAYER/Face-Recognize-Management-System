@@ -5,6 +5,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const UseOverTimeLateness = () => {
   const [lateTime, setLateTime] = useState("");
@@ -14,6 +15,8 @@ export const UseOverTimeLateness = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save overtime lateness configuration
   const handleSave = async () => {
@@ -73,8 +76,6 @@ export const UseOverTimeLateness = () => {
           },
         });
 
-        updateEmployeeSalaryRules(empId, parseNormalData(updateEmployee));
-
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -82,6 +83,14 @@ export const UseOverTimeLateness = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updateEmployee));
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);

@@ -8,6 +8,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const OVERTIME_OPTIONS = [
   {
@@ -42,6 +44,7 @@ function NormalMonthForm() {
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -243,6 +246,12 @@ function NormalMonthForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) }
+      );
       toast.success("Employee updated successfully!");
     } catch (error) {
       console.error("Update error:", error);

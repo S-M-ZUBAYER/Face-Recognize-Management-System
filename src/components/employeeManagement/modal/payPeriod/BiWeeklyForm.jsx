@@ -17,6 +17,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -65,6 +67,7 @@ function BiWeeklyForm() {
   const { selectedEmployees, updateEmployeeSalaryInfo } =
     useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total
   const otherSalaryTotal = useMemo(
@@ -129,7 +132,7 @@ function BiWeeklyForm() {
       }
     }
 
-    return dates;
+    return dates.length > 4 ? dates.slice(0, 4) : dates;
   }, []);
 
   // Handle form input changes
@@ -219,45 +222,66 @@ function BiWeeklyForm() {
 
     try {
       const updatePromises = selectedEmployees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate: formData.inputWeek || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
-            name: formData.workingHours || employee?.salaryInfo?.name,
-            otherSalary:
-              otherSalaryArray.length > 0
-                ? otherSalaryArray
-                : employee?.salaryInfo?.otherSalary,
-            overtimeFixed:
-              formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
-            overtimeSalary: 0, // Not used for BiWeekly
-            payPeriod: "biWeekly",
-            salary: formData.basic || employee?.salaryInfo?.salary,
-            selectedOvertimeOption: 1, // Always fixed input for BiWeekly
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: formData.selectedWeekday
-              ? selectedWeekdayIndex
-              : employee?.salaryInfo?.startDay,
-            startWeek: formData.selectedDate
-              ? parseInt(formData.selectedDate)
-              : employee?.salaryInfo?.startWeek,
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
-        const parsed = JSON.parse(payPeriodJSON);
-        parsed.otherSalary = JSON.parse(parsed.otherSalary);
-        updateEmployeeSalaryInfo(employee.employeeId, parsed);
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.inputWeek || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: true,
+              name: formData.workingHours || employee?.salaryInfo?.name,
+              otherSalary:
+                otherSalaryArray.length > 0
+                  ? otherSalaryArray
+                  : employee?.salaryInfo?.otherSalary,
+              overtimeFixed:
+                formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
+              overtimeSalary: 0,
+              payPeriod: "biWeekly",
+              salary: formData.basic || employee?.salaryInfo?.salary,
+              selectedOvertimeOption: 1,
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: formData.selectedWeekday
+                ? selectedWeekdayIndex
+                : employee?.salaryInfo?.startDay,
+              startWeek: formData.selectedDate
+                ? parseInt(formData.selectedDate)
+                : employee?.salaryInfo?.startWeek,
+              status: employee?.salaryInfo?.status || null,
+            }
+          );
 
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+          const parsed = JSON.parse(payPeriodJSON);
+          parsed.otherSalary = JSON.parse(parsed.otherSalary);
+
+          // 1️⃣ First: API call
+          await updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+
+          // 2️⃣ Only runs if API SUCCESS
+          updateEmployeeSalaryInfo(employee.employeeId, parsed);
+
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(
+            "Failed to update employee:",
+            employee?.employeeId,
+            error
+          );
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);
+
       toast.success(
         `Successfully updated ${selectedEmployees.length} employee(s)`
       );

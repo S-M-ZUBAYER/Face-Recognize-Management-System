@@ -19,6 +19,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useImageUpload } from "@/hook/useImageUpload";
+import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export default function DocumentProofs() {
   const [missedPunchDate, setMissedPunchDate] = useState();
@@ -38,6 +40,7 @@ export default function DocumentProofs() {
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { uploadImage, uploading } = useImageUpload();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Load existing documents
   useEffect(() => {
@@ -153,6 +156,11 @@ export default function DocumentProofs() {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       setMissedPunchDocuments(updatedMissedPunchDocuments);
       resetMissedPunchForm();
@@ -244,6 +252,12 @@ export default function DocumentProofs() {
         payload,
       });
 
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+
       setLatePunchDocuments(updatedLatePunchDocuments);
       resetLatePunchForm();
       toast.success("Late punch document saved successfully!");
@@ -283,6 +297,12 @@ export default function DocumentProofs() {
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       if (isMissedPunch) {
         setMissedPunchDocuments(updatedDocuments);

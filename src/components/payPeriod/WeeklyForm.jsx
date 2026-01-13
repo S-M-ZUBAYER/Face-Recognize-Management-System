@@ -17,6 +17,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const OVERTIME_OPTIONS = [
   {
@@ -61,7 +62,7 @@ function WeeklyForm() {
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -184,37 +185,48 @@ function WeeklyForm() {
 
     try {
       const updatePromises = Employees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate: formData.inputWeek || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
-            name: formData.workingHours || employee?.salaryInfo?.name,
-            otherSalary:
-              otherSalaryArray.length > 0
-                ? otherSalaryArray
-                : employee?.salaryInfo?.otherSalary,
-            overtimeFixed:
-              formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
-            overtimeSalary: 0, // Not used for Weekly
-            payPeriod: "weekly",
-            salary: formData.basic || employee?.salaryInfo?.salary,
-            selectedOvertimeOption: 2, // Always fixed input for Weekly
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: formData.selectedWeekday
-              ? selectedWeekdayIndex
-              : employee?.salaryInfo?.startDay,
-            startWeek: null, // Weekly doesn't use startWeek
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.inputWeek || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
+              name: formData.workingHours || employee?.salaryInfo?.name,
+              otherSalary:
+                otherSalaryArray.length > 0
+                  ? otherSalaryArray
+                  : employee?.salaryInfo?.otherSalary,
+              overtimeFixed:
+                formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
+              overtimeSalary: 0, // Not used for Weekly
+              payPeriod: "weekly",
+              salary: formData.basic || employee?.salaryInfo?.salary,
+              selectedOvertimeOption: 2, // Always fixed input for Weekly
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: formData.selectedWeekday
+                ? selectedWeekdayIndex
+                : employee?.salaryInfo?.startDay,
+              startWeek: null, // Weekly doesn't use startWeek
+              status: employee?.salaryInfo?.status || null,
+            }
+          );
 
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);

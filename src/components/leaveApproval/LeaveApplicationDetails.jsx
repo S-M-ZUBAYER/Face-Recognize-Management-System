@@ -360,30 +360,33 @@ const LeaveApplicationDetails = ({ data }) => {
       <span className="text-[1.4vh] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
         Application Details
       </span>
-      <Button
-        onClick={handleEditToggle}
-        variant="outline"
-        size="sm"
-        className="flex items-center gap-2"
-        disabled={isUploading}
-      >
-        {isUploading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-[#004368] rounded-full animate-spin" />
-            Uploading...
-          </>
-        ) : isEditing ? (
-          <>
-            <X className="w-4 h-4" />
-            Cancel Edit
-          </>
-        ) : (
-          <>
-            <Edit2 className="w-4 h-4" />
-            Edit Application
-          </>
-        )}
-      </Button>
+      {(data.status === "pending_leader" ||
+        data.status === "pending_admin") && (
+        <Button
+          onClick={handleEditToggle}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-[#004368] rounded-full animate-spin" />
+              Uploading...
+            </>
+          ) : isEditing ? (
+            <>
+              <X className="w-4 h-4" />
+              Cancel Edit
+            </>
+          ) : (
+            <>
+              <Edit2 className="w-4 h-4" />
+              Edit Application
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 

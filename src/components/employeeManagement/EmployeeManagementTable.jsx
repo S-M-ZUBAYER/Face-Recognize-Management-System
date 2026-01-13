@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import ExportButton from "../ExportButton";
 import { Checkbox } from "../ui/checkbox";
 import EmployeeModal from "./EmployeeModal";
@@ -25,11 +25,11 @@ const EmployeeManagementTable = ({ employees = [] }) => {
   }, [employees]);
 
   // Reset selections when employees prop changes
-  useEffect(() => {
-    setSelectedEmployees([]);
-    setSearchInput("");
-    setSearchQuery("");
-  }, [employees]);
+  // useEffect(() => {
+  //   setSelectedEmployees([]);
+  //   setSearchInput("");
+  //   setSearchQuery("");
+  // }, [employees]);
 
   const getInitials = useCallback((name) => {
     if (!name) return "??";

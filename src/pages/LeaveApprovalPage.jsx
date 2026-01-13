@@ -135,7 +135,7 @@ const LeaveApprovalPage = () => {
             placeholder="Search by employee name..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full pl-10 pr-10 py-2 border border-[#E6ECF0] rounded-lg   text-sm"
+            className="w-full pl-10 pr-10 py-2 border  rounded-lg focus:outline-none border-[#004368]  text-sm"
           />
           {searchQuery && (
             <button

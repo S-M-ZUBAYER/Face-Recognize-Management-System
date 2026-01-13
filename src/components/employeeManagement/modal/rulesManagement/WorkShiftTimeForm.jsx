@@ -12,6 +12,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WorkShiftTimeForm = () => {
   const { selectedEmployees, updateEmployeeSalaryRules } =
@@ -22,6 +23,7 @@ export const WorkShiftTimeForm = () => {
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
@@ -426,13 +428,16 @@ export const WorkShiftTimeForm = () => {
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        updateEmployeeSalaryRules(employeeId, parseNormalData(updatedJSON));
-
         // ✅ Use the mutation function instead of calling the hook directly
         await updateEmployee({
           mac: emp?.deviceMAC || "",
           id: employeeId,
           payload,
+        });
+
+        updateEmployeeSalaryRules(employeeId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(emp.employeeId, emp.deviceMAC || "", {
+          salaryRules: parseNormalData(updatedJSON),
         });
 
         toast.success(`Shift configuration saved for employee ${employeeId}!`);

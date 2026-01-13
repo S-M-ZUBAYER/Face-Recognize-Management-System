@@ -73,6 +73,7 @@ export const getAllEmployeeData = async () => {
           designation: emp.designation,
           deviceMAC: device.deviceMAC,
           address: parseAddress(emp.address),
+          contactNumber: emp.contactNumber,
           salaryRules: emp.salaryRules,
           salaryInfo: JSON.parse(emp.payPeriod || "{}"),
         }));

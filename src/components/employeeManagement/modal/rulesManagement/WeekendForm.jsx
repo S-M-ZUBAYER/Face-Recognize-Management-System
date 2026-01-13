@@ -6,12 +6,15 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
   const { setRulesIds } = useUserStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -93,15 +96,22 @@ export const WeekendForm = () => {
         });
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-        return updateEmployee({
+
+        updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);

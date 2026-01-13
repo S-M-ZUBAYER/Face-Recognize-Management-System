@@ -9,6 +9,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const OVERTIME_OPTIONS = [
   {
@@ -40,7 +41,7 @@ function MonthlyForm() {
     selectedDate: "",
   });
 
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -184,49 +185,59 @@ function MonthlyForm() {
 
     try {
       const updatePromises = Employees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate: formData.workingDay || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-              ? formData.selectedOvertimeOption === "fixed-input"
-              : employee?.salaryInfo?.isSelectedFixedHourlyRate,
-            name: formData.workingHours || employee?.salaryInfo?.name,
-            otherSalary:
-              otherSalaryArray.length > 0
-                ? otherSalaryArray
-                : employee?.salaryInfo?.otherSalary,
-            overtimeFixed:
-              formData.selectedOvertimeOption === "fixed-input"
-                ? formData.overtimeRate
-                : employee?.salaryInfo?.overtimeFixed,
-            overtimeSalary:
-              formData.selectedOvertimeOption === "auto-calc"
-                ? parseFloat(formData.overtimeRate) || 0
-                : employee?.salaryInfo?.overtimeSalary,
-            payPeriod: "monthly",
-            salary: formData.basic || employee?.salaryInfo?.salary,
-            selectedOvertimeOption:
-              formData.selectedOvertimeOption === "auto-calc"
-                ? 0
-                : formData.selectedOvertimeOption === "fixed-input"
-                ? 1
-                : employee?.salaryInfo?.selectedOvertimeOption,
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: formData.selectedDate
-              ? parseInt(formData.selectedDate)
-              : employee?.salaryInfo?.startDay || 1,
-            startWeek: employee?.salaryInfo?.startWeek || null,
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.workingDay || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: formData.selectedOvertimeOption
+                ? formData.selectedOvertimeOption === "fixed-input"
+                : employee?.salaryInfo?.isSelectedFixedHourlyRate,
+              name: formData.workingHours || employee?.salaryInfo?.name,
+              otherSalary:
+                otherSalaryArray.length > 0
+                  ? otherSalaryArray
+                  : employee?.salaryInfo?.otherSalary,
+              overtimeFixed:
+                formData.selectedOvertimeOption === "fixed-input"
+                  ? formData.overtimeRate
+                  : employee?.salaryInfo?.overtimeFixed,
+              overtimeSalary:
+                formData.selectedOvertimeOption === "auto-calc"
+                  ? parseFloat(formData.overtimeRate) || 0
+                  : employee?.salaryInfo?.overtimeSalary,
+              payPeriod: "monthly",
+              salary: formData.basic || employee?.salaryInfo?.salary,
+              selectedOvertimeOption:
+                formData.selectedOvertimeOption === "auto-calc"
+                  ? 0
+                  : formData.selectedOvertimeOption === "fixed-input"
+                  ? 1
+                  : employee?.salaryInfo?.selectedOvertimeOption,
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: formData.selectedDate
+                ? parseInt(formData.selectedDate)
+                : employee?.salaryInfo?.startDay || 1,
+              startWeek: employee?.salaryInfo?.startWeek || null,
+              status: employee?.salaryInfo?.status || null,
+            }
+          );
 
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);

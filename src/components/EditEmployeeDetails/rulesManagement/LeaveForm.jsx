@@ -15,6 +15,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import formatDateForStorage from "@/lib/formatDateForStorage";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
@@ -25,6 +27,7 @@ export const LeaveForm = () => {
   const [totalLeaveDays, setTotalLeaveDays] = useState(0);
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Helper function to get consistent date string
   const getDateString = (date) => {
@@ -509,7 +512,7 @@ export const LeaveForm = () => {
         }
       });
 
-      console.log("Final updated leave data:", updatedLeaveData);
+      // console.log("Final updated leave data:", updatedLeaveData);
 
       // Prepare ruleId === 10 data
       const ruleTenData = Array(9)
@@ -559,13 +562,19 @@ export const LeaveForm = () => {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log("Saving payload:", payload);
+      // console.log("Saving payload:", payload);
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       toast.success("Leave configuration updated successfully!");
     } catch (error) {
@@ -595,6 +604,11 @@ export const LeaveForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
