@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
@@ -113,6 +114,29 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     (salaryData?.extraPay?.weekendNormalShiftPay || 0) +
     (salaryData?.extraPay?.holidayNormalShiftPay || 0);
 
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
+
+  //avatar
+
+  const employeeName = getEmployeeName(selectedEmp.name);
+  const initials = getInitials(employeeName);
+
   return (
     <AnimatePresence>
       {selectedEmp && (
@@ -142,7 +166,18 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {selectedEmp?.name?.split("<")[0]}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage
+                          src={selectedEmp.image}
+                          alt={`${selectedEmp.name}'s profile`}
+                        />
+                        <AvatarFallback className="text-xs font-medium">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedEmp?.name?.split("<")[0]}
+                    </div>
                   </h2>
                   <p className="text-white/80 text-sm mt-1">
                     Weekly Salary Details • {selectedEmp?.department} • Week{" "}

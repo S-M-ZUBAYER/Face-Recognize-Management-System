@@ -271,7 +271,7 @@ const DateRangePicker = ({
                 !getFormattedRange() && "text-muted-foreground"
               )}
             >
-              <Calendar className="mr-2 h-4 w-4" />
+              <Calendar className="mr-2 h-4 w-4 text-gray-500 size-4" />
               <span className="flex-1">{displayText}</span>
             </Button>
           </PopoverTrigger>

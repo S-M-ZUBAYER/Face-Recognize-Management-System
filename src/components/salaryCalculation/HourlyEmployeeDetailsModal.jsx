@@ -13,6 +13,7 @@ import { useDateStore } from "@/zustand/useDateStore";
 import calculateHourlySalary from "@/lib/calculateSalary/calculateHourlySalary";
 import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
 import isNightShiftSimple from "@/lib/isNightShiftSimple";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore();
@@ -290,6 +291,29 @@ const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   // Determine if calculate button should be enabled
   const canCalculate = dateRange.start && dateRange.end && !isCalculating;
 
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
+
+  //avatar
+
+  const employeeName = getEmployeeName(selectedEmp.name);
+  const initials = getInitials(employeeName);
+
   return (
     <AnimatePresence>
       {selectedEmp && (
@@ -306,7 +330,7 @@ const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
           />
 
           <motion.div
-            className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] overflow-hidden"
+            className="relative bg-white rounded-xl shadow-xl w-full max-w-[30vw] max-h-[85vh] overflow-hidden"
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -316,8 +340,19 @@ const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
             <div className="bg-[#004368] p-4 text-white">
               <div className="flex justify-between items-center">
                 <div className="max-w-[80%]">
-                  <h2 className="text-lg font-semibold truncate">
-                    {selectedEmp?.name?.split("<")[0]}
+                  <h2 className="text-2xl font-bold">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage
+                          src={selectedEmp.image}
+                          alt={`${selectedEmp.name}'s profile`}
+                        />
+                        <AvatarFallback className="text-xs font-medium">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedEmp?.name?.split("<")[0]}
+                    </div>
                   </h2>
                   <p className="text-white/80 text-xs mt-0.5">
                     Hourly Employee • {selectedMonth + 1}/{selectedYear}
@@ -574,7 +609,7 @@ const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                 </div>
                 <Button
                   onClick={() => setSelectedEmp(null)}
-                  className="bg-[#004368] hover:bg-[#003050] text-white text-xs px-3 py-1.5 h-auto"
+                  className="bg-[#004368] hover:bg-[#003050] text-white text-xs px-6 py-1.5 h-auto"
                 >
                   Close
                 </Button>

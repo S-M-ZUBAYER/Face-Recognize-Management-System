@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { EyeClosed } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
@@ -7,6 +7,7 @@ import HourlyEmployeeDetailsModal from "./HourlyEmployeeDetailsModal";
 import WeeklyEmployeeDetailsModal from "./WeeklyEmployeeDetailsModal";
 import SemiMonthlyEmployeeDetailsModal from "./SemiMonthlyEmployeeDetailsModal";
 import BiweeklyEmployeeDetailsModal from "./BiweeklyEmployeeDetailsModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function SalaryTable({ employees }) {
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -105,6 +106,24 @@ function SalaryTable({ employees }) {
       [empId]: !prev[empId],
     }));
   };
+
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
 
   return (
     <>
@@ -232,6 +251,8 @@ function SalaryTable({ employees }) {
                   emp?.salaryDetails?.Present || {}
                 ).reduce((sum, val) => sum + (val || 0), 0);
                 const totalAmount = calculateTotalAmount(emp);
+                const employeeName = getEmployeeName(emp.name);
+                const initials = getInitials(employeeName);
 
                 return (
                   <tr
@@ -249,7 +270,18 @@ function SalaryTable({ employees }) {
 
                     {/* Name */}
                     <td className="p-3 font-medium text-gray-900">
-                      {emp.name?.split("<")[0]?.trim() || "N/A"}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 flex-shrink-0">
+                          <AvatarImage
+                            src={emp.image}
+                            alt={`${emp.name}'s profile`}
+                          />
+                          <AvatarFallback className="text-xs font-medium">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        {emp.name?.split("<")[0]?.trim() || "N/A"}
+                      </div>
                     </td>
 
                     {/* Employee ID */}

@@ -56,6 +56,7 @@ export function DatePicker() {
               captionLayout="dropdown"
               month={month}
               onMonthChange={setMonth}
+              disabled={{ after: new Date() }}
               onSelect={(date) => {
                 if (!date) return;
                 setSelectedDate(format(date, "yyyy-MM-dd")); // ✅ update hook state

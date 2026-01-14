@@ -46,6 +46,13 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState("basic"); // 'basic', 'contact', 'status'
 
+  const dailyWorkingHours = Number(selectedEmp.salaryInfo.name || 8);
+  const isFixedHourlyRate =
+    selectedEmp.salaryInfo.selectedOvertimeOption === 1 || false;
+  const overtimeSalaryRate = isFixedHourlyRate
+    ? Number(selectedEmp.salaryInfo.overtimeFixed || 0)
+    : Number(selectedEmp.salaryInfo.overtimeSalary || 0) / dailyWorkingHours;
+
   const { updateEmployee: updateEmployeeField } = useEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -148,16 +155,16 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
       },
       {
         label: "Address",
-        value: employeeData?.address?.des || employeeData?.address || "",
+        value: employeeData?.address?.des || "",
         icon: MapPin,
         animationDelay: 0.05,
       },
-      // {
-      //   label: "Contract Number",
-      //   value: employeeData?.contractNumber,
-      //   icon: FileText,
-      //   animationDelay: 0.1,
-      // },
+      {
+        label: "Joining Date",
+        value: employeeData?.joiningDate,
+        icon: FileText,
+        animationDelay: 0.1,
+      },
     ],
     [employeeData]
   );
@@ -172,7 +179,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
       },
       {
         label: "Hourly Rate",
-        value: employeeData?.salaryInfo?.overtimeSalary,
+        value: overtimeSalaryRate,
         icon: DollarSign,
         animationDelay: 0.05,
       },
@@ -183,7 +190,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         animationDelay: 0.1,
       },
     ],
-    [employeeData]
+    [employeeData, overtimeSalaryRate]
   );
 
   const handleStatusChange = useCallback((newStatus) => {

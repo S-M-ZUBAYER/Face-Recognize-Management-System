@@ -135,6 +135,7 @@ const LeaveApprovalPage = () => {
             placeholder="Search by employee name..."
             value={searchQuery}
             onChange={handleSearchChange}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="w-full pl-10 pr-10 py-2 border  rounded-lg focus:outline-none border-[#004368]  text-sm"
           />
           {searchQuery && (

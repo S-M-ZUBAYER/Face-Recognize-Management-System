@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Check,
   X,
@@ -25,6 +25,7 @@ const SubscriptionModal = () => {
   const currency = "USD";
   const navigate = useNavigate();
   const { user } = useUserStore();
+  const bottomRef = useRef(null);
 
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [currentPackage, setCurrentPackage] = useState(null);
@@ -90,6 +91,9 @@ const SubscriptionModal = () => {
 
   // Handle package selection
   const handlePackageSelect = (pkg) => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
     if (currentPackage?.id === pkg.id) {
       // If selecting current package, enable multiple purchase
       setBuyMultiple(true);
@@ -405,6 +409,7 @@ const SubscriptionModal = () => {
 
               {/* Footer */}
               <motion.div
+                ref={bottomRef}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}

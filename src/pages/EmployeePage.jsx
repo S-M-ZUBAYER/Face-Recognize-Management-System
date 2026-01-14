@@ -10,7 +10,7 @@ function EmployeePage() {
 
   const { employees } = useEmployeeStore();
 
-  console.log(employees());
+  // console.log(employees());
 
   const { designation, isLoading: designationLoading } = useDesignation();
 
