@@ -43,6 +43,11 @@ import {
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import formatDateForStorage from "@/lib/formatDateForStorage";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import { parseNormalData } from "@/lib/parseNormalData";
+import leaveApprove from "@/lib/leaveApprove";
 
 // Constants
 const LEAVE_CATEGORIES = [
@@ -64,6 +69,11 @@ const LeaveApplicationDetails = ({ data }) => {
   const { updateLeave } = useLeaveData();
   const { user } = useUserStore();
   const { uploadImage, uploading: isUploading } = useImageUpload();
+
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const Employees = employees();
+
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // State
   const [isEditing, setIsEditing] = useState(false);
@@ -295,12 +305,22 @@ const LeaveApplicationDetails = ({ data }) => {
   };
 
   const handleUpdateLeave = async (status) => {
+    let leaveUpdated = false;
+    let employeeUpdated = false;
+
     try {
-      const updatedData = {
+      /* =====================================================
+       * SECTION 1: UPDATE LEAVE STATUS
+       * ===================================================== */
+      if (!data || !user) {
+        throw new Error("Invalid leave or user data");
+      }
+
+      const leavePayload = {
         id: data.id,
         employeeId: data.employeeId,
-        employeeName: data.employeeName.split("<")[0],
-        approverName: updateJsonString("admin", user?.userName),
+        employeeName: data.employeeName?.split("<")[0] || "",
+        approverName: updateJsonString("admin", user.userName),
         deviceMAC: data.deviceMAC,
         startDate: data.startDate,
         endDate: data.endDate,
@@ -314,11 +334,82 @@ const LeaveApplicationDetails = ({ data }) => {
         status: `${status}_admin`,
       };
 
-      await updateLeave(updatedData);
-      toast.success(`Leave ${status} successfully`);
+      await updateLeave(leavePayload);
+      leaveUpdated = true;
+
+      /* =====================================================
+       * SECTION 2: UPDATE EMPLOYEE SALARY RULES
+       * ===================================================== */
+      const employee = Employees.find(
+        (emp) => emp.employeeId === data.employeeId
+      );
+
+      if (!employee) {
+        throw new Error("Employee not found");
+      }
+
+      const empId = String(employee.employeeId);
+      const salaryRules = employee.salaryRules || {};
+      const existingRules = salaryRules.rules || [];
+
+      // Ensure Rule #10 exists
+      const ruleTen = existingRules.find(
+        (rule) => rule.ruleId === 10 || rule.ruleId === "10"
+      ) || {
+        id: Math.floor(10 + Math.random() * 90),
+        empId,
+        ruleId: "10",
+        ruleStatus: 1,
+        param1: "",
+        param2: "",
+        param3: "",
+        param4: "",
+        param5: "",
+        param6: "",
+      };
+
+      ruleTen.empId = empId;
+
+      // Apply leave-based salary rules
+      const leaveSalaryRules = leaveApprove({
+        salaryRules,
+        leave: data,
+      });
+
+      const updatedSalaryRules = finalJsonForUpdate(salaryRules, {
+        empId,
+        rules: {
+          filter: (r) => r.ruleId === 10 || r.ruleId === "10",
+          newValue: ruleTen,
+        },
+        ...leaveSalaryRules,
+      });
+
+      const payload = {
+        salaryRules: JSON.stringify(updatedSalaryRules),
+      };
+
+      await updateEmployee({
+        mac: employee.deviceMAC || "",
+        id: employee.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+        salaryRules: parseNormalData(updatedSalaryRules),
+      });
+
+      employeeUpdated = true;
+
+      /* =====================================================
+       * FINAL SUCCESS
+       * ===================================================== */
+      if (leaveUpdated && employeeUpdated) {
+        toast.success(`Leave ${status} successfully updated`);
+      }
     } catch (error) {
+      console.error("Leave update process failed:", error);
       toast.error(`Leave ${status} failed`);
-      console.error("Status update error:", error);
     }
   };
 
@@ -855,6 +946,7 @@ const LeaveApplicationDetails = ({ data }) => {
         >
           <button
             onClick={handleReject}
+            disabled={updating}
             className="group relative px-6 py-3 text-sm font-semibold text-red-600 bg-gradient-to-br from-red-50 to-white border border-red-100 rounded-2xl hover:border-red-200 hover:shadow-lg hover:shadow-red-100/50 transition-all duration-300 active:scale-[0.98] overflow-hidden sm:w-[50%]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -866,6 +958,7 @@ const LeaveApplicationDetails = ({ data }) => {
 
           <button
             onClick={handleApprove}
+            disabled={updating}
             className="group relative px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-[#004368] to-[#003152] rounded-2xl hover:from-[#005580] hover:to-[#004368] hover:shadow-xl hover:shadow-[#004368]/30 transition-all duration-300 active:scale-[0.98] overflow-hidden sm:w-[50%]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />

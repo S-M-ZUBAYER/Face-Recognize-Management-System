@@ -267,7 +267,7 @@ const DateRangePicker = ({
             <Button
               variant="outline"
               className={cn(
-                "min-w-64 justify-start text-left font-normal",
+                "w-[8vw] justify-start text-left font-normal",
                 !getFormattedRange() && "text-muted-foreground"
               )}
             >

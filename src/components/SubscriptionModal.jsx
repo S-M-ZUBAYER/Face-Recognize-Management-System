@@ -125,7 +125,9 @@ const SubscriptionModal = () => {
       return;
     }
 
-    const encodedEmail = btoa(encodeURIComponent(user.userEmail));
+    const encodedEmail = btoa(
+      encodeURIComponent(user?.alternateEmail || user?.userEmail)
+    );
     const url = `https://grozziieget.zjweiting.com:3090/attendance/payment/web/${selectedPackage.id}/${encodedEmail}/attendance`;
 
     // Add quantity parameter if buying multiple

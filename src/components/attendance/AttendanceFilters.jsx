@@ -8,6 +8,7 @@ const AttendanceFilters = memo(() => {
   const totalCount = useAttendanceStore((state) => state.totalCount);
   const presentCount = useAttendanceStore((state) => state.presentCount);
   const absentCount = useAttendanceStore((state) => state.absentCount);
+  const lateCount = useAttendanceStore((state) => state.lateCount);
   const isFilterLoading = useAttendanceStore((state) => state.isFilterLoading);
   const setActiveFilter = useAttendanceStore((state) => state.setActiveFilter);
 
@@ -18,9 +19,10 @@ const AttendanceFilters = memo(() => {
       { key: "all", label: "All Records", count: totalCount },
       { key: "present", label: "Present", count: presentCount },
       { key: "absent", label: "Absent", count: absentCount },
+      { key: "late", label: "Late", count: lateCount },
       { key: "overtime", label: "Overtime", count: null },
     ],
-    [totalCount, presentCount, absentCount]
+    [totalCount, presentCount, absentCount, lateCount]
   );
 
   // Memoize click handler

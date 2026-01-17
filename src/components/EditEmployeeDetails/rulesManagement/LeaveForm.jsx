@@ -278,8 +278,8 @@ export const LeaveForm = () => {
       }
     });
 
-    console.log("Updated time ranges for dates:", newDates);
-    console.log("New time ranges:", newTimeRanges);
+    // console.log("Updated time ranges for dates:", newDates);
+    // console.log("New time ranges:", newTimeRanges);
 
     setLeaveDetails((prev) => ({
       ...prev,
@@ -489,7 +489,7 @@ export const LeaveForm = () => {
               }),
             };
 
-            console.log("Base leave object:", baseLeaveObject);
+            // console.log("Base leave object:", baseLeaveObject);
 
             // For Maternity Leave, For Marriage, Paternity Leave - no deduct fields
             if (

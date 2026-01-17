@@ -13,7 +13,7 @@ import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 
 function SalaryCalculationPage() {
   const [activeFilter, setActiveFilter] = React.useState("All Employees");
-  const [showLoader, setShowLoader] = useState(true);
+  // const [showLoader, setShowLoader] = useState(true);
   const [enrichedEmployees, setEnrichedEmployees] = useState([]);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -66,13 +66,13 @@ function SalaryCalculationPage() {
   }, [Attendance.length, Employees.length, selectedMonth, selectedYear]);
 
   // Show loader for minimum 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLoader(false);
-    }, 2000);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setShowLoader(false);
+  //   }, 2000);
 
-    return () => clearTimeout(timer);
-  }, []);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   const filteredEmployees = useMemo(() => {
     if (activeFilter === "All Employees") return enrichedEmployees;
@@ -85,7 +85,7 @@ function SalaryCalculationPage() {
 
   // Show loader if still loading OR if we're in the 2-second delay period
   const shouldShowLoader =
-    attendanceLoading || designationLoading || showLoader || isCalculating;
+    attendanceLoading || designationLoading  || isCalculating;
 
   if (shouldShowLoader) {
     return <FancyLoader />;
