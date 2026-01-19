@@ -1,164 +1,169 @@
-import React, { useMemo, useCallback, useState, useEffect } from "react";
+import React, { useMemo, useCallback, useState, useEffect, memo } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import FancyLoader from "@/components/FancyLoader";
 import MonthPicker from "@/components/salaryCalculation/MonthPicker";
-import { useDesignation } from "@/hook/useDesignation";
 import SalaryTable from "@/components/salaryCalculation/SalaryTable";
+import { useDesignation } from "@/hook/useDesignation";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useDateStore } from "@/zustand/useDateStore";
 import { useAttendanceData } from "@/hook/useAttendanceData";
-import { calculateSalaryDataAsync } from "@/lib/calculateSalaryData";
 import { usePaymentInfo } from "@/hook/useSubscriptionData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
+import { calculateSalaryDataAsync } from "@/lib/calculateSalaryData";
 
-function SalaryCalculationPage() {
-  const [activeFilter, setActiveFilter] = React.useState("All Employees");
-  // const [showLoader, setShowLoader] = useState(true);
-  const [enrichedEmployees, setEnrichedEmployees] = useState([]);
-  const [isCalculating, setIsCalculating] = useState(false);
+// Constants
+const ALL_EMPLOYEES = "All Employees";
 
-  const { employees } = useEmployeeStore();
-  const Employees = employees();
-  const { selectedMonth, selectedYear } = useDateStore();
-  const { isLoading: attendanceLoading, Attendance = [] } = useAttendanceData();
-  const { designation, isLoading: designationLoading } = useDesignation();
-  const { data: paymentInfo } = usePaymentInfo();
-  const { setIsSubscriptionModal } = useSubscriptionStore();
+// Memoized Components
+const PageHeader = memo(() => (
+  <div className="flex justify-between items-center">
+    <h1 className="text-[22px] font-semibold text-[#1F1F1F]">
+      Salary Calculation
+    </h1>
+    <MonthPicker />
+  </div>
+));
+PageHeader.displayName = "PageHeader";
 
-  // Async salary calculation - FIXED DEPENDENCIES
-  // useEffect(() => {
-  //   if (!paymentInfo || paymentInfo.paymentStatus !== 1) return;
-  useEffect(() => {
-    if (!paymentInfo) return;
+const SubscriptionPrompt = memo(({ onUpgrade }) => (
+  <div className="w-full h-[60vh] flex justify-center items-center">
+    <div className="w-[50%] bg-white border border-[#E5E9EB] rounded-2xl shadow-md px-8 py-10 flex flex-col items-center gap-6">
+      <h2 className="text-2xl font-semibold text-[#004368]">
+        Subscription Required
+      </h2>
+      <p className="text-gray-600 text-center leading-relaxed">
+        To access the Salary Calculation feature, please subscribe to a plan
+        that includes this feature.
+      </p>
+      <button
+        onClick={onUpgrade}
+        className="mt-2 px-6 py-3 bg-[#004368] hover:bg-[#00324d] text-white font-medium rounded-xl shadow-sm transition-all duration-300"
+      >
+        Upgrade to Pro
+      </button>
+    </div>
+  </div>
+));
+SubscriptionPrompt.displayName = "SubscriptionPrompt";
+
+// Custom Hooks
+const useSubscriptionStatus = (paymentInfo) => {
+  return useMemo(() => {
+    if (!paymentInfo?.paymentExpireTime)
+      return { isExpired: true, isActive: false };
 
     const expireDate = new Date(paymentInfo.paymentExpireTime);
     const today = new Date();
 
-    // Normalize both to start of day
     expireDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
 
-    // ⛔ Stop effect if payment already expired
-    if (expireDate < today) return;
+    const isExpired = expireDate < today;
+    return { isExpired, isActive: !isExpired };
+  }, [paymentInfo]);
+};
+
+const useSalaryCalculation = (
+  employees,
+  attendance,
+  selectedMonth,
+  selectedYear,
+  isSubscriptionActive,
+) => {
+  const [enrichedEmployees, setEnrichedEmployees] = useState([]);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  useEffect(() => {
+    if (!isSubscriptionActive || !employees.length || !attendance.length)
+      return;
+
     const calculateSalaries = async () => {
-      // Check if we have data and not already calculating
-      if (Attendance.length > 0 && Employees.length > 0 && !isCalculating) {
-        setIsCalculating(true);
-        try {
-          const results = await calculateSalaryDataAsync(
-            Employees,
-            Attendance,
-            selectedMonth,
-            selectedYear
-          );
-          setEnrichedEmployees(results);
-        } catch (error) {
-          console.error("Salary calculation error:", error);
-          setEnrichedEmployees([]);
-        } finally {
-          setIsCalculating(false);
-        }
+      setIsCalculating(true);
+      try {
+        const results = await calculateSalaryDataAsync(
+          employees,
+          attendance,
+          selectedMonth,
+          selectedYear,
+        );
+        setEnrichedEmployees(results);
+      } catch (error) {
+        console.error("Salary calculation error:", error);
+        setEnrichedEmployees([]);
+      } finally {
+        setIsCalculating(false);
       }
     };
 
     calculateSalaries();
-    // Only depend on the actual values that should trigger recalculation
-  }, [Attendance.length, Employees.length, selectedMonth, selectedYear]);
+  }, [
+    employees.length,
+    attendance.length,
+    selectedMonth,
+    selectedYear,
+    isSubscriptionActive,
+  ]);
 
-  // Show loader for minimum 2 seconds
-  // useEffect(() => {
-  //   const timer = setTimeout(() => {
-  //     setShowLoader(false);
-  //   }, 2000);
+  return { enrichedEmployees, isCalculating };
+};
 
-  //   return () => clearTimeout(timer);
-  // }, []);
+// Main Component
+function SalaryCalculationPage() {
+  const [activeFilter, setActiveFilter] = useState(ALL_EMPLOYEES);
 
+  // Store hooks
+  const { employees } = useEmployeeStore();
+  const { selectedMonth, selectedYear } = useDateStore();
+  const { setIsSubscriptionModal } = useSubscriptionStore();
+
+  // Data hooks
+  const Employees = employees();
+  const { isLoading: attendanceLoading, Attendance = [] } = useAttendanceData();
+  const { designation, isLoading: designationLoading } = useDesignation();
+  const { data: paymentInfo } = usePaymentInfo();
+
+  // Custom hooks
+  const { isExpired, isActive } = useSubscriptionStatus(paymentInfo);
+  const { enrichedEmployees, isCalculating } = useSalaryCalculation(
+    Employees,
+    Attendance,
+    selectedMonth,
+    selectedYear,
+    isActive,
+  );
+
+  // Memoized values
   const filteredEmployees = useMemo(() => {
-    if (activeFilter === "All Employees") return enrichedEmployees;
+    if (activeFilter === ALL_EMPLOYEES) return enrichedEmployees;
     return enrichedEmployees.filter((emp) => emp.department === activeFilter);
   }, [activeFilter, enrichedEmployees]);
 
+  const isLoading = attendanceLoading || designationLoading || isCalculating;
+
+  // Event handlers
   const handleFilterChange = useCallback((filter) => {
     setActiveFilter(filter);
   }, []);
 
-  // Show loader if still loading OR if we're in the 2-second delay period
-  const shouldShowLoader =
-    attendanceLoading || designationLoading  || isCalculating;
+  const handleUpgrade = useCallback(() => {
+    setIsSubscriptionModal(true);
+  }, [setIsSubscriptionModal]);
 
-  if (shouldShowLoader) {
-    return <FancyLoader />;
-  }
-
-  const isExpired = (() => {
-    if (!paymentInfo?.paymentExpireTime) return true;
-
-    const expireDate = new Date(paymentInfo.paymentExpireTime);
-    const today = new Date();
-
-    expireDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-
-    return expireDate < today; // expired
-  })();
-
-  if (isExpired) {
-    return (
-      <div className="w-full h-[60vh] flex justify-center items-center">
-        <div className="w-[50%] bg-white border border-[#E5E9EB] rounded-2xl shadow-md px-8 py-10 flex flex-col items-center gap-6">
-          <p className="text-2xl font-semibold text-[#004368]">
-            Subscription Required
-          </p>
-
-          <p className="text-gray-600 text-center leading-relaxed">
-            To access the Salary Calculation feature, please subscribe to a plan
-            that includes this feature.
-          </p>
-
-          <button
-            onClick={() => setIsSubscriptionModal(true)}
-            className="
-        mt-2
-        px-6 py-3
-        bg-[#004368]
-        hover:bg-[#00324d]
-        text-white
-        font-medium
-        rounded-xl
-        shadow-sm
-        transition-all
-        duration-300
-        flex items-center gap-2
-      "
-          >
-            <span className="text-white">Upgrade to Pro</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Render conditions
+  if (isLoading) return <FancyLoader />;
+  if (isExpired) return <SubscriptionPrompt onUpgrade={handleUpgrade} />;
 
   return (
     <div className="space-y-4 px-6">
-      <div className="flex justify-between items-center">
-        <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F]">
-          Salary Calculation
-        </p>
-        <div className="flex items-center gap-4">
-          <MonthPicker />
-        </div>
-      </div>
-
+      <PageHeader />
       <EmployeeFilterTabs
         filters={designation}
         activeFilter={activeFilter}
         onFilterChange={handleFilterChange}
       />
-
       <SalaryTable employees={filteredEmployees} />
     </div>
   );
 }
 
-export default React.memo(SalaryCalculationPage);
+export default memo(SalaryCalculationPage);

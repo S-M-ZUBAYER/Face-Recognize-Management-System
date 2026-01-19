@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, memo } from "react";
+import React, { useMemo, useCallback, memo, useState, useEffect } from "react";
 import EmployeeFilterTabs from "@/components/EmployeeFilterTabs";
 import EmployeeManagementTable from "@/components/employeeManagement/EmployeeManagementTable";
 import { useDesignation } from "@/hook/useDesignation";
@@ -27,17 +27,27 @@ const EmployeeManagementContent = memo(
       />
       <EmployeeManagementTable employees={filteredEmployees} />
     </div>
-  )
+  ),
 );
 
 EmployeeManagementContent.displayName = "EmployeeManagementContent";
 
 function EmployeeManagementPage() {
   const [activeFilter, setActiveFilter] = React.useState(ALL_EMPLOYEES_FILTER);
+  const [showInitialLoader, setShowInitialLoader] = useState(true);
 
   const { employees } = useEmployeeStore();
   const Employees = employees();
   const { designation, isLoading: managementLoading } = useDesignation();
+
+  // ✅ Show loader for 2 seconds on initial mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInitialLoader(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Memoized filter handler
   const handleFilterChange = useCallback((filter) => {
@@ -53,8 +63,8 @@ function EmployeeManagementPage() {
       : Employees.filter((emp) => emp.department === activeFilter);
   }, [Employees, activeFilter]);
 
-  // Memoized loading state
-  const isLoading = useMemo(() => managementLoading, [managementLoading]);
+  // ✅ Combined loading state: show loader if initial delay OR data is loading
+  const isLoading = showInitialLoader || managementLoading;
 
   // Early return for loading state
   if (isLoading) {

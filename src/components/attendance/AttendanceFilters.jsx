@@ -22,7 +22,7 @@ const AttendanceFilters = memo(() => {
       { key: "late", label: "Late", count: lateCount },
       { key: "overtime", label: "Overtime", count: null },
     ],
-    [totalCount, presentCount, absentCount, lateCount]
+    [totalCount, presentCount, absentCount, lateCount],
   );
 
   // Memoize click handler
@@ -32,7 +32,7 @@ const AttendanceFilters = memo(() => {
         setActiveFilter(filterKey);
       }
     },
-    [activeFilter, isFilterLoading, setActiveFilter]
+    [activeFilter, isFilterLoading, setActiveFilter],
   );
 
   // console.log("AttendanceFilters re-rendered", {
@@ -48,13 +48,13 @@ const AttendanceFilters = memo(() => {
       <p className="text-[#1F1F1F] text-[1vw] font-[600] font-poppins-regular">
         Choose Search Type
       </p>
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         {filters.map((filter) => (
           <button
             key={filter.key}
             onClick={() => handleFilterClick(filter.key)}
             disabled={isFilterLoading}
-            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-4 md:py-2 whitespace-nowrap ${
+            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-3 md:py-2 whitespace-nowrap ${
               activeFilter === filter.key
                 ? "bg-[#004368] text-[#E6ECF0]"
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0]"
