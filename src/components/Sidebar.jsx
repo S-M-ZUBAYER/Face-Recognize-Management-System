@@ -381,6 +381,8 @@ const Sidebar = () => {
 
     try {
       // Batch storage operations
+      localStorage.removeItem("hideWarningModalRules");
+      localStorage.removeItem("hideWarningModalPayPeriod");
       localStorage.removeItem("user");
       localStorage.removeItem("deviceMACs");
 

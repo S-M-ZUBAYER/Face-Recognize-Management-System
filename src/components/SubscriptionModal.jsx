@@ -70,7 +70,7 @@ const SubscriptionModal = () => {
     if (paymentInfo?.paymentStatus === 1) {
       const currentPackageName = paymentInfo.package_name;
       const userPackage = packages.find(
-        (pkg) => pkg.package_name === currentPackageName
+        (pkg) => pkg.package_name === currentPackageName,
       );
 
       if (userPackage) {
@@ -119,14 +119,14 @@ const SubscriptionModal = () => {
     if (!selectedPackage) return;
 
     if (user.emailVerified !== true) {
-      navigate("/verification");
+      navigate("/Face_Attendance_Management_System/verification");
       setIsSubscriptionModal(false);
       setPackage(selectedPackage);
       return;
     }
 
     const encodedEmail = btoa(
-      encodeURIComponent(user?.alternateEmail || user?.userEmail)
+      encodeURIComponent(user?.alternateEmail || user?.userEmail),
     );
     const url = `https://grozziieget.zjweiting.com:3090/attendance/payment/web/${selectedPackage.id}/${encodedEmail}/attendance`;
 
@@ -233,8 +233,8 @@ const SubscriptionModal = () => {
                             expiryDays > 30
                               ? "bg-green-100 text-green-800"
                               : expiryDays > 7
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {expiryDays > 0
@@ -366,7 +366,7 @@ const SubscriptionModal = () => {
                             {pkg.features
                               .filter(
                                 (feature) =>
-                                  !feature.includes("https://printernoble.com")
+                                  !feature.includes("https://printernoble.com"),
                               )
                               .map((feature, idx) => (
                                 <div key={idx} className="flex items-start">
@@ -384,8 +384,8 @@ const SubscriptionModal = () => {
                               isCurrent
                                 ? "bg-[#004368] text-white shadow-md"
                                 : isSelected
-                                ? "bg-[#004368] text-white shadow-md"
-                                : "bg-[#004368]/10 text-[#004368] hover:bg-[#004368]/20"
+                                  ? "bg-[#004368] text-white shadow-md"
+                                  : "bg-[#004368]/10 text-[#004368] hover:bg-[#004368]/20"
                             }`}
                           >
                             {isCurrent ? (

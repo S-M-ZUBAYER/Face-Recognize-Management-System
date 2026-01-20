@@ -44,7 +44,7 @@ function EmployeeManagementPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowInitialLoader(false);
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);

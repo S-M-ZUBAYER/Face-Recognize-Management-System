@@ -14,7 +14,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
-      0
+      0,
     );
   });
   const [salaryData, setSalaryData] = useState(null);
@@ -38,7 +38,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
           salaryRules,
           startDate,
           endDate,
-          id
+          id,
         );
         setSalaryData(data);
       } catch (error) {
@@ -60,7 +60,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
-      newOffset
+      newOffset,
     );
     setWeekRange(newRange);
   };
@@ -72,7 +72,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
-      newOffset
+      newOffset,
     );
     setWeekRange(newRange);
   };
@@ -83,7 +83,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth,
       selectedEmp?.salaryInfo?.startDay + 1 || 0,
-      0
+      0,
     );
     setWeekRange(newRange);
   };
@@ -149,7 +149,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/5 backdrop-blur-sm"
             onClick={() => setSelectedEmp(null)}
           />
 
@@ -317,12 +317,12 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 Weekend:{" "}
                                 {formatNumber(
                                   salaryData?.extraPay?.weekendNormalShiftPay ||
-                                    0
+                                    0,
                                 )}{" "}
                                 • Holiday:{" "}
                                 {formatNumber(
                                   salaryData?.extraPay?.holidayNormalShiftPay ||
-                                    0
+                                    0,
                                 )}
                               </p>
                             </div>
@@ -519,7 +519,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.absentDeductions || 0
+                                salaryData?.deductions?.absentDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -529,7 +529,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               -
                               {formatNumber(
                                 salaryData?.deductions?.extraAbsentDeductions ||
-                                  0
+                                  0,
                               )}
                             </span>
                           </div>
@@ -541,7 +541,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               -
                               {formatNumber(
                                 salaryData?.deductions?.missedPunchDeductions ||
-                                  0
+                                  0,
                               )}
                             </span>
                           </div>
@@ -550,7 +550,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.lateDeductions || 0
+                                salaryData?.deductions?.lateDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -561,7 +561,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.earlyDeductions || 0
+                                salaryData?.deductions?.earlyDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -577,7 +577,8 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.wLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.wLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -586,7 +587,8 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.oLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.oLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -595,7 +597,8 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.sLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.sLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -627,7 +630,8 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="font-medium text-green-600">
                               +
                               {formatNumber(
-                                salaryData?.extraPay?.weekendNormalShiftPay || 0
+                                salaryData?.extraPay?.weekendNormalShiftPay ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -638,7 +642,8 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="font-medium text-green-600">
                               +
                               {formatNumber(
-                                salaryData?.extraPay?.holidayNormalShiftPay || 0
+                                salaryData?.extraPay?.holidayNormalShiftPay ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -682,7 +687,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats?.lateCount ||
                                     0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -705,7 +710,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats
                                     ?.earlyDepartureCount || 0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -727,7 +732,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats?.missedPunch ||
                                     0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -751,7 +756,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats
                                     ?.totalLatenessMinutes || 0) / 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>

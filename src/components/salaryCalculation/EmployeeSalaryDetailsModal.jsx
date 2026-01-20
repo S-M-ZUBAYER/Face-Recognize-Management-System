@@ -62,7 +62,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/5 backdrop-blur-sm"
             onClick={() => setSelectedEmp(null)}
           />
 
@@ -162,15 +162,15 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </p>
                           <p className="text-xs text-gray-500">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.normal
+                              salaryDetails?.overtimeDetails?.normal,
                             ) || 0}
                             h normal +{" "}
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.weekend
+                              salaryDetails?.overtimeDetails?.weekend,
                             ) || 0}
                             h weekend +{" "}
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.holiday
+                              salaryDetails?.overtimeDetails?.holiday,
                             ) || 0}
                             h holiday
                           </p>
@@ -194,11 +194,11 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <p className="text-xs text-gray-500">
                               Weekend:{" "}
                               {formatNumber(
-                                salaryDetails?.extraPay?.weekendNormalShiftPay
+                                salaryDetails?.extraPay?.weekendNormalShiftPay,
                               )}{" "}
                               • Holiday:{" "}
                               {formatNumber(
-                                salaryDetails?.extraPay?.holidayNormalShiftPay
+                                salaryDetails?.extraPay?.holidayNormalShiftPay,
                               )}
                             </p>
                           </div>
@@ -249,7 +249,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="text-right">
                           <span className="font-medium">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.normal
+                              salaryDetails?.overtimeDetails?.normal,
                             ) || 0}
                             h
                           </span>
@@ -263,7 +263,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="text-right">
                           <span className="font-medium">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.weekend
+                              salaryDetails?.overtimeDetails?.weekend,
                             ) || 0}
                             h
                           </span>
@@ -277,7 +277,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="text-right">
                           <span className="font-medium">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.holiday
+                              salaryDetails?.overtimeDetails?.holiday,
                             ) || 0}
                             h
                           </span>
@@ -405,7 +405,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="font-medium text-green-600">
                             +
                             {formatNumber(
-                              salaryDetails?.extraPay?.weekendNormalShiftPay
+                              salaryDetails?.extraPay?.weekendNormalShiftPay,
                             )}
                           </span>
                         </div>
@@ -416,7 +416,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="font-medium text-green-600">
                             +
                             {formatNumber(
-                              salaryDetails?.extraPay?.holidayNormalShiftPay
+                              salaryDetails?.extraPay?.holidayNormalShiftPay,
                             )}
                           </span>
                         </div>
@@ -456,7 +456,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.absentDeductions
+                              salaryDetails?.deductions?.absentDeductions,
                             )}
                           </span>
                         </div>
@@ -470,7 +470,8 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryDetails?.deductions?.extraAbsentDeductions
+                                salaryDetails?.deductions
+                                  ?.extraAbsentDeductions,
                               )}
                             </span>
                           </div>
@@ -480,7 +481,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.missedPunchDeductions
+                              salaryDetails?.deductions?.missedPunchDeductions,
                             )}
                           </span>
                         </div>
@@ -489,7 +490,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.lateDeductions
+                              salaryDetails?.deductions?.lateDeductions,
                             )}
                           </span>
                         </div>
@@ -500,7 +501,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.earlyDeductions
+                              salaryDetails?.deductions?.earlyDeductions,
                             )}
                           </span>
                         </div>
@@ -516,7 +517,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.LeaveDeduction?.wLeaveDeduction
+                              salaryDetails?.LeaveDeduction?.wLeaveDeduction,
                             )}
                           </span>
                         </div>
@@ -525,7 +526,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.LeaveDeduction?.oLeaveDeduction
+                              salaryDetails?.LeaveDeduction?.oLeaveDeduction,
                             )}
                           </span>
                         </div>
@@ -534,7 +535,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.LeaveDeduction?.sLeaveDeduction
+                              salaryDetails?.LeaveDeduction?.sLeaveDeduction,
                             )}
                           </span>
                         </div>
@@ -572,7 +573,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats?.lateCount ||
                                   0) * 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>
@@ -595,7 +596,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats
                                   ?.earlyDepartureCount || 0) * 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>
@@ -615,7 +616,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats?.missedPunch ||
                                   0) * 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>
@@ -639,7 +640,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats
                                   ?.totalLatenessMinutes || 0) / 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>

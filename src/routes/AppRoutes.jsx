@@ -120,7 +120,10 @@ const AppRoutes = () => {
           />
           <Route path="*" element={<Animated404 />} />
         </Route>
-        <Route path="verification" element={<EmailVerification />} />
+        <Route
+          path="/Face_Attendance_Management_System/verification"
+          element={<EmailVerification />}
+        />
       </Route>
 
       {/* Public routes */}
