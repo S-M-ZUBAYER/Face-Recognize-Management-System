@@ -34,7 +34,7 @@ function SalaryTable({ employees }) {
     setSelectedEmployees((prev) =>
       prev.includes(employeeId)
         ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
+        : [...prev, employeeId],
     );
   };
 
@@ -248,7 +248,7 @@ function SalaryTable({ employees }) {
               filteredEmployees.map((emp, idx) => {
                 const empId = emp.employeeId || emp.id;
                 const presentDays = Object.values(
-                  emp?.salaryDetails?.Present || {}
+                  emp?.salaryDetails?.Present || {},
                 ).reduce((sum, val) => sum + (val || 0), 0);
                 const totalAmount = calculateTotalAmount(emp);
                 const employeeName = getEmployeeName(emp.name);
@@ -337,21 +337,23 @@ function SalaryTable({ employees }) {
                     </td>
 
                     {/* Salary Visibility */}
-                    <td className="p-3">
-                      {showSalary[empId] ? (
-                        <span className="font-bold text-green-700">
-                          {emp.salaryDetails?.totalPay || 0}
-                        </span>
-                      ) : (
-                        <EyeClosed
-                          className="cursor-pointer text-gray-600 hover:text-gray-800"
-                          onClick={() => toggleSalary(empId)}
-                        />
-                      )}
+                    <td className="p-3 ">
+                      <div className=" flex justify-center">
+                        {showSalary[empId] ? (
+                          <span className="font-bold text-green-700  ">
+                            {emp.salaryDetails?.totalPay || 0}
+                          </span>
+                        ) : (
+                          <EyeClosed
+                            className="cursor-pointer text-gray-600 hover:text-gray-800"
+                            onClick={() => toggleSalary(empId)}
+                          />
+                        )}
+                      </div>
                     </td>
 
                     {/* Total Amount */}
-                    <td className="p-3 text-right font-bold text-green-700">
+                    <td className="p-3 text-center font-bold text-green-700">
                       {totalAmount.toLocaleString()}
                     </td>
 

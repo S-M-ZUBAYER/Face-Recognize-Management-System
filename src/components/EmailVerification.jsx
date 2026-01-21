@@ -360,7 +360,7 @@ const EmailVerification = ({
 
   const handleContinue = () => {
     if (pack === null) {
-      navigate("/");
+      navigate("/Face_Attendance_Management_System");
       return;
     } else {
       const encodedEmail = btoa(encodeURIComponent(user.userEmail));

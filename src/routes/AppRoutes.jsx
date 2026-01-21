@@ -41,7 +41,7 @@ const AppLayout = () => {
 
   if (isLoading) {
     return (
-      <div className="w-screen h-[100vh] flex justify-center items-center">
+      <div className="w-screen h-[100vh] flex justify-center items-center relative z-500 bg-white">
         <Riple color="#004368" size="large" text="" textColor="" />
       </div>
     );

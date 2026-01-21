@@ -33,12 +33,12 @@ function EmployeeModal({ employee }) {
       content: ["Home", "Onsite", "Both"],
       multi: false,
     },
-    {
-      key: "attendanceMethod",
-      title: "Choose attendance method for employee",
-      content: ["Check Out Button", "Face attendance", "Both"],
-      multi: false,
-    },
+    // {
+    //   key: "attendanceMethod",
+    //   title: "Choose attendance method for employee",
+    //   content: ["Check Out Button", "Face attendance", "Both"],
+    //   multi: false,
+    // },
     {
       key: "visibleInfo",
       title: "Choose which information employee can see",
@@ -146,11 +146,11 @@ function EmployeeModal({ employee }) {
     const payload = {
       allowedAttendanceModes: getActualValues(
         "workType",
-        selectedValues.workType
+        selectedValues.workType,
       ),
       allowedAttendanceActions: getActualValues(
         "attendanceMethod",
-        selectedValues.attendanceMethod
+        selectedValues.attendanceMethod,
       ),
       visibleDataTypes: selectedValues.visibleInfo.join(","),
     };
