@@ -74,9 +74,9 @@ function BiWeeklyForm() {
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const salarySections = useMemo(
@@ -106,7 +106,7 @@ function BiWeeklyForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, formData.inputWeek, otherSalaryTotal]
+    [formData.basic, formData.inputWeek, otherSalaryTotal],
   );
 
   // Get current month dates for selected weekday
@@ -183,8 +183,8 @@ function BiWeeklyForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -192,8 +192,8 @@ function BiWeeklyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -207,7 +207,7 @@ function BiWeeklyForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler - following the same pattern
@@ -249,7 +249,7 @@ function BiWeeklyForm() {
                 ? parseInt(formData.selectedDate)
                 : employee?.salaryInfo?.startWeek,
               status: employee?.salaryInfo?.status || null,
-            }
+            },
           );
 
           const parsed = JSON.parse(payPeriodJSON);
@@ -274,7 +274,7 @@ function BiWeeklyForm() {
           console.error(
             "Failed to update employee:",
             employee?.employeeId,
-            error
+            error,
           );
           return { success: false, employeeId: employee.employeeId };
         }
@@ -283,7 +283,7 @@ function BiWeeklyForm() {
       await Promise.all(updatePromises);
 
       toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`
+        `Successfully updated ${selectedEmployees.length} employee(s)`,
       );
     } catch (error) {
       console.error("Update error:", error);
@@ -327,7 +327,7 @@ function BiWeeklyForm() {
                 ) {
                   handleInputChange(
                     id === SALARY_SECTION_TYPES.BASIC ? "basic" : "inputWeek",
-                    ""
+                    "",
                   );
                 }
               }}
@@ -339,7 +339,7 @@ function BiWeeklyForm() {
                 }
               }}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -365,7 +365,7 @@ function BiWeeklyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />

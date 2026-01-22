@@ -63,7 +63,7 @@ function ResignedEmployeeTable({ employees = [] }) {
   // Selection logic - using the same pattern as AttendanceTable
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
-    [selectedEmployees]
+    [selectedEmployees],
   );
 
   // const isAllSelected = useMemo(() => {
@@ -128,7 +128,7 @@ function ResignedEmployeeTable({ employees = [] }) {
         handleSearch();
       }
     },
-    [handleSearch]
+    [handleSearch],
   );
 
   const handleViewEmployee = useCallback((emp) => {
@@ -193,7 +193,7 @@ function ResignedEmployeeTable({ employees = [] }) {
           {searchQuery && (
             <button
               onClick={handleReset}
-              className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm hover:bg-gray-500 transition-colors"
+              className="px-4 py-2  hover:bg-[#004368]  bg-[#004368] text-white rounded-md text-sm  transition-colors"
             >
               Reset
             </button>

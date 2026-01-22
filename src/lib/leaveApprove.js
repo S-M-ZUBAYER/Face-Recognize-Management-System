@@ -30,9 +30,9 @@ function leaveApprove({ salaryRules, leave }) {
   }
   /* ---------------- Leave mapping ---------------- */
   const leaveMappings = {
-    m_leaves: "Maternity leave",
+    m_leaves: "Maternity Leave",
     mar_leaves: "Marriage Leave",
-    p_leaves: "Personal Leave",
+    p_leaves: "Paternity Leave",
     s_leaves: "Sick Leave",
     c_leaves: "Casual Leave",
     e_leaves: "Earned Leave",
@@ -43,7 +43,7 @@ function leaveApprove({ salaryRules, leave }) {
 
   /* ---------------- Find leave key ---------------- */
   const leaveKey = Object.keys(leaveMappings).find(
-    (key) => leaveMappings[key] === leaveCategory
+    (key) => leaveMappings[key] === leaveCategory,
   );
 
   if (!leaveKey) {
@@ -105,13 +105,13 @@ function leaveApprove({ salaryRules, leave }) {
           start: isFirstDay
             ? firstDayTime.start
             : isLastDay
-            ? lastDayTime.start
-            : null,
+              ? lastDayTime.start
+              : null,
           end: isFirstDay
             ? firstDayTime.end
             : isLastDay
-            ? lastDayTime.end
-            : null,
+              ? lastDayTime.end
+              : null,
         },
         deductDay: 0,
         deductMoney: 0,

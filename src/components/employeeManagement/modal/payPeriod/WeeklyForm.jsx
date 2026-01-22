@@ -73,9 +73,9 @@ function WeeklyForm() {
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const salarySections = useMemo(
@@ -105,7 +105,7 @@ function WeeklyForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, formData.inputWeek, otherSalaryTotal]
+    [formData.basic, formData.inputWeek, otherSalaryTotal],
   );
 
   // Handle form input changes
@@ -148,8 +148,8 @@ function WeeklyForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -157,8 +157,8 @@ function WeeklyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -172,7 +172,7 @@ function WeeklyForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler - following the same pattern
@@ -212,7 +212,7 @@ function WeeklyForm() {
                 : employee?.salaryInfo?.startDay,
               startWeek: null, // Weekly doesn't use startWeek
               status: employee?.salaryInfo?.status || null,
-            }
+            },
           );
 
           updateEmployee({
@@ -236,7 +236,7 @@ function WeeklyForm() {
 
       await Promise.all(updatePromises);
       toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`
+        `Successfully updated ${selectedEmployees.length} employee(s)`,
       );
     } catch (error) {
       console.error("Update error:", error);
@@ -277,7 +277,7 @@ function WeeklyForm() {
                 ) {
                   handleInputChange(
                     id === SALARY_SECTION_TYPES.BASIC ? "basic" : "inputWeek",
-                    ""
+                    "",
                   );
                 }
               }}
@@ -289,7 +289,7 @@ function WeeklyForm() {
                 }
               }}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -315,7 +315,7 @@ function WeeklyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />

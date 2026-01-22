@@ -143,19 +143,13 @@ const EmployeeFilterTabs = ({ filters, activeFilter, onFilterChange }) => {
   }
 
   return (
-    <div className="relative w-[78vw]">
+    <div className="relative w-[78vw] parent-hover">
       <div className="relative">
         <div
           ref={containerRef}
-          className={`flex gap-3 overflow-x-auto px-4 py-2 cursor-grab ${
-            isDragging ? "cursor-grabbing" : ""
-          }`}
-          style={{
-            scrollBehavior: "smooth",
-            WebkitOverflowScrolling: "touch",
-          }}
-          role="tablist"
-          aria-label="Filter options"
+          className={`flex gap-3 overflow-x-auto px-4 py-2 cursor-grab scroll-parent
+    ${isDragging ? "cursor-grabbing" : ""}
+  `}
         >
           {filters.map((filter, index) => (
             <FilterButton

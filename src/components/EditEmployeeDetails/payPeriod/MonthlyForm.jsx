@@ -112,23 +112,23 @@ function MonthlyForm() {
 
   const removeSalarySection = (id) => {
     setAdditionalSalaries(
-      additionalSalaries.filter((salary) => salary.id !== id)
+      additionalSalaries.filter((salary) => salary.id !== id),
     );
   };
 
   const updateSalarySectionType = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, type: value } : salary
-      )
+        salary.id === id ? { ...salary, type: value } : salary,
+      ),
     );
   };
 
   const updateSalarySectionAmount = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, amount: value } : salary
-      )
+        salary.id === id ? { ...salary, amount: value } : salary,
+      ),
     );
   };
 
@@ -149,8 +149,8 @@ function MonthlyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -203,7 +203,7 @@ function MonthlyForm() {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryInfo: parseNormalData(payPeriodJSON) }
+        { salaryInfo: parseNormalData(payPeriodJSON) },
       );
       toast.success("Employee updated successfully!");
     } catch {
@@ -292,7 +292,7 @@ function MonthlyForm() {
                 readOnly={isReadOnly}
               />
             </div>
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -303,7 +303,7 @@ function MonthlyForm() {
                 className={checkboxStyle}
                 checked={salary.isChecked !== false}
                 onCheckedChange={(
-                  checked // ← FIXED THIS LINE
+                  checked, // ← FIXED THIS LINE
                 ) => toggleSalaryCheckbox(salary.id, checked)}
               />
               <div className="flex gap-2">
@@ -340,7 +340,7 @@ function MonthlyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0]"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             style={{ padding: "16px 52px" }}
             onClick={addSalarySection}
           >

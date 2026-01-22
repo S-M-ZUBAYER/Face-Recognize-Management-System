@@ -99,17 +99,17 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     }
   };
 
-  const handleCurrentBiweekly = () => {
-    setBiweeklyOffset(0);
-    const newRange = getBiweeklyRangeWithDirection(
-      selectedYear,
-      selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      0,
-    );
-    setBiweeklyRange(newRange);
-  };
+  // const handleCurrentBiweekly = () => {
+  //   setBiweeklyOffset(0);
+  //   const newRange = getBiweeklyRangeWithDirection(
+  //     selectedYear,
+  //     selectedMonth + 1,
+  //     selectedEmp?.salaryInfo?.startWeek,
+  //     selectedEmp?.salaryInfo?.startDay,
+  //     0,
+  //   );
+  //   setBiweeklyRange(newRange);
+  // };
 
   // Format date for display
   const formatDisplayDate = (dateStr) => {
@@ -240,7 +240,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     14 days •{" "}
                     {biweeklyOffset >= 0
                       ? biweeklyOffset === 0
-                        ? "(Current Period)"
+                        ? "(1st Period)"
                         : `${biweeklyOffset} period${
                             biweeklyOffset !== 1 ? "s" : ""
                           } ahead`
@@ -251,13 +251,13 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
+                  {/* <Button
                     onClick={handleCurrentBiweekly}
                     variant="outline"
                     size="sm"
                   >
                     Current Period
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={handleNextBiweekly}
                     variant="outline"

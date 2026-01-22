@@ -81,13 +81,13 @@ const EmployeeManagementTable = ({ employees = [] }) => {
   // Selection logic
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
-    [selectedEmployees]
+    [selectedEmployees],
   );
 
   const isAllSelected = useMemo(() => {
     if (filteredEmployees.length === 0) return false;
     return filteredEmployees.every((emp) =>
-      selectedEmployeeIdsSet.has(emp.stableId)
+      selectedEmployeeIdsSet.has(emp.stableId),
     );
   }, [filteredEmployees, selectedEmployeeIdsSet]);
 
@@ -95,7 +95,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
     if (selectedEmployees.length === 0) return false;
     if (isAllSelected) return false;
     return filteredEmployees.some((emp) =>
-      selectedEmployeeIdsSet.has(emp.stableId)
+      selectedEmployeeIdsSet.has(emp.stableId),
     );
   }, [
     selectedEmployees.length,
@@ -152,7 +152,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
         handleSearch();
       }
     },
-    [handleSearch]
+    [handleSearch],
   );
 
   // Check overtime records
@@ -164,14 +164,14 @@ const EmployeeManagementTable = ({ employees = [] }) => {
         return record.employeeId === employeeId && recordDate === today;
       });
     },
-    [overTime]
+    [overTime],
   );
 
   // Get selected employee data to pass to ExportButton
   const selectedEmployeeData = useMemo(() => {
     const selectedIdsSet = new Set(selectedEmployees);
     return employeesWithStableIds.filter((emp) =>
-      selectedIdsSet.has(emp.stableId)
+      selectedIdsSet.has(emp.stableId),
     );
   }, [employeesWithStableIds, selectedEmployees]);
 
@@ -215,7 +215,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
           {searchQuery && (
             <button
               onClick={handleReset}
-              className="px-4 py-2  hover:bg-gray-600  bg-[#004368] text-white rounded-md text-sm  transition-colors"
+              className="px-4 py-2  hover:bg-[#004368]  bg-[#004368] text-white rounded-md text-sm  transition-colors"
             >
               Reset
             </button>
@@ -251,7 +251,7 @@ const EmployeeManagementTable = ({ employees = [] }) => {
               filteredEmployees.map((emp) => {
                 const isSelected = selectedEmployeeIdsSet.has(emp.stableId);
                 const hasOvertime = hasOvertimeRecords(
-                  emp.employeeId || emp.id
+                  emp.employeeId || emp.id,
                 );
                 const employeeName = getEmployeeName(emp.name);
                 const initials = getInitials(employeeName);

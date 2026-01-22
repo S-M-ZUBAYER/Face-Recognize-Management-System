@@ -168,8 +168,6 @@ input:-webkit-autofill {
   animation: spin 1s linear infinite;
 }
 
-/* For just your filter container */
-
 /* Custom scrollbar styles */
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -255,5 +253,34 @@ input:-webkit-autofill {
   /* Firefox */
   .no-spinner {
     -moz-appearance: textfield;
+  }
+}
+
+/* Desktop only */
+/* Desktop only */
+@media (min-width: 1024px) {
+  .scroll-parent::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .scroll-parent::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    transition: background-color 0.2s ease;
+  }
+
+  /* 🔥 Show scrollbar ONLY when parent is hovered */
+  .parent-hover:hover .scroll-parent::-webkit-scrollbar-thumb {
+    background-color: #b0c5d0;
+  }
+
+  /* Firefox */
+  .scroll-parent {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .parent-hover:hover .scroll-parent {
+    scrollbar-color: #b0c5d0 transparent;
   }
 }

@@ -49,9 +49,9 @@ function NormalMonthForm() {
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const otherSalaryCheckTotal = useMemo(() => {
@@ -101,7 +101,7 @@ function NormalMonthForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, otherSalaryTotal]
+    [formData.basic, otherSalaryTotal],
   );
 
   // Handle form input changes
@@ -138,8 +138,8 @@ function NormalMonthForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -147,8 +147,8 @@ function NormalMonthForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -162,7 +162,7 @@ function NormalMonthForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler
@@ -205,13 +205,13 @@ function NormalMonthForm() {
                 formData.selectedOvertimeOption === "auto-calc"
                   ? 0
                   : formData.selectedOvertimeOption === "fixed-input"
-                  ? 1
-                  : employee?.salaryInfo?.selectedOvertimeOption,
+                    ? 1
+                    : employee?.salaryInfo?.selectedOvertimeOption,
               shift: employee?.salaryInfo?.shift || "Morning",
               startDay: employee?.salaryInfo?.startDay || 1,
               startWeek: employee?.salaryInfo?.startWeek || null,
               status: employee?.salaryInfo?.status || null,
-            }
+            },
           );
           const parsed = JSON.parse(payPeriodJSON);
           parsed.otherSalary = JSON.parse(parsed.otherSalary);
@@ -262,7 +262,7 @@ function NormalMonthForm() {
               }
               onChange={(newValue) => handleInputChange("basic", newValue)}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -288,7 +288,7 @@ function NormalMonthForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />

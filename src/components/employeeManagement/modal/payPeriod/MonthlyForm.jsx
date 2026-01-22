@@ -54,9 +54,9 @@ function MonthlyForm() {
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const otherSalaryCheckTotal = useMemo(() => {
@@ -106,7 +106,7 @@ function MonthlyForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, otherSalaryTotal]
+    [formData.basic, otherSalaryTotal],
   );
 
   // Handle form input changes
@@ -148,8 +148,8 @@ function MonthlyForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -157,8 +157,8 @@ function MonthlyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -172,7 +172,7 @@ function MonthlyForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler - following NormalMonthForm pattern
@@ -215,15 +215,15 @@ function MonthlyForm() {
                 formData.selectedOvertimeOption === "auto-calc"
                   ? 0
                   : formData.selectedOvertimeOption === "fixed-input"
-                  ? 1
-                  : employee?.salaryInfo?.selectedOvertimeOption,
+                    ? 1
+                    : employee?.salaryInfo?.selectedOvertimeOption,
               shift: employee?.salaryInfo?.shift || "Morning",
               startDay: formData.selectedDate
                 ? parseInt(formData.selectedDate)
                 : employee?.salaryInfo?.startDay || 1,
               startWeek: employee?.salaryInfo?.startWeek || null,
               status: employee?.salaryInfo?.status || null,
-            }
+            },
           );
 
           updateEmployee({
@@ -250,7 +250,7 @@ function MonthlyForm() {
       await Promise.all(updatePromises);
 
       toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`
+        `Successfully updated ${selectedEmployees.length} employee(s)`,
       );
     } catch (error) {
       console.error("Update error:", error);
@@ -290,7 +290,7 @@ function MonthlyForm() {
               }
               onChange={(newValue) => handleInputChange("basic", newValue)}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -316,7 +316,7 @@ function MonthlyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />
