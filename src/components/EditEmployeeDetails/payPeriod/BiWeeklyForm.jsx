@@ -19,10 +19,11 @@ import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { format } from "date-fns";
 
 function BiWeeklyForm() {
   const [basic, setBasic] = useState("");
-  const [inputWeek, setInputWeek] = useState("");
+  const [inputDate, setInputDate] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [workingHours, setWorkingHours] = useState("");
   const [overtimeRate, setOvertimeRate] = useState("");
@@ -76,7 +77,7 @@ function BiWeeklyForm() {
       }
     }
 
-    return dates.length > 4 ? dates.slice(0, 4) : dates;
+    return dates;
   };
 
   useEffect(() => {
@@ -84,7 +85,7 @@ function BiWeeklyForm() {
       const payPeriod = selectedEmployee.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
-      setInputWeek(payPeriod.hourlyRate?.toString() || "");
+      setInputDate(payPeriod.hourlyRate?.toString() || "");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeFixed?.toString() || "");
 
@@ -126,12 +127,13 @@ function BiWeeklyForm() {
       hasValue: !!basic,
     },
     {
-      id: "input-week",
-      label: "Input Week",
-      value: inputWeek,
-      setValue: setInputWeek,
+      id: "input-date",
+      label: "Date",
+      value: inputDate,
+      setValue: setInputDate,
       placeholder: "000000",
-      hasValue: !!inputWeek,
+      hasValue: !!inputDate,
+      isReadOnly: true,
     },
     {
       id: "other-salary",
@@ -183,6 +185,15 @@ function BiWeeklyForm() {
   };
 
   const handleDateSelect = (date) => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = now.getMonth(); // already 0-based
+
+    const selectedDateObj = new Date(year, month, date);
+    const formattedDate = format(selectedDateObj, "yyyy-MM-dd");
+
+    setInputDate(formattedDate);
     setSelectedDate(date);
     setShowDatePicker(false);
   };
@@ -219,7 +230,7 @@ function BiWeeklyForm() {
     // Create the payPeriod object according to your structure
     const employeePayPeriod = {
       employeeId: selectedEmployee?.employeeId || 0,
-      hourlyRate: parseFloat(inputWeek) || 0, // Input Week field
+      hourlyRate: inputDate || selectedEmployee?.salaryInfo?.hourlyRate, // Input Week field
       isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
       leave: "",
       name: parseInt(workingHours) || 8,
@@ -379,7 +390,7 @@ function BiWeeklyForm() {
                 }
                 className="w-80"
                 placeholder={placeholder}
-                type={"number"}
+                type={id === "input-date" ? "text" : "number"}
                 readOnly={isReadOnly}
               />
             </div>

@@ -199,9 +199,9 @@ function SalaryTable({ employees }) {
                 Salary
               </th>
 
-              <th className="text-left p-3 text-sm font-medium text-gray-700 ">
+              {/* <th className="text-left p-3 text-sm font-medium text-gray-700 ">
                 Working Days
-              </th>
+              </th> */}
               <th className="text-left p-3 text-sm font-medium text-gray-700">
                 Present
               </th>
@@ -302,14 +302,14 @@ function SalaryTable({ employees }) {
                     </td>
 
                     {/* Salary */}
-                    <td className="p-3 text-right font-medium text-gray-900">
+                    <td className="p-3 text-center font-medium text-gray-900">
                       {emp.salary?.toLocaleString() || "0"}
                     </td>
 
                     {/* Working Days */}
-                    <td className="p-3 text-center text-gray-700">
+                    {/* <td className="p-3 text-center text-gray-700">
                       {emp?.salaryDetails?.workingDays || 0}
-                    </td>
+                    </td> */}
 
                     {/* Present Days */}
                     <td className="p-3 text-center">

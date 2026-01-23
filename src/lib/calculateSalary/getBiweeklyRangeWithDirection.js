@@ -1,125 +1,76 @@
-import { format } from "date-fns";
+import {
+  parseISO,
+  format,
+  addDays,
+  // subDays,
+  // startOfMonth,
+  isValid,
+} from "date-fns";
 
-function findClosestMatchingDate({ weekdayIndex, day }) {
-  if (weekdayIndex < 0 || weekdayIndex > 6 || day < 1 || day > 31) {
-    return null;
+const TWO_WEEKS = 14;
+
+export const getBiweeklyRangeWithDirection = (
+  referenceDate,
+  direction = 0,
+  year = null,
+  month = null,
+) => {
+  let baseDate;
+
+  if (typeof referenceDate === "string") {
+    const parsed = parseISO(referenceDate);
+    baseDate = isValid(parsed) ? parsed : new Date();
+  } else {
+    baseDate = new Date();
   }
 
-  const today = new Date();
-  const weekdayJS = weekdayIndex === 6 ? 0 : weekdayIndex + 1;
+  // Step 1: determine month bounds if provided
+  // let monthStart = startOfMonth(baseDate);
 
-  let closestDate = null;
-  let minDiff = 99999;
+  // if (year && month) {
+  //   monthStart = startOfMonth(new Date(year, month - 1));
+  // }
 
-  for (let offset = -24; offset <= 24; offset++) {
-    const testMonth = today.getMonth() + offset;
-    const testYear = today.getFullYear() + Math.floor(testMonth / 12);
-    const normalizedMonth = ((testMonth % 12) + 12) % 12;
-
-    try {
-      const testDate = new Date(testYear, normalizedMonth, day);
-
-      if (testDate.getDate() !== day) continue;
-
-      if (testDate.getDay() === weekdayJS) {
-        const diff = Math.abs(testDate - today) / (1000 * 60 * 60 * 24);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestDate = testDate;
-        }
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return closestDate;
-}
-
-function getWeekOfMonth(date) {
-  const targetWeekday = date.getDay();
-  let occurrenceCount = 0;
-
-  for (let day = 1; day <= date.getDate(); day++) {
-    const checkDate = new Date(date.getFullYear(), date.getMonth(), day);
-    if (checkDate.getDay() === targetWeekday) {
-      occurrenceCount++;
-    }
-  }
-
-  return occurrenceCount - 1;
-}
-
-function getMatchingWeekdayInMonth(targetYear, targetMonth, weekdayIndex, day) {
-  console.log("getMatching:", targetYear, targetMonth, weekdayIndex, day);
-
-  // Find the source date pattern
-  const sourceDate = findClosestMatchingDate({
-    weekdayIndex: day,
-    day: weekdayIndex,
-  });
-
-  if (!sourceDate) {
-    console.log("❌ Source date not found");
-    return null;
-  }
-
-  const weekday = sourceDate.getDay();
-  const weekIndex = getWeekOfMonth(sourceDate);
-
-  // First day of target month (JS months are 0-indexed)
-  const firstDayOfTarget = new Date(targetYear, targetMonth - 1, 1);
-  const sameWeekdays = [];
-
-  let currentDate = new Date(firstDayOfTarget);
-
-  // Collect all dates in target month matching the weekday
-  while (currentDate.getMonth() === targetMonth - 1) {
-    if (currentDate.getDay() === weekday) {
-      sameWeekdays.push(new Date(currentDate));
-    }
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  return weekIndex < sameWeekdays.length ? sameWeekdays[weekIndex] : null;
-}
-
-function getBiweeklyRangeWithDirection(
-  year,
-  month,
-  weekStartDay,
-  day,
-  direction = 0
-) {
-  // Get the matching date (this returns a Date object)
-  const startDateObj = getMatchingWeekdayInMonth(
+  // Step 2: Align start date within the month bounds
+  let startDate = baseDate;
+  const fromDate = findBiWeeklyStartDate({
+    source: baseDate,
     year,
     month,
-    weekStartDay,
-    day
-  );
+  });
 
-  if (!startDateObj) {
-    console.log("❌ Could not find matching date");
-    return null;
-  }
+  startDate = fromDate;
 
-  // Apply direction offset (14 days per biweekly period)
-  const directionOffset = direction * 14;
+  // Step 3: Shift by direction
+  startDate = addDays(startDate, direction * TWO_WEEKS);
 
-  // Create start date with direction offset
-  const startDate = new Date(startDateObj);
-  startDate.setDate(startDate.getDate() + directionOffset);
+  // Step 4: End date = 13 days after start (14-day range)
+  const endDate = addDays(startDate, TWO_WEEKS - 1);
 
-  // Create end date (13 days after start)
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + 13);
-
-  const result = {
+  return {
     startDate: format(startDate, "yyyy-MM-dd"),
     endDate: format(endDate, "yyyy-MM-dd"),
   };
-  return result;
+};
+
+function findBiWeeklyStartDate({ source, year, month }) {
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  let current = new Date(source);
+
+  // console.log(current,monthStart,monthEnd)
+
+  // Move backward until we're not after the month
+  while (current > monthEnd) {
+    current = new Date(current.getTime() - 14 * 24 * 60 * 60 * 1000);
+  }
+
+  // Move forward until we're inside the month
+  while (current < monthStart) {
+    current = new Date(current.getTime() + 14 * 24 * 60 * 60 * 1000);
+  }
+
+  return current;
 }
 
 export default getBiweeklyRangeWithDirection;

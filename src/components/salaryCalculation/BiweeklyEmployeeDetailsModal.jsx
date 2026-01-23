@@ -13,11 +13,10 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
   const [biweeklyRange, setBiweeklyRange] = useState(() => {
     return getBiweeklyRangeWithDirection(
+      selectedEmp?.salaryInfo?.hourlyRate,
+      0,
       selectedYear,
       selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      0,
     );
   });
   const [salaryData, setSalaryData] = useState(null);
@@ -60,43 +59,27 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     const newOffset = biweeklyOffset - 1;
 
     const newRange = getBiweeklyRangeWithDirection(
+      selectedEmp?.salaryInfo?.hourlyRate,
+      newOffset,
       selectedYear,
       selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      newOffset,
     );
 
-    const newDate = new Date(newRange.startDate);
-    const newYear = Number(format(newDate, "yyyy"));
-    const newMonth = Number(format(newDate, "MM"));
-
-    // console.log(selectedMonth + 1, newMonth, selectedYear, newYear);
-
-    if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
-      setBiweeklyOffset(newOffset);
-      setBiweeklyRange(newRange);
-    }
+    setBiweeklyOffset(newOffset);
+    setBiweeklyRange(newRange);
   };
 
   const handleNextBiweekly = () => {
     const newOffset = biweeklyOffset + 1;
 
     const newRange = getBiweeklyRangeWithDirection(
+      selectedEmp?.salaryInfo?.hourlyRate,
+      newOffset,
       selectedYear,
       selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      newOffset,
     );
-    const newDate = new Date(newRange.startDate);
-    const newYear = Number(format(newDate, "yyyy"));
-    const newMonth = Number(format(newDate, "MM"));
-
-    if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
-      setBiweeklyOffset(newOffset);
-      setBiweeklyRange(newRange);
-    }
+    setBiweeklyOffset(newOffset);
+    setBiweeklyRange(newRange);
   };
 
   // const handleCurrentBiweekly = () => {

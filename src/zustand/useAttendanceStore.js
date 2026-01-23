@@ -45,7 +45,7 @@ export const useAttendanceStore = create((set, get) => ({
     attendance,
     overTime,
     startDate,
-    endDate
+    endDate,
   ) => {
     const state = get();
 
@@ -70,7 +70,7 @@ export const useAttendanceStore = create((set, get) => ({
         // Get date range
         const dateRange = getDateRange(startDate, endDate);
         console.log(
-          `📊 Processing ${employees.length} employees for ${dateRange.length} days`
+          `📊 Processing ${employees.length} employees for ${dateRange.length} days`,
         );
 
         // Process data
@@ -78,7 +78,7 @@ export const useAttendanceStore = create((set, get) => ({
           employees,
           attendance,
           overTime,
-          dateRange
+          dateRange,
         );
 
         // Update state with processed data
@@ -230,8 +230,8 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
           checkIn: isPresent
             ? checkIn
             : leaveTypes.length > 0
-            ? leaveTypes
-            : dayType,
+              ? leaveTypes
+              : dayType,
         },
         isPresent,
         hasOvertime: overtimeSet.has(employeeId),
@@ -339,6 +339,14 @@ const getLeaveTypes = (employee, date) => {
   };
 
   if (!employee.salaryRules) return leaveTypes;
+  const dateOnly = date.split("T")[0];
+  const generalDays = (employee.salaryRules.generalDays || []).map(
+    (h) => h.split("T")[0],
+  );
+
+  if (generalDays.includes(dateOnly)) {
+    return [];
+  }
 
   Object.keys(leaveMappings).forEach((leaveKey) => {
     const leaves = employee.salaryRules[leaveKey];
@@ -361,6 +369,17 @@ function getDayType(salaryRules, date) {
   const day = new Date(date);
   const dayName = day.toLocaleString("en-US", { weekday: "long" });
 
+  const dateOnly = date.split("T")[0];
+
+  // 2. Get all general dates (YYYY-MM-DD)
+  const generalDays = (salaryRules.generalDays || []).map(
+    (h) => h.split("T")[0],
+  );
+
+  if (generalDays.includes(dateOnly)) {
+    return [];
+  }
+
   // 1. Find ruleId === 2 (weekend rules)
   const weekendRule = salaryRules.rules.find((r) => r.ruleId === 2);
 
@@ -376,19 +395,17 @@ function getDayType(salaryRules, date) {
         ) {
           weekendNames.push(weekendRule[key].trim());
         }
-      }
+      },
     );
   }
 
   // 2. Get all holiday dates (YYYY-MM-DD)
   const holidayDates = (salaryRules.holidays || []).map((h) => h.split("T")[0]);
 
-  const dateOnly = date.split("T")[0];
-
   const replaceDaysSet = new Set(
     (salaryRules.replaceDays ?? [])
       .filter((item) => item?.rdate)
-      .map((item) => item.rdate.split("T")[0])
+      .map((item) => item.rdate.split("T")[0]),
   );
 
   // ---- LOGIC ----
