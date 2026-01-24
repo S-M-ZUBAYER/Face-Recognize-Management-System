@@ -44,8 +44,8 @@ function convertPunchesWithSpecialRules(
   mac,
   date,
   oneEmployeeData,
-  nextDayPunchesAsStrings = [] // Changed from previousDayPunchesAsStrings
-  // id
+  nextDayPunchesAsStrings = [], // Changed from previousDayPunchesAsStrings
+  // id,
 ) {
   const rules = useGlobalStore.getState().globalRules;
   let punches = [...punchesAsStrings].sort();
@@ -61,9 +61,12 @@ function convertPunchesWithSpecialRules(
     overtimeDecoded = found.param2 || [];
   } else {
     const generalRule = rules.find((rule) => rule.deviceMAC === mac);
+    // if (id === "3531774219") {
+    //   console.log(rules, mac, generalRule);
+    // }
     if (generalRule) {
       const generalFound = generalRule.salaryRules.rules.find(
-        (item) => item.ruleId === 0
+        (item) => item.ruleId === 0,
       );
       if (generalFound) {
         workingDecoded = generalFound.param1 || [];
@@ -98,7 +101,7 @@ function convertPunchesWithSpecialRules(
     const { perfectPunches } = getPerfectPunches(
       punchesAsStrings,
       nextDayPunchesAsStrings,
-      normalAllRules
+      normalAllRules,
     );
 
     // if (id === "70709908") {
@@ -183,7 +186,7 @@ function convertPunchesWithNormalRules(
   rulesModel,
   date,
   nextDayPunchesAsStrings = [], // Changed from previousDayPunchesAsStrings
-  isNightShift
+  isNightShift,
   // id
 ) {
   let punches = [...punchesAsStrings].sort();
@@ -210,7 +213,7 @@ function convertPunchesWithNormalRules(
       rulesModel.param3 || "00:00",
       rulesModel.param4 || "00:00",
       rulesModel.param5 || "00:00",
-      rulesModel.param6 || "00:00"
+      rulesModel.param6 || "00:00",
     );
   }
 
@@ -220,7 +223,7 @@ function convertPunchesWithNormalRules(
     const { perfectPunches } = getPerfectPunches(
       punchesAsStrings,
       nextDayPunchesAsStrings,
-      normalAllRules
+      normalAllRules,
     );
 
     // if (id === "7070969796") {
@@ -326,10 +329,10 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
 
   // Sort by date once
   const sortedAttendance = [...monthlyAttendance].sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
+    (a, b) => new Date(a.date) - new Date(b.date),
   );
   const attendanceByDate = new Map(
-    monthlyAttendance.map((item) => [item.date, item.checkIn])
+    monthlyAttendance.map((item) => [item.date, item.checkIn]),
   );
 
   for (let i = 0; i < sortedAttendance.length; i++) {
@@ -355,7 +358,7 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
     // 👉 calculate next calendar date
     const nextDateStr = format(
       addDays(new Date(`${date}T00:00:00`), 1),
-      "yyyy-MM-dd"
+      "yyyy-MM-dd",
     );
 
     // 👉 get next day punches safely
@@ -377,7 +380,7 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
             date,
             specialEmployeeData,
             nextDayPunches,
-            id
+            id,
           )
         : convertPunchesWithNormalRules(
             punches,
@@ -385,7 +388,7 @@ function punchAndShiftDetails(monthlyAttendance, salaryRules, run) {
             date,
             nextDayPunches,
             isNightShift,
-            id
+            id,
           );
 
     if (overtime.punches.length > 0) {

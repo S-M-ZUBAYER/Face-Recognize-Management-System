@@ -284,3 +284,100 @@ input:-webkit-autofill {
     scrollbar-color: #b0c5d0 transparent;
   }
 }
+
+/* DeviceCard.css */
+
+/* Card animations */
+@keyframes cardEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes itemEnter {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes imageEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Apply animations to the card */
+.device-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardEnter 0.4s ease-out forwards;
+}
+
+.device-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 67, 104, 0.1),
+    0 4px 6px -2px rgba(0, 67, 104, 0.05);
+}
+
+.device-card:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Image section animations */
+.image-container {
+  animation: imageEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+
+.device-card:hover .image-icon {
+  transform: scale(1.05) rotate(2deg);
+}
+
+/* Info items animations */
+.info-item {
+  opacity: 0;
+  animation: itemEnter 0.3s ease-out forwards;
+}
+
+/* Label text hover effect */
+.label-text {
+  transition: color 0.2s ease;
+}
+
+.device-card:hover .label-text {
+  color: #002c44;
+}
+
+/* Value text hover effect */
+.value-text {
+  transition: all 0.2s ease;
+}
+
+.device-card:hover .value-text {
+  color: #1a1a1a;
+  transform: scale(1.02);
+}
+
+/* Hover border effect */
+.hover-border {
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}

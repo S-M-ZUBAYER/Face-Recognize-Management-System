@@ -1,0 +1,97 @@
+import { WorkShiftTimeForm } from "./WorkShiftTimeForm";
+import { HolidayForm } from "./HolidayForm";
+import { WeekendForm } from "./WeekendForm";
+import { LatenessForm } from "./LatenessForm";
+import { LeaveForm } from "./LeaveForm";
+import { DefaultForm } from "./DefaultForm";
+import { EmptyState } from "./EmptyState";
+import RuleHeader from "./RuleHeader";
+import { WorkOnHoliday } from "./WorkOnHoliday";
+import { FlexibleWork } from "./FlexibleWork";
+import { UseOverTimeLateness } from "./UseOverTimeLateness";
+import { OvertImeCount } from "./OvertimeCount";
+import { WeekendOvertime } from "./WeekendOvertime";
+import { HolidayOvertime } from "./HolidayOvertime";
+import DocumentProofs from "./DocumentProofs";
+import { ReplacementDayForm } from "./ReplacementDayForm";
+import { AbsenceForm } from "./AbsenceForm";
+import { LateArrivalPenalty1 } from "./LateArrivalPenalty1";
+import { EarlyDepartureDeduction } from "./EarlyDepartureDeduction";
+import { LateArrivalPenalty2 } from "./LateArrivalPenalty2";
+import { LateArrivalPenalty3 } from "./LateArrivalPenalty3";
+import { LateArrivalFine4 } from "./LateArrivalFine4";
+import { LateArrivalFine5 } from "./LateArrivalFine5";
+import { LateArrivalPenalty6 } from "./LateArrivalPenalty6";
+import { MissedPunch } from "./MissedPunch";
+import { SelectOvertime } from "./SelectOvertime";
+import { SetTotalLeaveDays } from "./SetTotalLeaveDays";
+
+export const RuleContent = ({ selectedRule, onBack }) => {
+  if (!selectedRule) {
+    return <EmptyState />;
+  }
+
+  const renderForm = () => {
+    switch (selectedRule.component) {
+      case "workShift":
+        return <WorkShiftTimeForm />;
+      case "holiday":
+        return <HolidayForm />;
+      case "weekend":
+        return <WeekendForm />;
+      case "workOnHoliday":
+        return <WorkOnHoliday />;
+      case "lateness":
+        return <LatenessForm />;
+      case "flexible":
+        return <FlexibleWork />;
+      case "overtimeOffset":
+        return <UseOverTimeLateness />;
+      case "overtimeCount":
+        return <OvertImeCount />;
+      case "weekendOvertime":
+        return <WeekendOvertime />;
+      case "holidayOvertime":
+        return <HolidayOvertime />;
+      case "leave":
+        return <LeaveForm />;
+      case "specialTime":
+        return <DocumentProofs />;
+      case "replacement":
+        return <ReplacementDayForm />;
+      case "absence":
+        return <AbsenceForm />;
+      case "lateArrival":
+        return <LateArrivalPenalty1 />;
+      case "earlyDeparture":
+        return <EarlyDepartureDeduction />;
+      case "lateArrival2":
+        return <LateArrivalPenalty2 />;
+      case "lateArrival3":
+        return <LateArrivalPenalty3 />;
+      case "lateArrival4":
+        return <LateArrivalFine4 />;
+      case "lateArrival5":
+        return <LateArrivalFine5 />;
+      case "lateArrival6":
+        return <LateArrivalPenalty6 />;
+      case "missedPunch":
+        return <MissedPunch />;
+      case "selectOvertime":
+        return <SelectOvertime />;
+      case "setTotalLeaveDays":
+        return <SetTotalLeaveDays />;
+      default:
+        return <DefaultForm />;
+    }
+  };
+
+  return (
+    <div className="border  border-gray-200 rounded-xl  py-2.5  w-[70%]">
+      <RuleHeader title={selectedRule.title} onBack={onBack} />
+      <div className="overflow-y-auto custom-scrollbar flex-1 h-[70vh] justify-center items-center px-8 ">
+        {renderForm()}
+      </div>
+    </div>
+  );
+};
