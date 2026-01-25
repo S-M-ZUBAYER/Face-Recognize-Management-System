@@ -1,97 +1,109 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LatenessForm = () => {
   const [lateTime, setLateTime] = useState("");
-  const { setRulesIds } = useUserStore();
-
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing lateness value from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleFour = existingRules.find(
+          (rule) => rule.ruleId === 4 || rule.ruleId === "4"
+        );
+
+        if (ruleFour && ruleFour.param1) {
+          // param1 should contain the late time value as string
+          const lateTimeValue =
+            typeof ruleFour.param1 === "string"
+              ? ruleFour.param1
+              : String(ruleFour.param1);
+          setLateTime(lateTimeValue);
+        }
+      } catch (error) {
+        console.error("Error parsing lateness value:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save lateness configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
+
     if (!lateTime || isNaN(lateTime) || parseInt(lateTime) < 0) {
       toast.error("Please enter a valid positive number for late time");
       return;
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 4
-        let ruleFive = existingRules.find(
-          (rule) => rule.ruleId === 4 || rule.ruleId === "4"
-        );
+      // Find or create rule with ruleId = 4
+      let ruleFive = existingRules.find(
+        (rule) => rule.ruleId === 4 || rule.ruleId === "4"
+      );
 
-        if (!ruleFive) {
-          // Create new rule with ruleId = 4 if it doesn't exist
-          ruleFive = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "4", // string
-            ruleStatus: 1, // number
-            param1: lateTime, // string containing the late time value
-            param2: "",
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleFive object - preserve all other properties
-          ruleFive.empId = empId; // string
-          ruleFive.param1 = lateTime; // update with new late time value
-          // Keep all other properties as they are
-        }
+      if (!ruleFive) {
+        // Create new rule with ruleId = 4 if it doesn't exist
+        ruleFive = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "4", // string
+          ruleStatus: 1, // number
+          param1: lateTime, // string containing the late time value
+          param2: "",
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleFive object - preserve all other properties
+        ruleFive.empId = empId; // string
+        ruleFive.param1 = lateTime; // update with new late time value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 4 || r.ruleId === "4",
-            newValue: ruleFive, // update ruleId=4 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 4 || r.ruleId === "4",
+          newValue: ruleFive, // update ruleId=4 object
+        },
       });
-      await Promise.all(updatePromises);
 
-      setRulesIds(4);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Lateness setting updated successfully!");
     } catch (error) {
       console.error("Error saving lateness setting:", error);
@@ -104,6 +116,31 @@ export const LatenessForm = () => {
     // Allow only positive numbers
     if (value === "" || (!isNaN(value) && parseInt(value) >= 0)) {
       setLateTime(value);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 4,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -149,13 +186,26 @@ export const LatenessForm = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !lateTime}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating || !lateTime}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

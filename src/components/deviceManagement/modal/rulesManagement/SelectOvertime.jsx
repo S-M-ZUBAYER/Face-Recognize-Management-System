@@ -1,29 +1,65 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const SelectOvertime = () => {
   const [allowOvertime, setAllowOvertime] = useState("No");
   const [multiplier, setMultiplier] = useState("1");
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
-  const { setRulesIds } = useUserStore();
+
+  // Load existing overtime values from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleTwentyThree = existingRules.find(
+          (rule) => rule.ruleId === 23 || rule.ruleId === "23"
+        );
+
+        if (ruleTwentyThree) {
+          // param1 contains allow overtime value (true/false as string)
+          if (ruleTwentyThree.param1) {
+            const allowOvertimeValue =
+              typeof ruleTwentyThree.param1 === "string"
+                ? ruleTwentyThree.param1
+                : String(ruleTwentyThree.param1);
+            setAllowOvertime(allowOvertimeValue === "true" ? "Yes" : "No");
+          }
+
+          // param2 contains multiplier value
+          if (ruleTwentyThree.param2) {
+            const multiplierValue =
+              typeof ruleTwentyThree.param2 === "string"
+                ? ruleTwentyThree.param2
+                : String(ruleTwentyThree.param2);
+            setMultiplier(multiplierValue);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing overtime values:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save overtime configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
+
     if (
       allowOvertime === "Yes" &&
       (!multiplier || isNaN(multiplier) || parseFloat(multiplier) <= 0)
@@ -35,66 +71,62 @@ export const SelectOvertime = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Convert "Yes"/"No" to "true"/"false" strings for storage
-        const allowOvertimeValue = allowOvertime === "Yes" ? "true" : "false";
+      // Convert "Yes"/"No" to "true"/"false" strings for storage
+      const allowOvertimeValue = allowOvertime === "Yes" ? "true" : "false";
 
-        // Find or create rule with ruleId = 23
-        let ruleTwentyThree = existingRules.find(
-          (rule) => rule.ruleId === 23 || rule.ruleId === "23"
-        );
+      // Find or create rule with ruleId = 23
+      let ruleTwentyThree = existingRules.find(
+        (rule) => rule.ruleId === 23 || rule.ruleId === "23"
+      );
 
-        if (!ruleTwentyThree) {
-          // Create new rule with ruleId = 23 if it doesn't exist
-          ruleTwentyThree = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "23", // string
-            ruleStatus: 1, // number
-            param1: allowOvertimeValue, // string containing "true" or "false"
-            param2: allowOvertime === "Yes" ? multiplier : "", // string containing multiplier value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleTwentyThree object - preserve all other properties
-          ruleTwentyThree.empId = empId; // string
-          ruleTwentyThree.param1 = allowOvertimeValue; // update with new allow overtime value
-          ruleTwentyThree.param2 = allowOvertime === "Yes" ? multiplier : ""; // update with new multiplier value
-          // Keep all other properties as they are
-        }
+      if (!ruleTwentyThree) {
+        // Create new rule with ruleId = 23 if it doesn't exist
+        ruleTwentyThree = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "23", // string
+          ruleStatus: 1, // number
+          param1: allowOvertimeValue, // string containing "true" or "false"
+          param2: allowOvertime === "Yes" ? multiplier : "", // string containing multiplier value
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleTwentyThree object - preserve all other properties
+        ruleTwentyThree.empId = empId; // string
+        ruleTwentyThree.param1 = allowOvertimeValue; // update with new allow overtime value
+        ruleTwentyThree.param2 = allowOvertime === "Yes" ? multiplier : ""; // update with new multiplier value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 23 || r.ruleId === "23",
-            newValue: ruleTwentyThree, // update ruleId=23 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 23 || r.ruleId === "23",
+          newValue: ruleTwentyThree, // update ruleId=23 object
+        },
       });
-      await Promise.all(updatePromises);
-      setRulesIds(23);
+
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving overtime settings:", error);
@@ -107,6 +139,30 @@ export const SelectOvertime = () => {
     // Allow only positive numbers greater than 0
     if (value === "" || (!isNaN(value) && parseFloat(value) > 0)) {
       setMultiplier(value);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 23,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -181,13 +237,25 @@ export const SelectOvertime = () => {
 
       <hr className="border-gray-200" />
 
-      <button
-        onClick={handleSave}
-        disabled={updating}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

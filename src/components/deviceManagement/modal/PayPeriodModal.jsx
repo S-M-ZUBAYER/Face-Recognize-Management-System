@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,16 @@ import SemiMonthlyForm from "./payPeriod/SemiMonthlyForm";
 import BiWeeklyForm from "./payPeriod/BiWeeklyForm";
 import WeeklyForm from "./payPeriod/WeeklyForm";
 import FlexibleWorkForm from "./payPeriod/FlexibleWorkForm";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 const PayPeriodModal = ({ isOpen, onCancel }) => {
   const [selectedPeriod, setSelectedPeriod] = useState("normalMonthly");
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  // console.log(selectedPayPeriod);
+
+  useEffect(() => {
+    setSelectedPeriod(selectedPayPeriod?.payPeriod?.payPeriod);
+  }, [selectedPayPeriod]);
 
   const payPeriods = [
     { value: "normalMonthly", label: "Normal Month" },

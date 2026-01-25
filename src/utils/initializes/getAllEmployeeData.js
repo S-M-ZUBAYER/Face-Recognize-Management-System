@@ -15,17 +15,17 @@ export const getAllEmployeeData = async () => {
     const payPeriodResponse = deviceMACs.map(async (device) => {
       try {
         const res = await apiClient.get(
-          getApiUrl(`/payPeriod/check/${device.deviceMAC}`)
+          getApiUrl(`/payPeriod/check/${device.deviceMAC}`),
         );
 
         return {
           deviceMAC: device.deviceMAC,
-          payPeriod: JSON.parse(res.data.payPeriod),
+          payPeriod: parseNormalData(res.data.payPeriod),
         };
       } catch (error) {
         console.error(
           `Failed to fetch employees for ${device.deviceMAC}:`,
-          error
+          error,
         );
         return [];
       }
@@ -37,7 +37,7 @@ export const getAllEmployeeData = async () => {
     const salaryRulesResponse = deviceMACs.map(async (device) => {
       try {
         const res = await apiClient.get(
-          getApiUrl(`/salaryRules/check/${device.deviceMAC}`)
+          getApiUrl(`/salaryRules/check/${device.deviceMAC}`),
         );
 
         const parsedSalaryRules = parseNormalData(res.data.salaryRules);
@@ -49,7 +49,7 @@ export const getAllEmployeeData = async () => {
       } catch (error) {
         console.error(
           `Failed to fetch employees for ${device.deviceMAC}:`,
-          error
+          error,
         );
         return [];
       }
@@ -60,7 +60,7 @@ export const getAllEmployeeData = async () => {
     const employeePromises = deviceMACs.map(async (device) => {
       try {
         const res = await apiClient.get(
-          getApiUrl(`/employee/all/${device.deviceMAC}`)
+          getApiUrl(`/employee/all/${device.deviceMAC}`),
         );
 
         return res.data.map((emp) => ({
@@ -81,7 +81,7 @@ export const getAllEmployeeData = async () => {
       } catch (error) {
         console.error(
           `Failed to fetch employees for ${device.deviceMAC}:`,
-          error
+          error,
         );
         return [];
       }
@@ -164,7 +164,7 @@ export const getAllEmployeeData = async () => {
       } catch (error) {
         console.warn(
           `Error parsing salary rules for employee ${emp.employeeId}:`,
-          error
+          error,
         );
         parsedSalaryRules = {};
         parsedPayPeriod = {};
@@ -180,7 +180,7 @@ export const getAllEmployeeData = async () => {
     const employeeCounts = deviceMACs.map((mac) => ({
       deviceMAC: mac.deviceMAC,
       count: processedEmployees.filter(
-        (item) => item.deviceMAC === mac.deviceMAC
+        (item) => item.deviceMAC === mac.deviceMAC,
       ).length,
     }));
 

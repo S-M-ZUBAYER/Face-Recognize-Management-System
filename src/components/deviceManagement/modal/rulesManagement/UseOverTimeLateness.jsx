@@ -1,29 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const UseOverTimeLateness = () => {
   const [lateTime, setLateTime] = useState("");
   const [costOverTime, setCostOverTime] = useState("");
-  const { setRulesIds } = useUserStore();
-
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
-
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing overtime lateness values from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleSix = existingRules.find(
+          (rule) => rule.ruleId === 6 || rule.ruleId === "6"
+        );
+
+        if (ruleSix) {
+          // param1 contains late time value
+          if (ruleSix.param1) {
+            const lateTimeValue =
+              typeof ruleSix.param1 === "string"
+                ? ruleSix.param1
+                : String(ruleSix.param1);
+            setLateTime(lateTimeValue);
+          }
+
+          // param2 contains cost over time value
+          if (ruleSix.param2) {
+            const costOverTimeValue =
+              typeof ruleSix.param2 === "string"
+                ? ruleSix.param2
+                : String(ruleSix.param2);
+            setCostOverTime(costOverTimeValue);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing overtime lateness values:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save overtime lateness configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
+
     if (!lateTime || isNaN(lateTime) || parseInt(lateTime) < 0) {
       toast.error("Please enter a valid positive number for late time");
       return;
@@ -35,66 +69,59 @@ export const UseOverTimeLateness = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 6
-        let ruleSix = existingRules.find(
-          (rule) => rule.ruleId === 6 || rule.ruleId === "6"
-        );
+      // Find or create rule with ruleId = 6
+      let ruleSix = existingRules.find(
+        (rule) => rule.ruleId === 6 || rule.ruleId === "6"
+      );
 
-        if (!ruleSix) {
-          // Create new rule with ruleId = 6 if it doesn't exist
-          ruleSix = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "6", // string
-            ruleStatus: 1, // number
-            param1: lateTime, // string containing late time value (minutes)
-            param2: costOverTime, // string containing cost over time value (minutes)
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleSix object - preserve all other properties
-          ruleSix.empId = empId; // string
-          ruleSix.param1 = lateTime; // update with new late time value
-          ruleSix.param2 = costOverTime; // update with new cost over time value
-          // Keep all other properties as they are
-        }
+      if (!ruleSix) {
+        // Create new rule with ruleId = 6 if it doesn't exist
+        ruleSix = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "6", // string
+          ruleStatus: 1, // number
+          param1: lateTime, // string containing late time value (minutes)
+          param2: costOverTime, // string containing cost over time value (minutes)
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleSix object - preserve all other properties
+        ruleSix.empId = empId; // string
+        ruleSix.param1 = lateTime; // update with new late time value
+        ruleSix.param2 = costOverTime; // update with new cost over time value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 6 || r.ruleId === "6",
-            newValue: ruleSix, // update ruleId=6 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updateEmployee));
-
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 6 || r.ruleId === "6",
+          newValue: ruleSix, // update ruleId=6 object
+        },
       });
 
-      await Promise.all(updatePromises);
-      setRulesIds(6);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Overtime lateness settings updated successfully!");
     } catch (error) {
       console.error("Error saving overtime lateness settings:", error);
@@ -107,6 +134,30 @@ export const UseOverTimeLateness = () => {
     // Allow only positive numbers
     if (value === "" || (!isNaN(value) && parseInt(value) >= 0)) {
       setter(value);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 6,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -168,13 +219,25 @@ export const UseOverTimeLateness = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !lateTime || !costOverTime}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating || !lateTime || !costOverTime}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

@@ -1,27 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalFine5 = () => {
   const [incrementalAmount, setIncrementalAmount] = useState("");
-  const { setRulesIds } = useUserStore();
-
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
-
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing incremental amount value from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleTwenty = existingRules.find(
+          (rule) => rule.ruleId === 20 || rule.ruleId === "20"
+        );
+
+        if (ruleTwenty && ruleTwenty.param1) {
+          // param1 contains the incremental amount value
+          const incrementalAmountValue =
+            typeof ruleTwenty.param1 === "string"
+              ? ruleTwenty.param1
+              : String(ruleTwenty.param1);
+          setIncrementalAmount(incrementalAmountValue);
+        }
+      } catch (error) {
+        console.error("Error parsing incremental amount value:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save incremental amount configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
 
@@ -37,66 +58,59 @@ export const LateArrivalFine5 = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 20
-        let ruleTwenty = existingRules.find(
-          (rule) => rule.ruleId === 20 || rule.ruleId === "20"
-        );
+      // Find or create rule with ruleId = 20
+      let ruleTwenty = existingRules.find(
+        (rule) => rule.ruleId === 20 || rule.ruleId === "20"
+      );
 
-        if (!ruleTwenty) {
-          // Create new rule with ruleId = 20 if it doesn't exist
-          ruleTwenty = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "20", // string
-            ruleStatus: 1, // number
-            param1: incrementalAmount, // string containing incremental amount value
-            param2: "",
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleTwenty object - preserve all other properties
-          ruleTwenty.empId = empId; // string
-          ruleTwenty.param1 = incrementalAmount; // update with new incremental amount value
-          // Keep all other properties as they are
-        }
+      if (!ruleTwenty) {
+        // Create new rule with ruleId = 20 if it doesn't exist
+        ruleTwenty = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "20", // string
+          ruleStatus: 1, // number
+          param1: incrementalAmount, // string containing incremental amount value
+          param2: "",
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleTwenty object - preserve all other properties
+        ruleTwenty.empId = empId; // string
+        ruleTwenty.param1 = incrementalAmount; // update with new incremental amount value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 20 || r.ruleId === "20",
-            newValue: ruleTwenty, // update ruleId=20 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 20 || r.ruleId === "20",
+          newValue: ruleTwenty, // update ruleId=20 object
+        },
       });
 
-      await Promise.all(updatePromises);
-      setRulesIds(20);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+
       toast.success("Incremental late penalty updated successfully!");
     } catch (error) {
       console.error("Error saving incremental late penalty:", error);
@@ -109,6 +123,32 @@ export const LateArrivalFine5 = () => {
     // Allow only positive numbers (can be decimals for currency)
     if (value === "" || (!isNaN(value) && parseFloat(value) >= 0)) {
       setIncrementalAmount(value);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 20,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -154,13 +194,26 @@ export const LateArrivalFine5 = () => {
 
       <hr className="border-gray-200" />
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !incrementalAmount}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating || !incrementalAmount}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

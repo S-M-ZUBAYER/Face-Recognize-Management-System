@@ -1,28 +1,60 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const FlexibleWork = () => {
   const [lateMinutes, setLateMinutes] = useState("");
   const [leaveLateMinutes, setLeaveLateMinutes] = useState("");
-  const { setRulesIds } = useUserStore();
-
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
-
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing flexible work values from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleFive = existingRules.find(
+          (rule) => rule.ruleId === 5 || rule.ruleId === "5"
+        );
+
+        if (ruleFive) {
+          // param1 contains late minutes value
+          if (ruleFive.param1) {
+            const lateValue =
+              typeof ruleFive.param1 === "string"
+                ? ruleFive.param1
+                : String(ruleFive.param1);
+            setLateMinutes(lateValue);
+          }
+
+          // param2 contains leave late minutes value
+          if (ruleFive.param2) {
+            const leaveLateValue =
+              typeof ruleFive.param2 === "string"
+                ? ruleFive.param2
+                : String(ruleFive.param2);
+            setLeaveLateMinutes(leaveLateValue);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing flexible work values:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save flexible work configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
 
@@ -43,69 +75,59 @@ export const FlexibleWork = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 5
-        let ruleFive = existingRules.find(
-          (rule) => rule.ruleId === 5 || rule.ruleId === "5"
-        );
+      // Find or create rule with ruleId = 5
+      let ruleFive = existingRules.find(
+        (rule) => rule.ruleId === 5 || rule.ruleId === "5"
+      );
 
-        if (!ruleFive) {
-          // Create new rule with ruleId = 5 if it doesn't exist
-          ruleFive = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "5", // string
-            ruleStatus: 1, // number
-            param1: lateMinutes, // string containing late minutes value
-            param2: leaveLateMinutes, // string containing leave late minutes value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleFive object - preserve all other properties
-          ruleFive.empId = empId; // string
-          ruleFive.param1 = lateMinutes; // update with new late minutes value
-          ruleFive.param2 = leaveLateMinutes; // update with new leave late minutes value
-          // Keep all other properties as they are
-        }
+      if (!ruleFive) {
+        // Create new rule with ruleId = 5 if it doesn't exist
+        ruleFive = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "5", // string
+          ruleStatus: 1, // number
+          param1: lateMinutes, // string containing late minutes value
+          param2: leaveLateMinutes, // string containing leave late minutes value
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleFive object - preserve all other properties
+        ruleFive.empId = empId; // string
+        ruleFive.param1 = lateMinutes; // update with new late minutes value
+        ruleFive.param2 = leaveLateMinutes; // update with new leave late minutes value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 5 || r.ruleId === "5",
-            newValue: ruleFive, // update ruleId=5 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 5 || r.ruleId === "5",
+          newValue: ruleFive, // update ruleId=5 object
+        },
       });
 
-      await Promise.all(updatePromises);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      setRulesIds(5);
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Flexible work settings updated successfully!");
     } catch (error) {
       console.error("Error saving flexible work settings:", error);
@@ -118,6 +140,31 @@ export const FlexibleWork = () => {
     // Allow only positive numbers
     if (value === "" || (!isNaN(value) && parseInt(value) >= 0)) {
       setter(value);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 5,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -176,13 +223,25 @@ export const FlexibleWork = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !lateMinutes || !leaveLateMinutes}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating || !lateMinutes || !leaveLateMinutes}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

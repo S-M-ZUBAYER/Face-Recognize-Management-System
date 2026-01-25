@@ -1,25 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const AbsenceForm = () => {
   const [penaltyDays, setPenaltyDays] = useState("");
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { setRulesIds } = useUserStore();
-
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing penalty days value from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleThirteen = existingRules.find(
+          (rule) => rule.ruleId === 13 || rule.ruleId === "13"
+        );
+
+        if (ruleThirteen && ruleThirteen.param2) {
+          // param2 contains the penalty days value
+          const penaltyDaysValue =
+            typeof ruleThirteen.param2 === "string"
+              ? ruleThirteen.param2
+              : String(ruleThirteen.param2);
+          setPenaltyDays(penaltyDaysValue);
+        }
+      } catch (error) {
+        console.error("Error parsing penalty days value:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save penalty days configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
 
@@ -29,68 +52,58 @@ export const AbsenceForm = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 13
-        let ruleThirteen = existingRules.find(
-          (rule) => rule.ruleId === 13 || rule.ruleId === "13"
-        );
+      // Find or create rule with ruleId = 13
+      let ruleThirteen = existingRules.find(
+        (rule) => rule.ruleId === 13 || rule.ruleId === "13"
+      );
 
-        if (!ruleThirteen) {
-          // Create new rule with ruleId = 13 if it doesn't exist
-          ruleThirteen = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "13", // string
-            ruleStatus: 1, // number
-            param1: "",
-            param2: penaltyDays, // string containing penalty days value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleThirteen object - preserve all other properties
-          ruleThirteen.empId = empId; // string
-          ruleThirteen.param2 = penaltyDays; // update with new penalty days value
-          // Keep all other properties as they are
-        }
+      if (!ruleThirteen) {
+        // Create new rule with ruleId = 13 if it doesn't exist
+        ruleThirteen = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "13", // string
+          ruleStatus: 1, // number
+          param1: "",
+          param2: penaltyDays, // string containing penalty days value
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleThirteen object - preserve all other properties
+        ruleThirteen.empId = empId; // string
+        ruleThirteen.param2 = penaltyDays; // update with new penalty days value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 13 || r.ruleId === "13",
-            newValue: ruleThirteen, // update ruleId=13 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 13 || r.ruleId === "13",
+          newValue: ruleThirteen, // update ruleId=13 object
+        },
       });
-      await Promise.all(updatePromises);
 
-      setRulesIds(13);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+
       toast.success("Penalty days updated successfully!");
     } catch (error) {
       console.error("Error saving penalty days:", error);
@@ -103,6 +116,31 @@ export const AbsenceForm = () => {
     // Allow only positive numbers greater than 0
     if (value === "" || (!isNaN(value) && parseInt(value) > 0)) {
       setPenaltyDays(value);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 13,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -148,13 +186,25 @@ export const AbsenceForm = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !penaltyDays}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

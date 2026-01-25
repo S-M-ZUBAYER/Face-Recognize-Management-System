@@ -1,26 +1,24 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import useAlertDialog from "@/zustand/useAlertDialog";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useUserStore } from "@/zustand/useUserStore";
-import { useEffect } from "react";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
+// import { useEffect } from "react";
 
 const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
-  const { selectedEmployee } = useEditEmployeeStore();
+  const generalRule = useGlobalStore.getState().selectedRule();
   const { openDialog } = useAlertDialog();
-  const { rulesIds } = useUserStore();
 
   // Force re-render when selectedEmployee changes
-  useEffect(() => {
-    // This will trigger a re-render whenever selectedEmployee updates
-  }, [selectedEmployee]);
+  // useEffect(() => {
+  //   // This will trigger a re-render whenever selectedEmployee updates
+  // }, [generalRule]);
 
-  // const getAllRuleIds = (rulesArray) => {
-  //   if (!Array.isArray(rulesArray)) return [];
-  //   return rulesArray.map((rule) => Number(rule.ruleId));
-  // };
+  const getAllRuleIds = (rulesArray) => {
+    if (!Array.isArray(rulesArray)) return [];
+    return rulesArray.map((rule) => Number(rule.ruleId));
+  };
 
-  // const existingRuleIds = getAllRuleIds(selectedEmployee?.salaryRules?.rules);
-  const existingRuleIds = rulesIds;
+  const existingRuleIds = getAllRuleIds(generalRule?.salaryRules?.rules);
+  // console.log(existingRuleIds);
 
   const hasRuleId = (ruleIdsArray, id) => {
     if (!Array.isArray(ruleIdsArray)) return false;
@@ -44,20 +42,20 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
 
   const handleRuleSelect = (rule) => {
     // Condition 0: Rule 1 is mandatory for all other rules
-    // if (rule.id !== 0 && !hasRuleId(existingRuleIds, 0)) {
-    //   openDialog(
-    //     `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`
-    //   );
-    //   return;
-    // }
+    if (rule.id !== 0 && !hasRuleId(existingRuleIds, 0)) {
+      openDialog(
+        `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`,
+      );
+      return;
+    }
 
-    // // Condition 1: Rules 6-9 require rule 24 to be set
+    // Condition 1: Rules 6-9 require rule 24 to be set
     if (isDependencyRule(rule.id)) {
       if (!hasRuleId(existingRuleIds, 23)) {
         openDialog(
           `Rule ${
             rule.id + 1
-          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
+          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`,
         );
         return;
       }
@@ -75,7 +73,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
             selectedExclusive[0]
           } selected. Please deselect it first if you want to select Rule ${
             rule.id + 1
-          }.`
+          }.`,
         );
         return;
       }

@@ -1,27 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const HolidayOvertime = () => {
   // const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
   const [holidayWorkingTimePercent, setHolidayWorkingTimePercent] =
     useState("");
-  const { setRulesIds } = useUserStore();
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing holiday overtime values from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleNine = existingRules.find(
+          (rule) => rule.ruleId === 9 || rule.ruleId === "9"
+        );
+
+        if (ruleNine) {
+          // param1 contains holiday overtime percent value
+          // if (ruleNine.param1) {
+          //   const overtimePercentValue =
+          //     typeof ruleNine.param1 === "string"
+          //       ? ruleNine.param1
+          //       : String(ruleNine.param1);
+          //   setHolidayOvertimePercent(overtimePercentValue);
+          // }
+
+          // param2 contains holiday working time percent value
+          if (ruleNine.param2) {
+            const workingTimePercentValue =
+              typeof ruleNine.param2 === "string"
+                ? ruleNine.param2
+                : String(ruleNine.param2);
+            setHolidayWorkingTimePercent(workingTimePercentValue);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing holiday overtime values:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save holiday overtime configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
 
@@ -48,68 +82,59 @@ export const HolidayOvertime = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 9
-        let ruleNine = existingRules.find(
-          (rule) => rule.ruleId === 9 || rule.ruleId === "9"
-        );
+      // Find or create rule with ruleId = 9
+      let ruleNine = existingRules.find(
+        (rule) => rule.ruleId === 9 || rule.ruleId === "9"
+      );
 
-        if (!ruleNine) {
-          // Create new rule with ruleId = 9 if it doesn't exist
-          ruleNine = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "9", // string
-            ruleStatus: 1, // number
-            // param1: holidayOvertimePercent, // string containing holiday overtime percent value
-            param2: holidayWorkingTimePercent, // string containing holiday working time percent value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleNine object - preserve all other properties
-          ruleNine.empId = empId; // string
-          // ruleNine.param1 = holidayOvertimePercent; // update with new holiday overtime percent value
-          ruleNine.param2 = holidayWorkingTimePercent; // update with new holiday working time percent value
-          // Keep all other properties as they are
-        }
+      if (!ruleNine) {
+        // Create new rule with ruleId = 9 if it doesn't exist
+        ruleNine = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "9", // string
+          ruleStatus: 1, // number
+          // param1: holidayOvertimePercent, // string containing holiday overtime percent value
+          param2: holidayWorkingTimePercent, // string containing holiday working time percent value
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleNine object - preserve all other properties
+        ruleNine.empId = empId; // string
+        // ruleNine.param1 = holidayOvertimePercent; // update with new holiday overtime percent value
+        ruleNine.param2 = holidayWorkingTimePercent; // update with new holiday working time percent value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 9 || r.ruleId === "9",
-            newValue: ruleNine, // update ruleId=9 object
-          },
-        });
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 9 || r.ruleId === "9",
+          newValue: ruleNine, // update ruleId=9 object
+        },
       });
 
-      await Promise.all(updatePromises);
-      setRulesIds(9);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       toast.success("Holiday overtime settings updated successfully!");
     } catch (error) {
@@ -123,6 +148,31 @@ export const HolidayOvertime = () => {
     // Allow only positive numbers (can be decimals for percentages)
     if (value === "" || (!isNaN(value) && parseFloat(value) >= 0)) {
       setter(value);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 9,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -145,7 +195,7 @@ export const HolidayOvertime = () => {
 
       <div className="flex gap-3.5 items-center justify-between mt-3.5 ">
         <label className="text-sm font-semibold">
-          Holiday Working Time Percent
+          Holiday Overtime Time Percent
         </label>
         <input
           type="number"
@@ -207,13 +257,26 @@ export const HolidayOvertime = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !holidayWorkingTimePercent}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#003556]"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating || !holidayWorkingTimePercent}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

@@ -1,26 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { parseNormalData } from "@/lib/parseNormalData";
-import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const EarlyDepartureDeduction = () => {
   const [penaltyAmount, setPenaltyAmount] = useState("");
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { setRulesIds } = useUserStore();
-
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
-
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing penalty amount value from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedEmployee.salaryRules.rules === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.rules)
+            : selectedEmployee.salaryRules.rules || [];
+
+        const ruleSixteen = existingRules.find(
+          (rule) => rule.ruleId === 16 || rule.ruleId === "16"
+        );
+
+        if (ruleSixteen && ruleSixteen.param1) {
+          // param1 contains the penalty amount value
+          const penaltyAmountValue =
+            typeof ruleSixteen.param1 === "string"
+              ? ruleSixteen.param1
+              : String(ruleSixteen.param1);
+          setPenaltyAmount(penaltyAmountValue);
+        }
+      } catch (error) {
+        console.error(
+          "Error parsing early departure penalty amount value:",
+          error
+        );
+      }
+    }
+  }, [selectedEmployee]);
 
   // Save penalty amount configuration
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("Please select at least one employee!");
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
       return;
     }
 
@@ -34,69 +59,57 @@ export const EarlyDepartureDeduction = () => {
     }
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 16
-        let ruleSixteen = existingRules.find(
-          (rule) => rule.ruleId === 16 || rule.ruleId === "16"
-        );
+      // Find or create rule with ruleId = 16
+      let ruleSixteen = existingRules.find(
+        (rule) => rule.ruleId === 16 || rule.ruleId === "16"
+      );
 
-        if (!ruleSixteen) {
-          // Create new rule with ruleId = 16 if it doesn't exist
-          ruleSixteen = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "16", // string
-            ruleStatus: 1, // number
-            param1: penaltyAmount, // string containing penalty amount value
-            param2: "",
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleSixteen object - preserve all other properties
-          ruleSixteen.empId = empId; // string
-          ruleSixteen.param1 = penaltyAmount; // update with new penalty amount value
-          // Keep all other properties as they are
-        }
+      if (!ruleSixteen) {
+        // Create new rule with ruleId = 16 if it doesn't exist
+        ruleSixteen = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "16", // string
+          ruleStatus: 1, // number
+          param1: penaltyAmount, // string containing penalty amount value
+          param2: "",
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleSixteen object - preserve all other properties
+        ruleSixteen.empId = empId; // string
+        ruleSixteen.param1 = penaltyAmount; // update with new penalty amount value
+        // Keep all other properties as they are
+      }
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 16 || r.ruleId === "16",
-            newValue: ruleSixteen, // update ruleId=16 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 16 || r.ruleId === "16",
+          newValue: ruleSixteen, // update ruleId=16 object
+        },
       });
 
-      await Promise.all(updatePromises);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      setRulesIds(16);
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       toast.success("Early departure penalty updated successfully!");
     } catch (error) {
@@ -110,6 +123,30 @@ export const EarlyDepartureDeduction = () => {
     // Allow only positive numbers (can be decimals for currency)
     if (value === "" || (!isNaN(value) && parseFloat(value) >= 0)) {
       setPenaltyAmount(value);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 16,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -162,13 +199,26 @@ export const EarlyDepartureDeduction = () => {
 
       <hr className="border-gray-200" />
 
-      <button
-        onClick={handleSave}
-        disabled={updating || !penaltyAmount}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg hover:bg-[#003256] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

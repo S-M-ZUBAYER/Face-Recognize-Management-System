@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -13,105 +13,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+// import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import toast from "react-hot-toast";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
 import { parseNormalData } from "@/lib/parseNormalData";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { format } from "date-fns";
-
-const OVERTIME_OPTIONS = [
-  {
-    id: "auto-calc",
-    label: "Automatic Calculation (Day)",
-    placeholder: "000",
-    disabled: true,
-  },
-  {
-    id: "fixed-input",
-    label: "Fixed Input (Hour)",
-    placeholder: "Enter Overtime Rate",
-    disabled: false,
-  },
-];
-
-const SALARY_SECTION_TYPES = {
-  BASIC: "basic-salary",
-  INPUT_WEEK: "input-week",
-  OTHER: "other-salary",
-};
-
-const WEEKDAYS_ISO = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
+import { useGlobalStore } from "@/zustand/useGlobalStore";
+import {
+  createGlobalPayPeriod,
+  updateGlobalPayPeriod,
+} from "../../../../utils/updateCreateGlobal";
 
 function BiWeeklyForm() {
-  const [formData, setFormData] = useState({
-    basic: "",
-    inputDate: "",
-    workingHours: "",
-    overtimeRate: "",
-    selectedOvertimeOption: "fixed-input",
-    selectedWeekday: "",
-    selectedDate: "",
-  });
-
+  const [basic, setBasic] = useState("");
+  const [inputDate, setInputDate] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
+  const [workingHours, setWorkingHours] = useState("");
+  const [overtimeRate, setOvertimeRate] = useState("");
+  const [selectedOvertimeOption, setSelectedOvertimeOption] =
+    useState("fixed-input");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const { selectedEmployees, updateEmployeeSalaryInfo } =
-    useSelectedEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const [selectedWeekday, setSelectedWeekday] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  const { updatePayPeriod } = useGlobalStore();
+  const [isUpdate, setIsUpdate] = useState(false);
 
-  // Calculate other salary total
-  const otherSalaryTotal = useMemo(
-    () =>
-      additionalSalaries.reduce(
-        (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0,
-      ),
-    [additionalSalaries],
-  );
+  // Calculate other salary total from additional salaries
+  const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
+    return total + (parseFloat(salary.amount) || 0);
+  }, 0);
 
-  const salarySections = useMemo(
+  const weekdaysISO = useMemo(
     () => [
-      {
-        id: SALARY_SECTION_TYPES.BASIC,
-        label: "Basic Salary",
-        value: formData.basic,
-        placeholder: "000000",
-        hasValue: !!formData.basic,
-        readOnly: false,
-      },
-      {
-        id: SALARY_SECTION_TYPES.INPUT_WEEK,
-        label: "Input Week",
-        value: formData.inputDate,
-        placeholder: "000000",
-        hasValue: !!formData.inputDate,
-        readOnly: false,
-      },
-      {
-        id: SALARY_SECTION_TYPES.OTHER,
-        label: "Others Salary",
-        value: otherSalaryTotal.toFixed(2),
-        placeholder: "000000",
-        hasValue: otherSalaryTotal > 0,
-        readOnly: true,
-      },
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
     ],
-    [formData.basic, formData.inputDate, otherSalaryTotal],
+    [],
   );
 
-  // Get current month dates for selected weekday
-  const getCurrentMonthDates = useCallback((weekday) => {
+  const getCurrentMonthDates = (weekday) => {
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
@@ -119,7 +65,7 @@ function BiWeeklyForm() {
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
     const dates = [];
 
-    const targetWeekday = WEEKDAYS_ISO.indexOf(weekday) + 1; // ISO index (Mon=1,...,Sun=7)
+    const targetWeekday = weekdaysISO.indexOf(weekday) + 1; // ISO index (Mon=1,...,Sun=7)
 
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const currentDate = new Date(currentYear, currentMonth, day);
@@ -134,74 +80,134 @@ function BiWeeklyForm() {
     }
 
     return dates;
-  }, []);
+  };
 
-  // Handle form input changes
-  const handleInputChange = useCallback((field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  useEffect(() => {
+    if (selectedPayPeriod?.payPeriod) {
+      const payPeriod = selectedPayPeriod.payPeriod;
 
-  const handleWeekdaySelect = useCallback((weekday) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedWeekday: weekday,
-      selectedDate: "", // Reset date when weekday changes
-    }));
-  }, []);
+      setBasic(payPeriod.salary?.toString() || "");
+      setInputDate(payPeriod.hourlyRate?.toString() || "");
+      setWorkingHours(payPeriod.name?.toString() || "");
+      setOvertimeRate(payPeriod.overtimeFixed?.toString() || "");
 
-  const handleDateSelect = useCallback((day) => {
+      // Set weekday and date from startDay and startWeek
+      if (payPeriod.startDay !== null && payPeriod.startDay !== undefined) {
+        const weekdayIndex = payPeriod.startDay;
+        if (weekdayIndex >= 0 && weekdayIndex < weekdaysISO.length) {
+          setSelectedWeekday(weekdaysISO[weekdayIndex]);
+        }
+      }
+
+      if (payPeriod.startWeek !== null && payPeriod.startWeek !== undefined) {
+        setSelectedDate(payPeriod.startWeek.toString());
+      }
+
+      // Set additional salaries from otherSalary array with unique IDs
+      const initialAdditionalSalaries = Array.isArray(payPeriod?.otherSalary)
+        ? payPeriod.otherSalary.map((salary, index) => ({
+            id: Date.now() + index, // unique ID
+            type: salary?.type || "",
+            amount: salary?.amount?.toString() || "",
+            isChecked: salary?.isChecked !== false,
+          }))
+        : [];
+      setAdditionalSalaries(initialAdditionalSalaries);
+
+      // Set overtime option - BiWeekly only supports fixed input
+      setSelectedOvertimeOption("fixed-input");
+    }
+  }, [selectedPayPeriod, weekdaysISO]);
+
+  const salarySections = [
+    {
+      id: "basic-salary",
+      label: "Basic Salary",
+      value: basic,
+      setValue: setBasic,
+      placeholder: "000000",
+      hasValue: !!basic,
+    },
+    {
+      id: "input-date",
+      label: "Date",
+      value: inputDate,
+      setValue: setInputDate,
+      placeholder: "000000",
+      hasValue: !!inputDate,
+      isReadOnly: true,
+    },
+    {
+      id: "other-salary",
+      label: "Others Salary",
+      value: otherSalaryTotal.toFixed(2),
+      placeholder: "000000",
+      hasValue: otherSalaryTotal > 0,
+      isReadOnly: true, // Make other salary read-only since it's calculated
+    },
+  ];
+
+  const addSalarySection = () => {
+    setAdditionalSalaries([
+      ...additionalSalaries,
+      {
+        id: Date.now() + Math.random(),
+        type: "",
+        amount: "",
+        isChecked: true,
+      },
+    ]);
+  };
+
+  const removeSalarySection = (id) => {
+    setAdditionalSalaries(
+      additionalSalaries.filter((salary) => salary.id !== id),
+    );
+  };
+
+  const updateSalarySectionType = (id, value) => {
+    setAdditionalSalaries(
+      additionalSalaries.map((salary) =>
+        salary.id === id ? { ...salary, type: value } : salary,
+      ),
+    );
+  };
+
+  const updateSalarySectionAmount = (id, value) => {
+    setAdditionalSalaries(
+      additionalSalaries.map((salary) =>
+        salary.id === id ? { ...salary, amount: value } : salary,
+      ),
+    );
+  };
+
+  const handleWeekdaySelect = (weekday) => {
+    setSelectedWeekday(weekday);
+    setSelectedDate(""); // Reset date when weekday changes
+  };
+
+  const handleDateSelect = (date) => {
     const now = new Date();
 
     const year = now.getFullYear();
     const month = now.getMonth(); // already 0-based
 
-    const selectedDateObj = new Date(year, month, day);
+    const selectedDateObj = new Date(year, month, date);
     const formattedDate = format(selectedDateObj, "yyyy-MM-dd");
 
-    setFormData((prev) => ({
-      ...prev,
-      selectedDate: day,
-      inputDate: formattedDate,
-    }));
+    setInputDate(formattedDate);
+    setSelectedDate(date);
     setShowDatePicker(false);
-  }, []);
+  };
 
-  const handleOvertimeOptionChange = useCallback((optionId) => {
+  const handleOvertimeOptionChange = (optionId) => {
     // BiWeekly only supports fixed input, so don't allow changing to auto-calc
     if (optionId === "fixed-input") {
-      setFormData((prev) => ({
-        ...prev,
-        selectedOvertimeOption: "fixed-input",
-      }));
+      setSelectedOvertimeOption("fixed-input");
     }
-  }, []);
+  };
 
-  // Additional salary management
-  const addSalarySection = useCallback(() => {
-    setAdditionalSalaries((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        type: "",
-        amount: "",
-        isChecked: true, // Default to checked when adding new
-      },
-    ]);
-  }, []);
-
-  const removeSalarySection = useCallback((id) => {
-    setAdditionalSalaries((prev) => prev.filter((salary) => salary.id !== id));
-  }, []);
-
-  const updateSalarySection = useCallback((id, field, value) => {
-    setAdditionalSalaries((prev) =>
-      prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary,
-      ),
-    );
-  }, []);
-
-  // Toggle checkbox for additional salary
+  // Added this new function
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
@@ -210,97 +216,62 @@ function BiWeeklyForm() {
     );
   }, []);
 
-  // Prepare other salary array with isChecked status
-  const getOtherSalaryArray = useCallback(
-    () =>
-      additionalSalaries
-        .filter((salary) => salary.type.trim() && salary.amount)
-        .map((salary) => ({
-          isChecked: salary.isChecked !== false, // Default to true if not specified
-          type: salary.type.trim(),
-          amount: parseFloat(salary.amount) || 0,
-        })),
-    [additionalSalaries],
-  );
-
-  // Save handler - following the same pattern
   const handleSave = async () => {
-    if (selectedEmployees.length === 0) {
-      toast.error("No employees selected");
-      return;
-    }
+    setIsUpdate(true);
+    // Filter out empty additional salaries
+    const otherSalaryArray = additionalSalaries
+      .filter((salary) => salary.type && salary.amount)
+      .map((salary) => ({
+        isChecked: salary.isChecked !== false,
+        type: salary.type,
+        amount: parseFloat(salary.amount) || 0,
+      }));
 
-    const otherSalaryArray = getOtherSalaryArray();
-    const selectedWeekdayIndex = WEEKDAYS_ISO.indexOf(formData.selectedWeekday);
+    // Get weekday index using ISO standard (Monday = 0, Tuesday = 1, ..., Sunday = 6)
+    const selectedWeekdayIndex = weekdaysISO.indexOf(selectedWeekday);
+
+    const payPeriod = selectedPayPeriod?.payPeriod;
+
+    // Create the payPeriod object according to your structure
+    const employeePayPeriod = {
+      employeeId: payPeriod?.employeeId || 999,
+      hourlyRate: inputDate || payPeriod?.salaryInfo?.hourlyRate, // Input Week field
+      isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
+      leave: "",
+      name: parseInt(workingHours) || 8,
+      otherSalary: otherSalaryArray,
+      overtimeFixed: parseFloat(overtimeRate) || 0,
+      overtimeSalary: 0, // Not used for BiWeekly
+      payPeriod: "biWeekly",
+      salary: parseFloat(basic) || 0, // Basic salary field
+      selectedOvertimeOption: 1, // Always fixed input for BiWeekly
+      shift: payPeriod?.payPeriod?.shift || "Morning",
+      startDay: selectedWeekdayIndex, // Weekday index (Monday = 0, Tuesday = 1, ..., Sunday = 6)
+      startWeek: parseInt(selectedDate) || 1, // Selected date
+      status: null,
+    };
+
+    // 🔹 Convert all numeric fields to strings
+    const stringifiedEmployeePayPeriod =
+      convertNumbersToStrings(employeePayPeriod);
+
+    // 🔹 Convert to JSON string
+    const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
 
     try {
-      const updatePromises = selectedEmployees.map(async (employee) => {
-        try {
-          const payPeriodJSON = convertJsonForPayPeriod(
-            employee?.salaryInfo || {},
-            {
-              employeeId: employee?.employeeId || 0,
-              hourlyRate:
-                formData.inputDate || employee?.salaryInfo?.hourlyRate,
-              isSelectedFixedHourlyRate: true,
-              name: formData.workingHours || employee?.salaryInfo?.name,
-              otherSalary:
-                otherSalaryArray.length > 0
-                  ? otherSalaryArray
-                  : employee?.salaryInfo?.otherSalary,
-              overtimeFixed:
-                formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
-              overtimeSalary: 0,
-              payPeriod: "biWeekly",
-              salary: formData.basic || employee?.salaryInfo?.salary,
-              selectedOvertimeOption: 1,
-              shift: employee?.salaryInfo?.shift || "Morning",
-              startDay: formData.selectedWeekday
-                ? selectedWeekdayIndex
-                : employee?.salaryInfo?.startDay,
-              startWeek: formData.selectedDate
-                ? parseInt(formData.selectedDate)
-                : employee?.salaryInfo?.startWeek,
-              status: employee?.salaryInfo?.status || null,
-            },
-          );
+      if (selectedPayPeriod) {
+        await updateGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      } else {
+        await createGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      }
+      // Update Zustand store
+      updatePayPeriod({ payPeriod: parseNormalData(payPeriodJSON) });
 
-          const parsed = JSON.parse(payPeriodJSON);
-          parsed.otherSalary = JSON.parse(parsed.otherSalary);
-
-          // 1️⃣ First: API call
-          await updateEmployee({
-            mac: employee?.deviceMAC || "",
-            id: employee?.employeeId,
-            payload: { payPeriod: payPeriodJSON },
-          });
-
-          // 2️⃣ Only runs if API SUCCESS
-          updateEmployeeSalaryInfo(employee.employeeId, parsed);
-
-          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
-            salaryInfo: parseNormalData(payPeriodJSON),
-          });
-
-          return { success: true, employeeId: employee.employeeId };
-        } catch (error) {
-          console.error(
-            "Failed to update employee:",
-            employee?.employeeId,
-            error,
-          );
-          return { success: false, employeeId: employee.employeeId };
-        }
-      });
-
-      await Promise.all(updatePromises);
-
-      toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`,
-      );
-    } catch (error) {
-      console.error("Update error:", error);
-      toast.error("Failed to update employees");
+      toast.success("payPeriod updated successfully!");
+    } catch {
+      toast.error("Failed to update payPeriod.");
+    } finally {
+      setIsUpdate(false);
     }
   };
 
@@ -309,69 +280,168 @@ function BiWeeklyForm() {
 
   return (
     <div className="space-y-5 p-6 w-full">
-      {/* Start Day Picker */}
-      <StartDayPicker
-        selectedWeekday={formData.selectedWeekday}
-        selectedDate={formData.selectedDate}
-        showDatePicker={showDatePicker}
-        onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
-        onWeekdaySelect={handleWeekdaySelect}
-        onDateSelect={handleDateSelect}
-        getCurrentMonthDates={getCurrentMonthDates}
-      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <Label>Start Day</Label>
+        </div>
+        <div className="w-80 relative">
+          <div
+            className="w-full border border-gray-300 h-9 rounded-md flex items-center justify-between px-3 cursor-pointer bg-white"
+            onClick={() => setShowDatePicker(!showDatePicker)}
+          >
+            <span className="text-gray-600">
+              {selectedDate && selectedWeekday
+                ? `${selectedWeekday} ${selectedDate}`
+                : "Select Day"}
+            </span>
+            <img src={image.calendar} alt="calendar" className="w-4 h-4" />
+          </div>
 
-      {/* Salary Section */}
+          {/* Date Picker Dropdown */}
+          {showDatePicker && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 p-4 space-y-4">
+              <div>
+                <p className="font-semibold text-sm mb-2">Biweekly Setup</p>
+                <p className="text-sm text-gray-600 mb-3">Select Start Day</p>
+
+                {/* Weekday Select */}
+                <div className="mb-3">
+                  <Label className="text-sm mb-2 block">Select Weekday</Label>
+                  <Select
+                    value={selectedWeekday}
+                    onValueChange={handleWeekdaySelect}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a weekday" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {weekdaysISO.map((weekday) => (
+                          <SelectItem key={weekday} value={weekday}>
+                            {weekday}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Select - Only show if weekday is selected */}
+                {selectedWeekday && (
+                  <div>
+                    <Label className="text-sm mb-2 block">
+                      Select Date ({selectedWeekday}s in Current Month)
+                    </Label>
+                    <Select
+                      value={selectedDate}
+                      onValueChange={handleDateSelect}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={`Select ${selectedWeekday} date`}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {getCurrentMonthDates(selectedWeekday).map((date) => (
+                            <SelectItem key={date} value={date.toString()}>
+                              {date} {selectedWeekday}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* === Salary Section === */}
       <div className="space-y-2">
         {salarySections.map(
-          ({ id, label, value, placeholder, hasValue, readOnly }) => (
-            <SalaryRow
-              key={id}
-              id={id}
-              label={label}
-              value={value}
-              placeholder={placeholder}
-              hasValue={hasValue}
-              readOnly={readOnly}
-              checkboxStyle={checkboxStyle}
-              onClear={() => {
-                if (
-                  id === SALARY_SECTION_TYPES.BASIC ||
-                  id === SALARY_SECTION_TYPES.INPUT_WEEK
-                ) {
-                  handleInputChange(
-                    id === SALARY_SECTION_TYPES.BASIC ? "basic" : "inputDate",
-                    "",
-                  );
+          ({
+            id,
+            label,
+            value,
+            setValue,
+            placeholder,
+            hasValue,
+            isReadOnly,
+          }) => (
+            <div key={id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <Checkbox
+                  id={id}
+                  className={checkboxStyle}
+                  checked={hasValue}
+                  onCheckedChange={(checked) => {
+                    if (
+                      !checked &&
+                      (id === "basic-salary" || id === "input-week")
+                    ) {
+                      setValue("");
+                    }
+                  }}
+                />
+                <Label htmlFor={id}>{label}</Label>
+              </div>
+              <Input
+                value={value}
+                onChange={
+                  isReadOnly ? undefined : (e) => setValue(e.target.value)
                 }
-              }}
-              onChange={(newValue) => {
-                if (id === SALARY_SECTION_TYPES.BASIC) {
-                  handleInputChange("basic", newValue);
-                } else if (id === SALARY_SECTION_TYPES.INPUT_WEEK) {
-                  handleInputChange("inputDate", newValue);
-                }
-              }}
-            />
+                className="w-80"
+                placeholder={placeholder}
+                type={id === "input-date" ? "text" : "number"}
+                readOnly={isReadOnly}
+              />
+            </div>
           ),
         )}
 
         {/* Additional Salary Sections */}
         {additionalSalaries.map((salary) => (
-          <AdditionalSalaryRow
-            key={salary.id}
-            salary={salary}
-            checkboxStyle={checkboxStyle}
-            onTypeChange={(value) =>
-              updateSalarySection(salary.id, "type", value)
-            }
-            onAmountChange={(value) =>
-              updateSalarySection(salary.id, "amount", value)
-            }
-            onRemove={() => removeSalarySection(salary.id)}
-            onCheckboxChange={(checked) =>
-              toggleSalaryCheckbox(salary.id, checked)
-            }
-          />
+          <div key={salary.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <Checkbox
+                className={checkboxStyle}
+                checked={salary.isChecked !== false}
+                onCheckedChange={(checked) =>
+                  toggleSalaryCheckbox(salary.id, checked)
+                }
+              />
+              <div className="flex gap-2">
+                <Input
+                  value={salary.type}
+                  onChange={(e) =>
+                    updateSalarySectionType(salary.id, e.target.value)
+                  }
+                  className="w-40"
+                  placeholder="Salary Type"
+                />
+                <Input
+                  value={salary.amount}
+                  onChange={(e) =>
+                    updateSalarySectionAmount(salary.id, e.target.value)
+                  }
+                  className="w-40"
+                  placeholder="Amount"
+                  type={"number"}
+                />
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => removeSalarySection(salary.id)}
+              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         ))}
 
         <div className="flex justify-end">
@@ -379,277 +449,101 @@ function BiWeeklyForm() {
             variant="outline"
             size="sm"
             className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
+            style={{ padding: "16px 52px" }}
             onClick={addSalarySection}
           >
-            <Plus className="w-4 h-4 text-[#004368] mr-2" />
-            Add another salary section
+            <Plus className="w-4 h-4 text-[#004368]" />
+            <span>Add another salary section</span>
           </Button>
         </div>
       </div>
 
-      {/* Working Hours */}
-      <WorkingField
-        label="Add Working Hours"
-        placeholder="8"
-        value={formData.workingHours}
-        onChange={(value) => handleInputChange("workingHours", value)}
-      />
+      {/* === Working Hours === */}
+      <div className="flex justify-between">
+        <Label className="font-semibold whitespace-nowrap">
+          Add Working Hours
+        </Label>
+        <Input
+          placeholder="8"
+          className="w-80"
+          type={"number"}
+          value={workingHours}
+          onChange={(e) => setWorkingHours(e.target.value)}
+        />
+      </div>
 
-      {/* Overtime Rate Section */}
-      <OvertimeSection
-        options={OVERTIME_OPTIONS}
-        selectedOption={formData.selectedOvertimeOption}
-        overtimeRate={formData.overtimeRate}
-        checkboxStyle={checkboxStyle}
-        onOptionChange={handleOvertimeOptionChange}
-        onRateChange={(value) => handleInputChange("overtimeRate", value)}
-        isBiWeekly={true}
-      />
+      {/* === Overtime Rate === */}
+      <div className="space-y-3">
+        <Label className="font-semibold">Select Overtime Rate</Label>
+        <div className="flex flex-col space-y-2">
+          {[
+            {
+              id: "auto-calc",
+              label: "Automatic Calculation (Day)",
+              placeholder: "000",
+            },
+            {
+              id: "fixed-input",
+              label: "Fixed Input (Hour)",
+              placeholder: "Enter Overtime Rate",
+            },
+          ].map(({ id, label, placeholder }) => (
+            <div key={id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <Checkbox
+                  id={id}
+                  className={checkboxStyle}
+                  checked={selectedOvertimeOption === id}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      handleOvertimeOptionChange(id);
+                    }
+                  }}
+                  disabled={id === "auto-calc"} // Disable auto-calc for BiWeekly
+                />
+                <Label htmlFor={id} className="whitespace-nowrap">
+                  {label}
+                </Label>
+              </div>
+              <Input
+                placeholder={placeholder}
+                className="w-80"
+                type={"number"}
+                value={selectedOvertimeOption === id ? overtimeRate : ""}
+                onChange={(e) => setOvertimeRate(e.target.value)}
+                disabled={id === "auto-calc"} // Disable input for auto-calc
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {/* Details Section */}
-      <DetailsSection />
-
-      {/* Save Button */}
-      <Button
-        className="w-full py-3 bg-[#004368] text-white rounded-lg font-medium hover:bg-[#003556]"
+      {/* === Details Section === */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2">
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              if you select the automatic calculation option,the system will
+              calculate the base hourly wage based on the salary, then calculate
+              the overtime wage based on the overtime multiplier (for
+              example,1.5 times on regular days,2 times on weekends: multipliers
+              can be set in wage rules).if you select fixed input,the system
+              will use the entered value to calculate the hourly wage and then
+              apply the same rule to calculate the overtime wage.
+            </span>
+          </li>
+        </ul>
+      </div>
+      <button
+        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
         onClick={handleSave}
-        disabled={updating}
       >
-        {updating ? "Saving..." : "Save"}
-      </Button>
+        {isUpdate ? "Saving..." : "Save"}
+      </button>
     </div>
   );
 }
-
-// Sub-components
-const StartDayPicker = ({
-  selectedWeekday,
-  selectedDate,
-  showDatePicker,
-  onToggleDatePicker,
-  onWeekdaySelect,
-  onDateSelect,
-  getCurrentMonthDates,
-}) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3.5">
-      <Label>Start Day</Label>
-    </div>
-    <div className="w-80 relative">
-      <div
-        className="w-full border border-gray-300 h-9 rounded-md flex items-center justify-between px-3 cursor-pointer bg-white"
-        onClick={onToggleDatePicker}
-      >
-        <span className="text-gray-600">
-          {selectedDate && selectedWeekday
-            ? `${selectedWeekday} ${selectedDate}`
-            : "Select Day"}
-        </span>
-        <img src={image.calendar} alt="calendar" className="w-4 h-4" />
-      </div>
-
-      {/* Date Picker Dropdown */}
-      {showDatePicker && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 p-4 space-y-4">
-          <div>
-            <p className="font-semibold text-sm mb-2">Biweekly Setup</p>
-            <p className="text-sm text-gray-600 mb-3">Select Start Day</p>
-
-            {/* Weekday Select */}
-            <div className="mb-3">
-              <Label className="text-sm mb-2 block">Select Weekday</Label>
-              <Select value={selectedWeekday} onValueChange={onWeekdaySelect}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a weekday" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {WEEKDAYS_ISO.map((weekday) => (
-                      <SelectItem key={weekday} value={weekday}>
-                        {weekday}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Date Select - Only show if weekday is selected */}
-            {selectedWeekday && (
-              <div>
-                <Label className="text-sm mb-2 block">
-                  Select Date ({selectedWeekday}s in Current Month)
-                </Label>
-                <Select value={selectedDate} onValueChange={onDateSelect}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={`Select ${selectedWeekday} date`}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {getCurrentMonthDates(selectedWeekday).map((date) => (
-                        <SelectItem key={date} value={date.toString()}>
-                          {date} {selectedWeekday}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-const SalaryRow = ({
-  id,
-  label,
-  value,
-  placeholder,
-  hasValue,
-  readOnly,
-  checkboxStyle,
-  onClear,
-  onChange,
-}) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3.5">
-      <Checkbox
-        id={id}
-        className={checkboxStyle}
-        checked={hasValue}
-        onCheckedChange={(checked) => !checked && onClear?.()}
-      />
-      <Label htmlFor={id}>{label}</Label>
-    </div>
-    <Input
-      value={value}
-      onChange={(e) => onChange?.(e.target.value)}
-      className="w-80"
-      placeholder={placeholder}
-      type={id === SALARY_SECTION_TYPES.BASIC ? "number" : "text"}
-      readOnly={readOnly}
-    />
-  </div>
-);
-
-const AdditionalSalaryRow = ({
-  salary,
-  checkboxStyle,
-  onTypeChange,
-  onAmountChange,
-  onRemove,
-  onCheckboxChange,
-}) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3.5">
-      <Checkbox
-        className={checkboxStyle}
-        checked={salary.isChecked !== false} // Default to true
-        onCheckedChange={(checked) => onCheckboxChange?.(checked)}
-      />
-      <div className="flex gap-2">
-        <Input
-          value={salary.type}
-          onChange={(e) => onTypeChange?.(e.target.value)}
-          className="w-40"
-          placeholder="Salary Type"
-        />
-        <Input
-          value={salary.amount}
-          onChange={(e) => onAmountChange?.(e.target.value)}
-          className="w-40"
-          placeholder="Amount"
-          type="number"
-        />
-      </div>
-    </div>
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onRemove}
-      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-    >
-      <Trash2 className="w-4 h-4" />
-    </Button>
-  </div>
-);
-
-const WorkingField = ({ label, placeholder, value, onChange }) => (
-  <div className="flex justify-between">
-    <Label className="font-semibold whitespace-nowrap">{label}</Label>
-    <Input
-      placeholder={placeholder}
-      className="w-80"
-      type="number"
-      value={value}
-      onChange={(e) => onChange?.(e.target.value)}
-    />
-  </div>
-);
-
-const OvertimeSection = ({
-  options,
-  selectedOption,
-  overtimeRate,
-  checkboxStyle,
-  onOptionChange,
-  onRateChange,
-  isBiWeekly = false,
-}) => (
-  <div className="space-y-3">
-    <Label className="font-semibold">Select Overtime Rate</Label>
-    <div className="flex flex-col space-y-2">
-      {options.map(({ id, label, placeholder, disabled }) => (
-        <div key={id} className="flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <Checkbox
-              id={id}
-              className={checkboxStyle}
-              checked={selectedOption === id}
-              onCheckedChange={(checked) => checked && onOptionChange?.(id)}
-              disabled={isBiWeekly && id === "auto-calc"} // Disable auto-calc for BiWeekly
-            />
-            <Label htmlFor={id} className="whitespace-nowrap">
-              {label}
-            </Label>
-          </div>
-          <Input
-            placeholder={placeholder}
-            className="w-80"
-            type="number"
-            value={selectedOption === id ? overtimeRate : ""}
-            onChange={(e) => onRateChange?.(e.target.value)}
-            disabled={disabled || (isBiWeekly && id === "auto-calc")}
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const DetailsSection = () => (
-  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-    <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
-    <ul className="text-sm text-gray-700 space-y-2">
-      <li className="flex items-start">
-        <span className="font-semibold mr-2">•</span>
-        <span>
-          If you select the automatic calculation option, the system will
-          calculate the base hourly wage based on the salary, then calculate the
-          overtime wage based on the overtime multiplier (for example, 1.5 times
-          on regular days, 2 times on weekends: multipliers can be set in wage
-          rules). If you select fixed input, the system will use the entered
-          value to calculate the hourly wage and then apply the same rule to
-          calculate the overtime wage.
-        </span>
-      </li>
-    </ul>
-  </div>
-);
 
 export default BiWeeklyForm;

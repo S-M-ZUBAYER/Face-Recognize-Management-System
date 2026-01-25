@@ -1,21 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { useUserStore } from "@/zustand/useUserStore";
-import { parseNormalData } from "@/lib/parseNormalData";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
-  const { setRulesIds } = useUserStore();
-
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // Load existing general days from selectedEmployee
+  useEffect(() => {
+    if (selectedEmployee?.salaryRules?.generalDays) {
+      try {
+        const generalDays =
+          typeof selectedEmployee.salaryRules.generalDays === "string"
+            ? JSON.parse(selectedEmployee.salaryRules.generalDays)
+            : selectedEmployee.salaryRules.generalDays || [];
+
+        if (Array.isArray(generalDays)) {
+          // Convert date strings to Date objects without timezone issues
+          const dateObjects = generalDays
+            .map((dateStr) => {
+              if (typeof dateStr === "string") {
+                const [year, month, day] = dateStr.split("-");
+                return new Date(
+                  parseInt(year),
+                  parseInt(month) - 1,
+                  parseInt(day)
+                );
+              }
+              return dateStr;
+            })
+            .filter((date) => !isNaN(date.getTime()));
+
+          setSpecialDates(dateObjects);
+        }
+      } catch (error) {
+        console.error("Error parsing general days:", error);
+      }
+    }
+  }, [selectedEmployee]);
 
   // Handle calendar date selection - fix timezone issue
   const handleCalendarSelect = (dates) => {
@@ -44,88 +73,99 @@ export const WorkOnHoliday = () => {
 
   // Save work on holiday configuration
   const handleSave = async () => {
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
+      return;
+    }
+
     try {
-      // Check if any employees are selected
-      if (selectedEmployees.length === 0) {
-        toast.error("Please select at least one employee!");
-        return;
+      const salaryRules = selectedEmployee.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = selectedEmployee.employeeId.toString();
+
+      // Format dates for storage
+      const generalDaysArray = specialDates.map((date) =>
+        formatDateForStorage(date)
+      );
+
+      // Find or create rule with ruleId = 3
+      let ruleFour = existingRules.find(
+        (rule) => rule.ruleId === 3 || rule.ruleId === "3"
+      );
+
+      if (!ruleFour) {
+        // Create new rule with ruleId = 3 if it doesn't exist
+        ruleFour = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "3", // string
+          ruleStatus: 1, // number
+          param1: null,
+          param2: null,
+          param3: null,
+          param4: null,
+          param5: null,
+          param6: null,
+        };
+      } else {
+        // Update ONLY the ruleFour object - preserve all other properties
+        ruleFour.empId = empId; // string
+        // Keep all other properties as they are
       }
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
 
-        // Format dates for storage
-        const generalDaysArray = specialDates.map((date) =>
-          formatDateForStorage(date)
-        );
-
-        const existGeneralDays = selectedEmployee.salaryRules.generalDays || [];
-
-        // Find or create rule with ruleId = 3
-        let ruleFour = existingRules.find(
-          (rule) => rule.ruleId === 3 || rule.ruleId === "3"
-        );
-
-        if (!ruleFour) {
-          // Create new rule with ruleId = 3 if it doesn't exist
-          ruleFour = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "3", // string
-            ruleStatus: 1, // number
-            param1: null,
-            param2: null,
-            param3: null,
-            param4: null,
-            param5: null,
-            param6: null,
-          };
-        } else {
-          // Update ONLY the ruleFour object - preserve all other properties
-          ruleFour.empId = empId; // string
-          // Keep all other properties as they are
-        }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 3 || r.ruleId === "3",
-            newValue: ruleFour, // update ruleId=3 object
-          },
-          generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 3 || r.ruleId === "3",
+          newValue: ruleFour, // update ruleId=3 object
+        },
+        generalDays: generalDaysArray, // update generalDays with selected dates
       });
-      await Promise.all(updatePromises);
 
-      setRulesIds(3);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Work on holiday days updated successfully!");
     } catch (error) {
       console.error("Error saving work on holiday days:", error);
       toast.error("Failed to update work on holiday days.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 3,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -173,13 +213,25 @@ export const WorkOnHoliday = () => {
         </ul>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={updating}
-        className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {updating ? "Saving..." : "Save"}
-      </button>
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
+        </button>
+      </div>
     </div>
   );
 };

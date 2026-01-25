@@ -1,23 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
-
+import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
-import { useUserStore } from "@/zustand/useUserStore";
-import { parseNormalData } from "@/lib/parseNormalData";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
-
+  const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { selectedEmployees, updateEmployeeSalaryRules } =
-    useSelectedEmployeeStore();
-  const { setRulesIds } = useUserStore();
-
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  // 🟦 Parse stored holiday strings → Date objects (local, no offset)
+  useEffect(() => {
+    if (!selectedEmployee?.salaryRules?.holidays) {
+      setSpecialDates([]);
+      return;
+    }
+
+    try {
+      const raw = selectedEmployee.salaryRules.holidays;
+      const parsed =
+        typeof raw === "string"
+          ? JSON.parse(raw)
+          : Array.isArray(raw)
+          ? raw
+          : [];
+
+      const dates = parsed
+        .map((str) => {
+          if (typeof str !== "string") return null;
+          const [y, m, d] = str.split("T")[0].split("-");
+          // 🟢 Create a date using local time only (no UTC conversion)
+          return new Date(Number(y), Number(m) - 1, Number(d), 12);
+        })
+        .filter(Boolean);
+
+      setSpecialDates(dates);
+    } catch (err) {
+      console.error("Error parsing holidays:", err);
+      setSpecialDates([]);
+    }
+  }, [selectedEmployee]);
 
   // 🟦 Handle selection — keep dates in local time, normalized
   const handleCalendarSelect = (dates) => {
@@ -43,91 +69,103 @@ export const HolidayForm = () => {
 
   // 🟦 Save handler
   const handleSave = async () => {
+    if (!selectedEmployee?.employeeId) {
+      toast.error("No employee selected");
+      return;
+    }
+
     try {
-      // Check if any employees are selected
-      if (selectedEmployees.length === 0) {
-        toast.error("Please select at least one employee!");
-        return;
+      const empId = selectedEmployee.employeeId.toString();
+      const salaryRules = selectedEmployee.salaryRules || {};
+      const existingRules = Array.isArray(salaryRules.rules)
+        ? salaryRules.rules
+        : [];
+
+      // Find or create ruleId "1"
+      let ruleOne = existingRules.find(
+        (r) => r.ruleId === "1" || r.ruleId === 1
+      );
+      if (!ruleOne) {
+        ruleOne = {
+          id: Math.floor(10 + Math.random() * 90),
+          empId,
+          ruleId: "1",
+          ruleStatus: 1,
+          param1: null,
+          param2: null,
+          param3: null,
+          param4: null,
+          param5: null,
+          param6: null,
+        };
+      } else {
+        ruleOne.empId = empId.toString();
       }
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
-        const empId = selectedEmployee.employeeId.toString();
-        const salaryRules = selectedEmployee.salaryRules || {};
-        const existingRules = Array.isArray(salaryRules.rules)
-          ? salaryRules.rules
-          : [];
 
-        const alreadyExistHoliday = selectedEmployee.salaryRules.holidays || [];
+      const formattedHolidays = specialDates.map(formatDateForStorage);
 
-        // Find or create ruleId "1"
-        let ruleOne = existingRules.find(
-          (r) => r.ruleId === "1" || r.ruleId === 1
-        );
-        if (!ruleOne) {
-          ruleOne = {
-            id: Math.floor(10 + Math.random() * 90),
-            empId,
-            ruleId: "1",
-            ruleStatus: 1,
-            param1: null,
-            param2: null,
-            param3: null,
-            param4: null,
-            param5: null,
-            param6: null,
-          };
-        } else {
-          ruleOne.empId = empId.toString();
-        }
+      // console.log(formattedHolidays);
 
-        const formattedHolidays = specialDates.map(formatDateForStorage);
-        const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
-
-        // console.log(formattedHolidays);
-
-        // 🧩 Build final JSON
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          holidays: finalHoliday, // raw array, helper stringifies
-          rules: {
-            filter: (r) => r.ruleId === 1 || r.ruleId === "1",
-            newValue: ruleOne,
-          },
-        });
-
-        // console.log("rules:", {
-        //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
-        //   newValue: ruleOne,
-        // });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        updateEmployee({
-          mac: selectedEmployee.deviceMAC || "",
-          id: selectedEmployee.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+      // 🧩 Build final JSON
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        empId: empId,
+        holidays: formattedHolidays, // raw array, helper stringifies
+        rules: {
+          filter: (r) => r.ruleId === 1 || r.ruleId === "1",
+          newValue: ruleOne,
+        },
       });
 
-      await Promise.all(updatePromises);
+      // console.log("rules:", {
+      //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
+      //   newValue: ruleOne,
+      // });
 
-      setRulesIds(1);
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      // console.log(payload);
+
+      await updateEmployee({
+        mac: selectedEmployee.deviceMAC || "",
+        id: selectedEmployee.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       toast.success("Holidays updated successfully!");
     } catch (error) {
       console.error("Error saving holidays:", error);
       toast.error("Failed to update holidays.");
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      const salaryRules = selectedEmployee.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 1,
+      });
+      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+      await updateEmployee({
+        mac: selectedEmployee?.deviceMAC || "",
+        id: selectedEmployee?.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
     }
   };
 
@@ -159,11 +197,21 @@ export const HolidayForm = () => {
       </div>
 
       <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={updating}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Deleting..." : "Delete"}
+        </button>
+
         {/* Save */}
         <button
           onClick={handleSave}
           disabled={updating}
-          className=" w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Saving..." : "Save"}
         </button>
