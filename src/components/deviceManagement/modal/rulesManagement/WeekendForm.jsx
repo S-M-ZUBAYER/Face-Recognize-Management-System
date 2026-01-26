@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const daysOfWeek = [
     "Sunday",
@@ -23,17 +26,17 @@ export const WeekendForm = () => {
     "Saturday",
   ];
 
-  // Load existing weekend days from selectedEmployee
+  // Load existing weekend days from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const parsedRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleTwo = parsedRules.find(
-          (rule) => rule.ruleId === 2 || rule.ruleId === "2"
+          (rule) => rule.ruleId === 2 || rule.ruleId === "2",
         );
 
         if (ruleTwo && ruleTwo.param1) {
@@ -53,7 +56,7 @@ export const WeekendForm = () => {
         console.error("Error parsing weekend days:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   const handleDayChange = (day, checked) => {
     if (checked) {
@@ -70,21 +73,21 @@ export const WeekendForm = () => {
 
   // Save weekend configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
-
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsSaving(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Parse existing rules - preserve ALL existing rules
 
       // Find or create rule with ruleId = 2
       let ruleThree = existingRules.find(
-        (rule) => rule.ruleId === 2 || rule.ruleId === "2"
+        (rule) => rule.ruleId === 2 || rule.ruleId === "2",
       );
 
       if (!ruleThree) {
@@ -103,8 +106,8 @@ export const WeekendForm = () => {
         };
       } else {
         // Update ONLY the ruleThree object - preserve all other properties
-        (ruleThree.empId = empId), // string
-          (ruleThree.param1 = selectedDays.join(","));
+        ((ruleThree.empId = empId), // string
+          (ruleThree.param1 = selectedDays.join(",")));
         // Keep all other properties as they are
       }
 
@@ -117,48 +120,48 @@ export const WeekendForm = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Weekend days updated successfully!");
     } catch (error) {
       console.error("Error saving weekend days:", error);
       toast.error("Failed to update weekend days.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 2,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -226,18 +229,18 @@ export const WeekendForm = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating}
+          disabled={isSaving}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

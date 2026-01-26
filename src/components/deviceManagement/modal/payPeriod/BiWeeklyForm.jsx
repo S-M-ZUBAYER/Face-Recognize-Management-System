@@ -87,7 +87,7 @@ function BiWeeklyForm() {
       const payPeriod = selectedPayPeriod.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
-      setInputDate(payPeriod.hourlyRate?.toString() || "");
+      setInputDate("");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeFixed?.toString() || "");
 
@@ -217,6 +217,10 @@ function BiWeeklyForm() {
   }, []);
 
   const handleSave = async () => {
+    if (!basic || !inputDate || !workingHours) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
     setIsUpdate(true);
     // Filter out empty additional salaries
     const otherSalaryArray = additionalSalaries
@@ -234,8 +238,8 @@ function BiWeeklyForm() {
 
     // Create the payPeriod object according to your structure
     const employeePayPeriod = {
-      employeeId: payPeriod?.employeeId || 999,
-      hourlyRate: inputDate || payPeriod?.salaryInfo?.hourlyRate, // Input Week field
+      employeeId: parseFloat(999),
+      hourlyRate: inputDate, // Input Week field
       isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
       leave: "",
       name: parseInt(workingHours) || 8,

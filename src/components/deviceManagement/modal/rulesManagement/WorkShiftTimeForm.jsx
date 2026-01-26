@@ -7,19 +7,24 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ExcelFormatExample from "./ExcelFormatExample";
 import toast from "react-hot-toast";
 import { Calendar } from "@/components/ui/calendar";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // console.log(selectedRule);
 
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
@@ -68,7 +73,7 @@ export const WorkShiftTimeForm = () => {
 
   // Safe data access helper functions
   const getSalaryRules = () => {
-    return selectedEmployee?.salaryRules || {};
+    return selectedRule?.salaryRules || {};
   };
 
   const getRulesArray = () => {
@@ -91,9 +96,9 @@ export const WorkShiftTimeForm = () => {
     return [];
   };
 
-  // Load data from selectedEmployee on component mount
+  // Load data from selectedRule on component mount
   useEffect(() => {
-    if (!selectedEmployee) return;
+    if (!selectedRule) return;
 
     const rules = getRulesArray();
     const ruleZero = rules.find(
@@ -237,7 +242,7 @@ export const WorkShiftTimeForm = () => {
         }
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Update current working times and overtime when selected date changes
   useEffect(() => {
@@ -531,11 +536,6 @@ export const WorkShiftTimeForm = () => {
 
   const handleSave = async () => {
     try {
-      if (!selectedEmployee?.employeeId) {
-        toast.error("No employee selected");
-        return;
-      }
-
       // Validation for special dates
       if (shiftType === "special") {
         if (specialDates.length === 0) {
@@ -570,13 +570,15 @@ export const WorkShiftTimeForm = () => {
           toast.error("Please add at least one working time before saving!");
           return;
         }
-        if (overtimes.length === 0) {
-          toast.error("Please add at least one overtime before saving!");
-          return;
-        }
+        // if (overtimes.length === 0) {
+        //   toast.error("Please add at least one overtime before saving!");
+        //   return;
+        // }
       }
 
-      const employeeId = selectedEmployee.employeeId.toString();
+      setIsSaving(true);
+
+      const employeeId = parseFloat(999);
       const salaryRules = getSalaryRules();
       const existingRules = getRulesArray();
 
@@ -660,56 +662,53 @@ export const WorkShiftTimeForm = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) },
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
 
       toast.success("Shift rules updated successfully!");
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
       toast.error("Failed to update shift rules.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
     try {
-      if (!selectedEmployee) {
-        toast.error("No employee selected");
+      if (!selectedRule) {
+        toast.error("No shift rules to delete!");
         return;
       }
+      setIsDeleting(true);
 
       const salaryRules = getSalaryRules();
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 0,
         timeTables: [],
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+      // const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
 
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) },
-      );
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1005,18 +1004,18 @@ export const WorkShiftTimeForm = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating}
+          disabled={isSaving}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

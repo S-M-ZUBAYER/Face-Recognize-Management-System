@@ -2,19 +2,21 @@ import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalPayPeriod,
+  updateGlobalPayPeriod,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 function FlexibleWorkForm() {
   const [hourlySalary, setHourlySalary] = useState("");
   const [minimumMinutes, setMinimumMinutes] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  const { updatePayPeriod } = useGlobalStore();
+  const [isUpdate, setIsUpdate] = useState(false);
 
   const salarySections = [
     {
@@ -44,30 +46,39 @@ function FlexibleWorkForm() {
   ];
 
   useEffect(() => {
-    if (selectedEmployee?.payPeriod) {
-      const payPeriod = selectedEmployee.payPeriod;
+    if (selectedPayPeriod?.payPeriod) {
+      const payPeriod = selectedPayPeriod?.payPeriod;
 
       setHourlySalary(payPeriod.salary?.toString() || "");
-      setMinimumMinutes(payPeriod.hourlyRate?.toString() || "");
+      setMinimumMinutes(30);
     }
-  }, [selectedEmployee]);
+  }, [selectedPayPeriod]);
 
   const handleSave = async () => {
     // Create the payPeriod object according to your structure
+    setIsUpdate(true);
+
+    if (!hourlySalary || !minimumMinutes) {
+      toast.error("Please fill in all required fields.");
+      setIsUpdate(false);
+      return;
+    }
+
+    const payPeriod = selectedPayPeriod?.payPeriod;
     const employeePayPeriod = {
-      employeeId: selectedEmployee?.payPeriod?.employeeId || 0,
+      employeeId: 999,
       hourlyRate: parseFloat(minimumMinutes) || 0, // Minimum working Minutes
       isSelectedFixedHourlyRate: false, // Not used for flexible work
       leave: "",
-      name: selectedEmployee?.payPeriod?.name || "", // Default value
+      name: payPeriod?.name || "", // Default value
       otherSalary: null, // No other salary for flexible work
       overtimeFixed: 0, // Not used for flexible work
       overtimeSalary: 0, // Not used for flexible work
       payPeriod: "hourly",
       salary: parseFloat(hourlySalary) || 0, // Hourly Flexible Work Schedule Salary
       selectedOvertimeOption: 0, // Not used for flexible work
-      shift: selectedEmployee?.payPeriod?.shift || "Morning",
-      startDay: selectedEmployee.payPeriod?.startDay, // Default value
+      shift: payPeriod?.shift || "Morning",
+      startDay: payPeriod?.startDay, // Default value
       startWeek: null, // Not used for flexible work
       status: null,
     };
@@ -80,20 +91,18 @@ function FlexibleWorkForm() {
     const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
 
     try {
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload: { payPeriod: payPeriodJSON },
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryInfo: parseNormalData(payPeriodJSON) }
-      );
+      if (selectedPayPeriod) {
+        await updateGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      } else {
+        await createGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      }
+      // Update Zustand store
+      updatePayPeriod({ payPeriod: parseNormalData(payPeriodJSON) });
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
+    } finally {
+      setIsUpdate(false);
     }
   };
 
@@ -139,7 +148,7 @@ function FlexibleWorkForm() {
                 readOnly={isReadOnly}
               />
             </div>
-          )
+          ),
         )}
       </div>
 
@@ -164,7 +173,7 @@ function FlexibleWorkForm() {
         className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
         onClick={handleSave}
       >
-        {updating ? "Saving..." : "Save"}
+        {isUpdate ? "Saving..." : "Save"}
       </button>
     </div>
   );

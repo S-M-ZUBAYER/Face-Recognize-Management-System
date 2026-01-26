@@ -1,28 +1,31 @@
 import { useState, useEffect } from "react";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const LateArrivalPenalty3 = () => {
   const [hourlyRate, setHourlyRate] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load existing hourly rate value from selectedEmployee
+  // Load existing hourly rate value from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleEighteen = existingRules.find(
-          (rule) => rule.ruleId === 18 || rule.ruleId === "18"
+          (rule) => rule.ruleId === 18 || rule.ruleId === "18",
         );
 
         if (ruleEighteen && ruleEighteen.param2) {
@@ -37,14 +40,14 @@ export const LateArrivalPenalty3 = () => {
         console.error("Error parsing hourly rate value:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Save hourly rate configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
 
     if (!hourlyRate || isNaN(hourlyRate) || parseFloat(hourlyRate) < 0) {
       toast.error("Please enter a valid positive number for hourly rate");
@@ -52,13 +55,13 @@ export const LateArrivalPenalty3 = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Find or create rule with ruleId = 18
       let ruleEighteen = existingRules.find(
-        (rule) => rule.ruleId === 18 || rule.ruleId === "18"
+        (rule) => rule.ruleId === 18 || rule.ruleId === "18",
       );
 
       if (!ruleEighteen) {
@@ -91,22 +94,23 @@ export const LateArrivalPenalty3 = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Hourly late penalty rate updated successfully!");
     } catch (error) {
       console.error("Error saving hourly late penalty rate:", error);
       toast.error("Failed to update hourly late penalty rate.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -119,28 +123,29 @@ export const LateArrivalPenalty3 = () => {
   };
 
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 18,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
 
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -207,19 +212,19 @@ export const LateArrivalPenalty3 = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
 
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating || !hourlyRate}
+          disabled={isSaving || !hourlyRate}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

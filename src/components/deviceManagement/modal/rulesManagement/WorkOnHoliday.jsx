@@ -1,26 +1,29 @@
 import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load existing general days from selectedEmployee
+  // Load existing general days from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.generalDays) {
+    if (selectedRule?.salaryRules?.generalDays) {
       try {
         const generalDays =
-          typeof selectedEmployee.salaryRules.generalDays === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.generalDays)
-            : selectedEmployee.salaryRules.generalDays || [];
+          typeof selectedRule.salaryRules.generalDays === "string"
+            ? JSON.parse(selectedRule.salaryRules.generalDays)
+            : selectedRule.salaryRules.generalDays || [];
 
         if (Array.isArray(generalDays)) {
           // Convert date strings to Date objects without timezone issues
@@ -31,7 +34,7 @@ export const WorkOnHoliday = () => {
                 return new Date(
                   parseInt(year),
                   parseInt(month) - 1,
-                  parseInt(day)
+                  parseInt(day),
                 );
               }
               return dateStr;
@@ -44,7 +47,7 @@ export const WorkOnHoliday = () => {
         console.error("Error parsing general days:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Handle calendar date selection - fix timezone issue
   const handleCalendarSelect = (dates) => {
@@ -73,24 +76,25 @@ export const WorkOnHoliday = () => {
 
   // Save work on holiday configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsSaving(true);
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Format dates for storage
       const generalDaysArray = specialDates.map((date) =>
-        formatDateForStorage(date)
+        formatDateForStorage(date),
       );
 
       // Find or create rule with ruleId = 3
       let ruleFour = existingRules.find(
-        (rule) => rule.ruleId === 3 || rule.ruleId === "3"
+        (rule) => rule.ruleId === 3 || rule.ruleId === "3",
       );
 
       if (!ruleFour) {
@@ -123,49 +127,46 @@ export const WorkOnHoliday = () => {
         generalDays: generalDaysArray, // update generalDays with selected dates
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Work on holiday days updated successfully!");
     } catch (error) {
       console.error("Error saving work on holiday days:", error);
       toast.error("Failed to update work on holiday days.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 3,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -218,18 +219,18 @@ export const WorkOnHoliday = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating}
+          disabled={isSaving}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

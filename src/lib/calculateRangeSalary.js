@@ -682,7 +682,7 @@ export function calculateRangeSalary(
 
   const rule10 = getRule(10);
   // const holidayMultiplier = Number(firstNumericParam(rule10) || 0);
-  const holidayNormalShiftMultiplier = Number(secondNumericParam(rule10) || 1);
+  const holidayNormalShiftMultiplier = Number(rule10?.param2 || 1);
 
   const rule11 = getRule(11);
 

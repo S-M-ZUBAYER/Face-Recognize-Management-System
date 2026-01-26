@@ -13,12 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalPayPeriod,
+  updateGlobalPayPeriod,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 function WeeklyForm() {
   const [basic, setBasic] = useState("");
@@ -30,15 +32,14 @@ function WeeklyForm() {
     useState("fixed-input");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedWeekday, setSelectedWeekday] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  const { updatePayPeriod } = useGlobalStore();
+  const [isUpdate, setIsUpdate] = useState(false);
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
     return total + (parseFloat(salary.amount) || 0);
   }, 0);
-
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const weekdaysISO = useMemo(
     () => [
@@ -54,11 +55,11 @@ function WeeklyForm() {
   );
 
   useEffect(() => {
-    if (selectedEmployee?.payPeriod) {
-      const payPeriod = selectedEmployee.payPeriod;
+    if (selectedPayPeriod?.payPeriod) {
+      const payPeriod = selectedPayPeriod?.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
-      setInputWeek(payPeriod.hourlyRate?.toString() || "");
+      setInputWeek("30");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeFixed?.toString() || "");
 
@@ -84,7 +85,7 @@ function WeeklyForm() {
       // Set overtime option - Weekly only supports fixed input
       setSelectedOvertimeOption("fixed-input");
     }
-  }, [selectedEmployee, weekdaysISO]);
+  }, [selectedPayPeriod, weekdaysISO]);
 
   const salarySections = [
     {
@@ -170,6 +171,7 @@ function WeeklyForm() {
   }, []);
 
   const handleSave = async () => {
+    setIsUpdate(true);
     // Filter out empty additional salaries
     const otherSalaryArray = additionalSalaries
       .filter((salary) => salary.type && salary.amount)
@@ -182,9 +184,11 @@ function WeeklyForm() {
     // Get weekday index using ISO standard (Monday = 0, Tuesday = 1, ..., Sunday = 6)
     const selectedWeekdayIndex = weekdaysISO.indexOf(selectedWeekday);
 
+    const payPeriod = selectedPayPeriod?.payPeriod;
+
     // Create the payPeriod object according to your structure
     const employeePayPeriod = {
-      employeeId: selectedEmployee?.employeeId || 0,
+      employeeId: Number(999),
       hourlyRate: parseFloat(inputWeek) || 0, // Input Week field
       isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
       leave: "",
@@ -195,7 +199,7 @@ function WeeklyForm() {
       payPeriod: "weekly",
       salary: parseFloat(basic) || 0, // Basic salary field
       selectedOvertimeOption: 2, // Always fixed input for Weekly
-      shift: selectedEmployee?.payPeriod?.shift || "Morning",
+      shift: payPeriod?.shift || "Morning",
       startDay: selectedWeekdayIndex, // Weekday index (Monday = 0, Tuesday = 1, ..., Sunday = 6)
       startWeek: null, // Weekly doesn't use startWeek
       status: null,
@@ -209,17 +213,13 @@ function WeeklyForm() {
     const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
 
     try {
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload: { payPeriod: payPeriodJSON },
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryInfo: parseNormalData(payPeriodJSON) },
-      );
+      if (selectedPayPeriod) {
+        await updateGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      } else {
+        await createGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      }
+      // Update Zustand store
+      updatePayPeriod({ payPeriod: parseNormalData(payPeriodJSON) });
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
@@ -464,7 +464,7 @@ function WeeklyForm() {
         className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
         onClick={handleSave}
       >
-        {updating ? "Saving..." : "Save"}
+        {isUpdate ? "Saving..." : "Save"}
       </button>
     </div>
   );

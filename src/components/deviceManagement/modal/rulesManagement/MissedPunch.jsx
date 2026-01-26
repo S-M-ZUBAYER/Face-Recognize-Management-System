@@ -1,29 +1,32 @@
 import { useState, useEffect } from "react";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const MissedPunch = () => {
   const [costPerMissedPunch, setCostPerMissedPunch] = useState("");
   const [missAcceptableTime, setMissAcceptableTime] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load existing missed punch values from selectedEmployee
+  // Load existing missed punch values from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleTwentyTwo = existingRules.find(
-          (rule) => rule.ruleId === 22 || rule.ruleId === "22"
+          (rule) => rule.ruleId === 22 || rule.ruleId === "22",
         );
 
         if (ruleTwentyTwo) {
@@ -49,14 +52,14 @@ export const MissedPunch = () => {
         console.error("Error parsing missed punch values:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Save missed punch configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
 
     if (
       !costPerMissedPunch ||
@@ -64,7 +67,7 @@ export const MissedPunch = () => {
       parseFloat(costPerMissedPunch) < 0
     ) {
       toast.error(
-        "Please enter a valid positive number for cost per missed punch"
+        "Please enter a valid positive number for cost per missed punch",
       );
       return;
     }
@@ -75,19 +78,21 @@ export const MissedPunch = () => {
       parseInt(missAcceptableTime) < 0
     ) {
       toast.error(
-        "Please enter a valid positive number for miss acceptable time"
+        "Please enter a valid positive number for miss acceptable time",
       );
       return;
     }
 
+    setIsSaving(true);
+
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Find or create rule with ruleId = 22
       let ruleTwentyTwo = existingRules.find(
-        (rule) => rule.ruleId === 22 || rule.ruleId === "22"
+        (rule) => rule.ruleId === 22 || rule.ruleId === "22",
       );
 
       if (!ruleTwentyTwo) {
@@ -121,23 +126,23 @@ export const MissedPunch = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Missed punch settings updated successfully!");
     } catch (error) {
       console.error("Error saving missed punch settings:", error);
       toast.error("Failed to update missed punch settings.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -149,28 +154,28 @@ export const MissedPunch = () => {
     }
   };
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 22,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
 
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -243,18 +248,20 @@ export const MissedPunch = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating}
+          disabled={isSaving || !costPerMissedPunch || !missAcceptableTime}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving || !costPerMissedPunch || !missAcceptableTime
+            ? "Saving..."
+            : "Save"}
         </button>
       </div>
     </div>

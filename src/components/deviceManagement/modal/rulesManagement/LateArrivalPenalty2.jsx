@@ -1,27 +1,30 @@
-import { useEffect } from "react";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const LateArrivalPenalty2 = () => {
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Check if ruleId === 17 already exists
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleSeventeen = existingRules.find(
-          (rule) => rule.ruleId === 17 || rule.ruleId === "17"
+          (rule) => rule.ruleId === 17 || rule.ruleId === "17",
         );
 
         // Rule 17 exists, no need to do anything on load
@@ -32,23 +35,23 @@ export const LateArrivalPenalty2 = () => {
         console.error("Error checking rule 17:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Save rule configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
-
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsSaving(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Find or create rule with ruleId = 17
       let ruleSeventeen = existingRules.find(
-        (rule) => rule.ruleId === 17 || rule.ruleId === "17"
+        (rule) => rule.ruleId === 17 || rule.ruleId === "17",
       );
 
       if (!ruleSeventeen) {
@@ -80,47 +83,49 @@ export const LateArrivalPenalty2 = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Late arrival penalty rule activated successfully!");
     } catch (error) {
       console.error("Error saving late arrival penalty rule:", error);
       toast.error("Failed to activate late arrival penalty rule.");
+    } finally {
+      setIsSaving(false);
     }
   };
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules?.rules) {
+      toast.error("No late arrival penalty rule to delete.");
+      return;
+    }
+    setIsDeleting(true);
+
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 17,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -169,19 +174,19 @@ export const LateArrivalPenalty2 = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
 
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating}
+          disabled={isSaving}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

@@ -1,29 +1,32 @@
 import { useState, useEffect } from "react";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const FlexibleWork = () => {
   const [lateMinutes, setLateMinutes] = useState("");
   const [leaveLateMinutes, setLeaveLateMinutes] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load existing flexible work values from selectedEmployee
+  // Load existing flexible work values from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleFive = existingRules.find(
-          (rule) => rule.ruleId === 5 || rule.ruleId === "5"
+          (rule) => rule.ruleId === 5 || rule.ruleId === "5",
         );
 
         if (ruleFive) {
@@ -49,14 +52,14 @@ export const FlexibleWork = () => {
         console.error("Error parsing flexible work values:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Save flexible work configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
 
     if (!lateMinutes || isNaN(lateMinutes) || parseInt(lateMinutes) < 0) {
       toast.error("Please enter a valid positive number for late minutes");
@@ -69,19 +72,21 @@ export const FlexibleWork = () => {
       parseInt(leaveLateMinutes) < 0
     ) {
       toast.error(
-        "Please enter a valid positive number for leave late minutes"
+        "Please enter a valid positive number for leave late minutes",
       );
       return;
     }
 
+    setIsSaving(true);
+
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Find or create rule with ruleId = 5
       let ruleFive = existingRules.find(
-        (rule) => rule.ruleId === 5 || rule.ruleId === "5"
+        (rule) => rule.ruleId === 5 || rule.ruleId === "5",
       );
 
       if (!ruleFive) {
@@ -115,23 +120,23 @@ export const FlexibleWork = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Flexible work settings updated successfully!");
     } catch (error) {
       console.error("Error saving flexible work settings:", error);
       toast.error("Failed to update flexible work settings.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -143,28 +148,31 @@ export const FlexibleWork = () => {
     }
   };
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules?.rules) {
+      toast.error("No flexible work settings to delete.");
+      return;
+    }
+
+    setIsDeleting(true);
+
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 5,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
 
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
       toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -228,18 +236,18 @@ export const FlexibleWork = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating || !lateMinutes || !leaveLateMinutes}
+          disabled={isSaving || !lateMinutes || !leaveLateMinutes}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

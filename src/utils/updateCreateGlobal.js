@@ -13,7 +13,7 @@ export const updateGlobalSalaryRules = async ({ salaryRules }) => {
     const response = await apiClient.put(
       getApiUrl(`/salaryRules/update/${deviceMac}`),
       {
-        salaryRules: salaryRules,
+        salaryRules,
         deviceMAC: deviceMac,
       },
     );
@@ -34,7 +34,7 @@ export const createGlobalSalaryRules = async ({ salaryRules }) => {
 
   try {
     const response = await apiClient.post(getApiUrl("/salaryRules/store"), {
-      salaryRules: salaryRules,
+      salaryRules,
       deviceMAC: deviceMac,
     });
 

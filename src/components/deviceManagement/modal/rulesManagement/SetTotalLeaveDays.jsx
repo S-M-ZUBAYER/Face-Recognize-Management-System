@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const SetTotalLeaveDays = () => {
   const [totalDays, setTotalDays] = useState("");
@@ -19,22 +21,22 @@ export const SetTotalLeaveDays = () => {
     "Rest Leave": "",
     Others: "",
   });
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
-
-  // Load existing leave values from selectedEmployee
+  // Load existing leave values from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleTwentyFour = existingRules.find(
-          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
+          (rule) => rule.ruleId === 24 || rule.ruleId === "24",
         );
 
         if (ruleTwentyFour) {
@@ -57,17 +59,17 @@ export const SetTotalLeaveDays = () => {
             if (typeof leaveDaysObj === "object" && leaveDaysObj !== null) {
               setLeaveDays({
                 "Maternity Leave": String(
-                  leaveDaysObj["Maternity Leave"] || ""
+                  leaveDaysObj["Maternity Leave"] || "",
                 ),
                 "Marriage Leave": String(leaveDaysObj["Marriage Leave"] || ""),
                 "Paternity Leave": String(
-                  leaveDaysObj["Paternity Leave"] || ""
+                  leaveDaysObj["Paternity Leave"] || "",
                 ),
                 "Sick Leave": String(leaveDaysObj["Sick Leave"] || ""),
                 "Casual Leave": String(leaveDaysObj["Casual Leave"] || ""),
                 "Earned leave": String(leaveDaysObj["Earned leave"] || ""),
                 "Without Pay Leave": String(
-                  leaveDaysObj["Without Pay Leave"] || ""
+                  leaveDaysObj["Without Pay Leave"] || "",
                 ),
                 "Rest Leave": String(leaveDaysObj["Rest Leave"] || ""),
                 Others: String(leaveDaysObj["Others"] || ""),
@@ -79,7 +81,7 @@ export const SetTotalLeaveDays = () => {
         console.error("Error parsing leave values:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Calculate total from leave categories
   const calculateTotalFromLeaves = useCallback(() => {
@@ -129,7 +131,7 @@ export const SetTotalLeaveDays = () => {
           // Adjust for rounding differences
           const distributedTotal = Object.values(updatedLeaves).reduce(
             (sum, days) => sum + (parseInt(days) || 0),
-            0
+            0,
           );
           if (distributedTotal !== newTotal) {
             // Find the largest category to adjust the difference
@@ -144,7 +146,7 @@ export const SetTotalLeaveDays = () => {
             });
             const adjustment = newTotal - distributedTotal;
             updatedLeaves[maxKey] = String(
-              (parseInt(updatedLeaves[maxKey]) || 0) + adjustment
+              (parseInt(updatedLeaves[maxKey]) || 0) + adjustment,
             );
           }
 
@@ -169,10 +171,11 @@ export const SetTotalLeaveDays = () => {
 
   // Save leave configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
-      toast.error("No employee selected");
-      return;
-    }
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsSaving(true);
 
     const finalTotalDays = parseInt(totalDays) || 0;
 
@@ -182,9 +185,9 @@ export const SetTotalLeaveDays = () => {
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Prepare leave days object with numbers
       const leaveDaysObj = {};
@@ -194,7 +197,7 @@ export const SetTotalLeaveDays = () => {
 
       // Find or create rule with ruleId = 24
       let ruleTwentyFour = existingRules.find(
-        (rule) => rule.ruleId === 24 || rule.ruleId === "24"
+        (rule) => rule.ruleId === 24 || rule.ruleId === "24",
       );
 
       if (!ruleTwentyFour) {
@@ -228,43 +231,43 @@ export const SetTotalLeaveDays = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
       toast.success("Leave settings updated successfully!");
     } catch (error) {
       console.error("Error saving leave settings:", error);
       toast.error("Failed to update leave settings.");
+    } finally {
+      setIsSaving(false);
     }
   };
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 24,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
@@ -371,18 +374,18 @@ export const SetTotalLeaveDays = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating || totalFromLeaves <= 0}
+          disabled={isSaving || totalFromLeaves <= 0}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import image from "@/constants/image";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalPayPeriod,
+  updateGlobalPayPeriod,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 function SemiMonthlyForm() {
   const [basic, setBasic] = useState("");
@@ -22,8 +24,9 @@ function SemiMonthlyForm() {
   const [selectedOvertimeOption, setSelectedOvertimeOption] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  const { updatePayPeriod } = useGlobalStore();
+  const [isUpdate, setIsUpdate] = useState(false);
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -34,7 +37,6 @@ function SemiMonthlyForm() {
       .filter((d) => d.isChecked)
       .reduce((sum, d) => sum + Number(d.amount), 0);
   }, [additionalSalaries]);
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Calculate automatic overtime when basic, other salary total, or working day changes
   useEffect(() => {
@@ -48,8 +50,8 @@ function SemiMonthlyForm() {
   }, [basic, otherSalaryCheckTotal, workingDay, selectedOvertimeOption]);
 
   useEffect(() => {
-    if (selectedEmployee?.payPeriod) {
-      const payPeriod = selectedEmployee.payPeriod;
+    if (selectedPayPeriod?.payPeriod) {
+      const payPeriod = selectedPayPeriod.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
       setWorkingDay(payPeriod.hourlyRate?.toString() || "");
@@ -76,7 +78,7 @@ function SemiMonthlyForm() {
         setSelectedOvertimeOption("fixed-input");
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedPayPeriod]);
 
   const salarySections = [
     {
@@ -156,6 +158,7 @@ function SemiMonthlyForm() {
   }, []);
 
   const handleSave = async () => {
+    setIsUpdate(true);
     // Filter out empty additional salaries
     const otherSalaryArray = additionalSalaries
       .filter((salary) => salary.type && salary.amount)
@@ -166,9 +169,10 @@ function SemiMonthlyForm() {
       }));
 
     // Create the payPeriod object according to your structure
+    const payPeriod = selectedPayPeriod?.payPeriod;
     const employeePayPeriod = {
-      employeeId: selectedEmployee?.employeeId || 0,
-      hourlyRate: 26, // Default for semi-monthly
+      employeeId: 999,
+      hourlyRate: parseFloat(30), // Default for semi-monthly
       isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
       leave: "",
       name: parseInt(workingHours) || 8,
@@ -184,7 +188,7 @@ function SemiMonthlyForm() {
       payPeriod: "semiMonthly",
       salary: parseFloat(basic) || 0,
       selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 0 : 1,
-      shift: selectedEmployee?.payPeriod?.shift || "Morning",
+      shift: payPeriod?.shift || "Morning",
       startDay: parseInt(selectedDate) || 1,
       startWeek: null,
       status: null,
@@ -198,20 +202,18 @@ function SemiMonthlyForm() {
     const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
 
     try {
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload: { payPeriod: payPeriodJSON },
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryInfo: parseNormalData(payPeriodJSON) },
-      );
+      if (selectedPayPeriod) {
+        await updateGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      } else {
+        await createGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      }
+      // Update Zustand store
+      updatePayPeriod({ payPeriod: parseNormalData(payPeriodJSON) });
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
+    } finally {
+      setIsUpdate(false);
     }
   };
 
@@ -441,7 +443,7 @@ function SemiMonthlyForm() {
         className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
         onClick={handleSave}
       >
-        {updating ? "Saving..." : "Save"}
+        {isUpdate ? "Saving..." : "Save"}
       </button>
     </div>
   );

@@ -4,12 +4,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalPayPeriod,
+  updateGlobalPayPeriod,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -34,7 +36,7 @@ const SALARY_SECTION_TYPES = {
 function NormalMonthForm() {
   const [formData, setFormData] = useState({
     basic: "",
-    workingDay: "",
+    workingDay: 30,
     workingHours: "",
     overtimeRate: "",
     overtimeFixed: "",
@@ -42,9 +44,9 @@ function NormalMonthForm() {
   });
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  const { updatePayPeriod } = useGlobalStore();
+  const [isUpdate, setIsUpdate] = useState(false);
 
   // Calculate other salary total
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -81,12 +83,11 @@ function NormalMonthForm() {
 
   // Load employee data
   useEffect(() => {
-    if (selectedEmployee?.payPeriod) {
-      const payPeriod = selectedEmployee.payPeriod;
+    if (selectedPayPeriod?.payPeriod) {
+      const payPeriod = selectedPayPeriod?.payPeriod;
 
       setFormData({
         basic: payPeriod.salary?.toString() || "",
-        workingDay: payPeriod.hourlyRate?.toString() || "",
         workingHours: payPeriod.name?.toString() || "",
         overtimeRate: payPeriod.overtimeSalary?.toString() || "",
         overtimeFixed: payPeriod.overtimeFixed?.toString() || "",
@@ -109,7 +110,7 @@ function NormalMonthForm() {
         : [];
       setAdditionalSalaries(initialAdditionalSalaries);
     }
-  }, [selectedEmployee]);
+  }, [selectedPayPeriod]);
 
   const salarySections = useMemo(
     () => [
@@ -196,66 +197,60 @@ function NormalMonthForm() {
 
   // Save handler
   const handleSave = async () => {
-    if (!selectedEmployee) {
-      toast.error("No employee selected");
-      return;
-    }
-
+    // if (!selectedEmployee) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsUpdate(true);
     const otherSalaryArray = getOtherSalaryArray();
-
+    const payPeriod = selectedPayPeriod?.payPeriod;
     try {
-      const payPeriodJSON = convertJsonForPayPeriod(
-        selectedEmployee?.payPeriod || {},
-        {
-          employeeId: selectedEmployee?.employeeId || 0,
-          hourlyRate:
-            formData.workingDay || selectedEmployee?.payPeriod?.hourlyRate,
-          isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-            ? formData.selectedOvertimeOption === "fixed-input"
-            : selectedEmployee?.payPeriod?.isSelectedFixedHourlyRate,
-          name: formData.workingHours || selectedEmployee?.payPeriod?.name,
-          otherSalary:
-            otherSalaryArray.length > 0
-              ? otherSalaryArray
-              : selectedEmployee?.payPeriod?.otherSalary,
-          overtimeFixed:
-            formData.selectedOvertimeOption === "fixed-input"
-              ? formData.overtimeRate
-              : selectedEmployee?.payPeriod?.overtimeFixed,
-          overtimeSalary:
-            formData.selectedOvertimeOption === "auto-calc"
-              ? parseFloat(formData.overtimeRate) || 0
-              : selectedEmployee?.payPeriod?.overtimeSalary,
-          payPeriod: "normalMonthly",
-          salary: formData.basic || selectedEmployee?.payPeriod?.salary,
-          selectedOvertimeOption:
-            formData.selectedOvertimeOption === "auto-calc"
-              ? 0
-              : formData.selectedOvertimeOption === "fixed-input"
-                ? 1
-                : selectedEmployee?.payPeriod?.selectedOvertimeOption,
-          shift: selectedEmployee?.payPeriod?.shift || "Morning",
-          startDay: selectedEmployee?.payPeriod?.startDay || 1,
-          startWeek: selectedEmployee?.payPeriod?.startWeek || null,
-          status: selectedEmployee?.payPeriod?.status || null,
-        },
-      );
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload: { payPeriod: payPeriodJSON },
+      const payPeriodJSON = convertJsonForPayPeriod(payPeriod || {}, {
+        employeeId: 999,
+        hourlyRate: parseFloat(formData.workingDay),
+        isSelectedFixedHourlyRate: formData.selectedOvertimeOption
+          ? formData.selectedOvertimeOption === "fixed-input"
+          : payPeriod?.isSelectedFixedHourlyRate,
+        name: formData.workingHours || payPeriod?.name,
+        otherSalary:
+          otherSalaryArray.length > 0
+            ? otherSalaryArray
+            : payPeriod?.otherSalary,
+        overtimeFixed:
+          formData.selectedOvertimeOption === "fixed-input"
+            ? formData.overtimeRate
+            : payPeriod?.overtimeFixed,
+        overtimeSalary:
+          formData.selectedOvertimeOption === "auto-calc"
+            ? parseFloat(formData.overtimeRate) || 0
+            : payPeriod?.overtimeSalary,
+        payPeriod: "normalMonthly",
+        salary: formData.basic || payPeriod?.salary,
+        selectedOvertimeOption:
+          formData.selectedOvertimeOption === "auto-calc"
+            ? 0
+            : formData.selectedOvertimeOption === "fixed-input"
+              ? 1
+              : payPeriod?.selectedOvertimeOption,
+        shift: payPeriod?.shift || "Morning",
+        startDay: payPeriod?.startDay || 1,
+        startWeek: payPeriod?.startWeek || null,
+        status: payPeriod?.status || null,
       });
 
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryInfo: parseNormalData(payPeriodJSON) },
-      );
+      if (selectedPayPeriod) {
+        await updateGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      } else {
+        await createGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      }
+      // Update Zustand store
+      updatePayPeriod({ payPeriod: parseNormalData(payPeriodJSON) });
       toast.success("Employee updated successfully!");
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update employee.");
+    } finally {
+      setIsUpdate(false);
     }
   };
 
@@ -352,9 +347,9 @@ function NormalMonthForm() {
       <Button
         className="w-full py-3 bg-[#004368] text-white rounded-lg font-medium hover:bg-[#003556]"
         onClick={handleSave}
-        disabled={updating}
+        disabled={isUpdate}
       >
-        {updating ? "Saving..." : "Save"}
+        {isUpdate ? "Saving..." : "Save"}
       </Button>
     </div>
   );

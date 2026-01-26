@@ -5,25 +5,28 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import image from "@/constants/image";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalPayPeriod,
+  updateGlobalPayPeriod,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 function MonthlyForm() {
   const [basic, setBasic] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
-  const [workingDay, setWorkingDay] = useState("");
+  const [workingDay, setWorkingDay] = useState(30);
   const [workingHours, setWorkingHours] = useState("");
   const [overtimeRate, setOvertimeRate] = useState("");
   const [overtimeFixed, setOvertimeFixed] = useState("");
   const [selectedOvertimeOption, setSelectedOvertimeOption] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
+  const { updatePayPeriod } = useGlobalStore();
+  const [isUpdate, setIsUpdate] = useState(false);
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -34,8 +37,6 @@ function MonthlyForm() {
       .filter((d) => d.isChecked)
       .reduce((sum, d) => sum + Number(d.amount), 0);
   }, [additionalSalaries]);
-
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   // Calculate automatic overtime when basic, other salary total, or working day changes
   useEffect(() => {
@@ -49,11 +50,10 @@ function MonthlyForm() {
   }, [basic, otherSalaryCheckTotal, workingDay, selectedOvertimeOption]);
 
   useEffect(() => {
-    if (selectedEmployee?.payPeriod) {
-      const payPeriod = selectedEmployee.payPeriod;
+    if (selectedPayPeriod?.payPeriod) {
+      const payPeriod = selectedPayPeriod?.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
-      setWorkingDay(payPeriod.hourlyRate?.toString() || "");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeSalary?.toString() || "");
       setSelectedDate(payPeriod.startDay?.toString() || "");
@@ -77,7 +77,7 @@ function MonthlyForm() {
         setSelectedOvertimeOption("fixed-input");
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedPayPeriod]);
 
   const salarySections = [
     {
@@ -155,6 +155,7 @@ function MonthlyForm() {
   }, []);
 
   const handleSave = async () => {
+    setIsUpdate(true);
     // Filter out empty additional salaries
     const otherSalaryArray = additionalSalaries
       .filter((salary) => salary.type && salary.amount)
@@ -164,9 +165,10 @@ function MonthlyForm() {
         amount: parseFloat(salary.amount) || 0,
       }));
 
+    const payPeriod = selectedPayPeriod?.payPeriod;
     // Create the payPeriod object according to your structure
     const employeePayPeriod = {
-      employeeId: selectedEmployee?.employeeId || 0,
+      employeeId: payPeriod?.employeeId || 0,
       hourlyRate: parseFloat(workingDay) || 26,
       isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
       leave: "",
@@ -183,7 +185,7 @@ function MonthlyForm() {
       payPeriod: "monthly",
       salary: parseFloat(basic) || 0,
       selectedOvertimeOption: selectedOvertimeOption === "auto-calc" ? 0 : 1,
-      shift: selectedEmployee?.payPeriod?.shift || "Morning",
+      shift: payPeriod?.payPeriod?.shift || "Morning",
       startDay: parseInt(selectedDate) || 1,
       startWeek: null,
       status: null,
@@ -195,19 +197,18 @@ function MonthlyForm() {
     const payPeriodJSON = JSON.stringify(stringifiedEmployeePayPeriod);
 
     try {
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload: { payPeriod: payPeriodJSON },
-      });
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryInfo: parseNormalData(payPeriodJSON) },
-      );
+      if (selectedPayPeriod) {
+        await updateGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      } else {
+        await createGlobalPayPeriod({ payPeriod: payPeriodJSON });
+      }
+      // Update Zustand store
+      updatePayPeriod({ payPeriod: parseNormalData(payPeriodJSON) });
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
+    } finally {
+      setIsUpdate(false);
     }
   };
 
@@ -449,7 +450,7 @@ function MonthlyForm() {
         className="w-full py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium"
         onClick={handleSave}
       >
-        {updating ? "Saving..." : "Save"}
+        {isUpdate ? "Saving..." : "Save"}
       </button>
     </div>
   );

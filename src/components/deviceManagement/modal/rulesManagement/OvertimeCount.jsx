@@ -1,28 +1,31 @@
 import { useState, useEffect } from "react";
-import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
-import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
-import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
 
 export const OvertImeCount = () => {
   const [minOvertimeUnit, setMinOvertimeUnit] = useState("");
-  const { selectedEmployee } = useEditEmployeeStore();
-  const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load existing minimum overtime unit value from selectedEmployee
+  // Load existing minimum overtime unit value from selectedRule
   useEffect(() => {
-    if (selectedEmployee?.salaryRules?.rules) {
+    if (selectedRule?.salaryRules?.rules) {
       try {
         const existingRules =
-          typeof selectedEmployee.salaryRules.rules === "string"
-            ? JSON.parse(selectedEmployee.salaryRules.rules)
-            : selectedEmployee.salaryRules.rules || [];
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
 
         const ruleSeven = existingRules.find(
-          (rule) => rule.ruleId === 7 || rule.ruleId === "7"
+          (rule) => rule.ruleId === 7 || rule.ruleId === "7",
         );
 
         if (ruleSeven && ruleSeven.param1) {
@@ -37,11 +40,11 @@ export const OvertImeCount = () => {
         console.error("Error parsing minimum overtime unit value:", error);
       }
     }
-  }, [selectedEmployee]);
+  }, [selectedRule]);
 
   // Save minimum overtime unit configuration
   const handleSave = async () => {
-    if (!selectedEmployee?.employeeId) {
+    if (!selectedRule?.employeeId) {
       toast.error("No employee selected");
       return;
     }
@@ -52,19 +55,20 @@ export const OvertImeCount = () => {
       parseInt(minOvertimeUnit) <= 0
     ) {
       toast.error(
-        "Please enter a valid positive number for minimum overtime unit"
+        "Please enter a valid positive number for minimum overtime unit",
       );
       return;
     }
 
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      setIsSaving(true);
+      const salaryRules = selectedRule.salaryRules;
       const existingRules = salaryRules.rules || [];
-      const empId = selectedEmployee.employeeId.toString();
+      const empId = parseFloat(999);
 
       // Find or create rule with ruleId = 7
       let ruleSeven = existingRules.find(
-        (rule) => rule.ruleId === 7 || rule.ruleId === "7"
+        (rule) => rule.ruleId === 7 || rule.ruleId === "7",
       );
 
       if (!ruleSeven) {
@@ -97,23 +101,23 @@ export const OvertImeCount = () => {
         },
       });
 
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
-      });
-
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      if (selectedRule) {
+        await updateGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      } else {
+        await createGlobalSalaryRules({
+          salaryRules: JSON.stringify(updatedJSON),
+        });
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Minimum overtime unit updated successfully!");
     } catch (error) {
       console.error("Error saving minimum overtime unit:", error);
       toast.error("Failed to update minimum overtime unit.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -125,23 +129,22 @@ export const OvertImeCount = () => {
     }
   };
   const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
     try {
-      const salaryRules = selectedEmployee.salaryRules;
+      const salaryRules = selectedRule.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
         deleteRuleId: 7,
       });
-      const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-      await updateEmployee({
-        mac: selectedEmployee?.deviceMAC || "",
-        id: selectedEmployee?.employeeId,
-        payload,
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
       });
-      storeEmployeeUpdate(
-        selectedEmployee.employeeId,
-        selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
-      );
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
@@ -195,18 +198,18 @@ export const OvertImeCount = () => {
 
         <button
           onClick={handleDelete}
-          disabled={updating}
+          disabled={isDeleting}
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete"}
         </button>
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={updating || !minOvertimeUnit}
+          disabled={isSaving || !minOvertimeUnit}
           className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updating ? "Saving..." : "Save"}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>
