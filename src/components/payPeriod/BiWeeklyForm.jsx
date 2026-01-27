@@ -242,7 +242,7 @@ function BiWeeklyForm() {
               employeeId: employee?.employeeId || 0,
               hourlyRate:
                 formData.inputDate || employee?.salaryInfo?.hourlyRate,
-              isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
+              isSelectedFixedHourlyRate: false, // BiWeekly only supports fixed input
               name: formData.workingHours || employee?.salaryInfo?.name,
               otherSalary:
                 otherSalaryArray.length > 0

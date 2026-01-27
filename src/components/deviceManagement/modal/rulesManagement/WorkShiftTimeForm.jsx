@@ -652,8 +652,14 @@ export const WorkShiftTimeForm = () => {
           param6: "",
         };
       });
+      const isEmptyObject = (obj) =>
+        obj && typeof obj === "object" && Object.keys(obj).length === 0;
 
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
+      const hasExistingRule = selectedRule && !isEmptyObject(selectedRule);
+
+      const baseSalaryRules = hasExistingRule ? salaryRules : { rules: [] };
+
+      const updatedJSON = finalJsonForUpdate(baseSalaryRules, {
         empId: employeeId,
         timeTables: timeTablesObjects,
         rules: {
@@ -662,15 +668,16 @@ export const WorkShiftTimeForm = () => {
         },
       });
 
-      if (selectedRule) {
-        await updateGlobalSalaryRules({
-          salaryRules: JSON.stringify(updatedJSON),
-        });
+      const payload = {
+        salaryRules: JSON.stringify(updatedJSON),
+      };
+
+      if (hasExistingRule) {
+        await updateGlobalSalaryRules(payload);
       } else {
-        await createGlobalSalaryRules({
-          salaryRules: JSON.stringify(updatedJSON),
-        });
+        await createGlobalSalaryRules(payload);
       }
+
       // Update Zustand store
       updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
 

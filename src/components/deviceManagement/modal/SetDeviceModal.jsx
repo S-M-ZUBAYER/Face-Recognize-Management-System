@@ -60,7 +60,9 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
                   <div className="p-2 bg-white/20 rounded-lg">
                     <Settings className="w-5 h-5 text-white" />
                   </div>
-                  <h2 className="text-xl font-bold text-white">Settings</h2>
+                  <h2 className="text-xl font-bold text-white">
+                    Device Settings
+                  </h2>
                 </div>
                 <motion.button
                   onClick={handleClose}
@@ -118,7 +120,7 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
               {/* Footer */}
               <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center">
-                  Changes PayPeriod & Rules to selected employees
+                  Changes PayPeriod & Rules to selected device
                 </p>
               </div>
             </motion.div>

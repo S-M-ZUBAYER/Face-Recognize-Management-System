@@ -1,27 +1,47 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import LeaveApplicationsList from "@/components/leaveApproval/LeaveApplicationsList";
 import LeaveApplicationDetails from "@/components/leaveApproval/LeaveApplicationDetails";
-import { useLeaveData } from "@/hook/useLeaveData";
-import FancyLoader from "@/components/FancyLoader";
-import { Search, X } from "lucide-react";
+import { Search, X, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import useLeaveStore from "@/zustand/useLeaveStore";
 
 const LeaveApprovalPage = () => {
-  const { leaves, isLoading, error } = useLeaveData();
   const [selectedId, setSelectedId] = useState(null);
   const [selectedMacAddress, setSelectedMacAddress] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredLeaves, setFilteredLeaves] = useState([]);
+  const [dateRange, setDateRange] = useState({
+    from: null,
+    to: null,
+  });
+
+  const leaves = useLeaveStore((state) => state.leaves);
+
+  // Safe date range setter to handle undefined values
+  const handleDateRangeChange = useCallback((range) => {
+    setDateRange(range || { from: null, to: null });
+  }, []);
+
+  // console.log(leaves);
 
   useEffect(() => {
     setFilteredLeaves(leaves);
   }, [leaves]);
+
   // Memoize the selected application to avoid recalculations
   const selectedApplication = useMemo(
     () =>
       leaves.find(
-        (app) => app.id === selectedId && app.deviceMAC === selectedMacAddress
+        (app) => app.id === selectedId && app.deviceMAC === selectedMacAddress,
       ),
-    [leaves, selectedId, selectedMacAddress]
+    [leaves, selectedId, selectedMacAddress],
   );
 
   // Set first leave as selected when data loads
@@ -44,58 +64,103 @@ const LeaveApprovalPage = () => {
         setSelectedMacAddress(macAddress);
       }
     },
-    [leaves]
+    [leaves],
   );
 
   const handleSearchChange = useCallback((e) => {
     setSearchQuery(e.target.value);
   }, []);
 
-  const handleSearch = useCallback(() => {
+  // Apply both search and date filters
+  const applyFilters = useCallback(() => {
+    let filtered = [...leaves];
+
+    // Apply search filter
     const query = searchQuery.toLowerCase().trim();
-    if (!query) {
-      setFilteredLeaves(leaves);
-      return;
+    if (query) {
+      filtered = filtered.filter((leave) => {
+        const employeeName = leave.employeeName?.toLowerCase() || "";
+        return employeeName.includes(query);
+      });
     }
-    const filtered = leaves.filter((leave) => {
-      const employeeName = leave.employeeName?.toLowerCase() || "";
-      return employeeName.includes(query);
-    });
+
+    // Apply date range filter
+    if (dateRange?.from) {
+      filtered = filtered.filter((leave) => {
+        if (!leave.createdAt) return false;
+
+        const leaveDate = new Date(leave.createdAt);
+        const fromDate = new Date(dateRange.from);
+        fromDate.setHours(0, 0, 0, 0);
+
+        if (dateRange.to) {
+          const toDate = new Date(dateRange.to);
+          toDate.setHours(23, 59, 59, 999);
+          return leaveDate >= fromDate && leaveDate <= toDate;
+        }
+
+        return leaveDate >= fromDate;
+      });
+    }
+
     setFilteredLeaves(filtered);
-  }, [searchQuery, leaves]);
+  }, [searchQuery, leaves, dateRange]);
+
+  // Apply filters whenever search query or date range changes
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  const handleSearch = useCallback(() => {
+    applyFilters();
+  }, [applyFilters]);
+
   // Clear search
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
-    setFilteredLeaves(leaves);
-  }, [leaves]);
+  }, []);
+
+  // Clear date filter
+  const handleClearDateFilter = useCallback(() => {
+    setDateRange({ from: null, to: null });
+  }, []);
+
+  // Clear all filters
+  const handleClearAllFilters = useCallback(() => {
+    setSearchQuery("");
+    setDateRange({ from: null, to: null });
+  }, []);
+
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery || dateRange?.from;
 
   // Loading state
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <FancyLoader />
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="p-6">
+  //       <FancyLoader />
+  //     </div>
+  //   );
+  // }
 
-  // Error state (assuming useLeaveData returns error)
-  if (error) {
-    return (
-      <div className="p-6">
-        <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
-          Leave approval
-        </p>
-        <div className="flex flex-col items-center justify-center h-[75vh] rounded-lg bg-red-50 border border-red-100">
-          <p className="text-red-600 font-medium mb-2">
-            Failed to load applications
-          </p>
-          <p className="text-gray-500 text-sm">
-            {error.message || "Please try again later"}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // // Error state
+  // if (error) {
+  //   return (
+  //     <div className="p-6">
+  //       <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
+  //         Leave approval
+  //       </p>
+  //       <div className="flex flex-col items-center justify-center h-[75vh] rounded-lg bg-red-50 border border-red-100">
+  //         <p className="text-red-600 font-medium mb-2">
+  //           Failed to load applications
+  //         </p>
+  //         <p className="text-gray-500 text-sm">
+  //           {error.message || "Please try again later"}
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Empty state
   if (!leaves.length) {
@@ -124,49 +189,115 @@ const LeaveApprovalPage = () => {
           Leave approval
         </p>
 
-        {/* Search Field */}
-        <div className="relative w-80">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
-            onClick={handleSearch}
-          />
-          <input
-            type="text"
-            placeholder="Search by employee name..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="w-full pl-10 pr-10 py-2 border  rounded-lg focus:outline-none border-[#004368]  text-sm"
-          />
-          {searchQuery && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Clear search"
+        <div className="flex items-center gap-3">
+          {/* Date Range Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={`w-[280px] justify-start text-left font-normal border-[#004368] hover:text-[#8896B4] hover:bg-transparent ${
+                  !dateRange?.from && "text-muted-foreground"
+                }`}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange?.to ? (
+                    <>
+                      {format(dateRange.from, "MMM dd, yyyy")} -{" "}
+                      {format(dateRange.to, "MMM dd, yyyy")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "MMM dd, yyyy")
+                  )
+                ) : (
+                  <span>Filter by date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={handleDateRangeChange}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+              />
+              {dateRange?.from && (
+                <div className="p-3 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearDateFilter}
+                    className="w-full"
+                  >
+                    Clear Date Filter
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          {/* Search Field */}
+          <div className="relative w-80">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 cursor-pointer"
+              onClick={handleSearch}
+            />
+            <input
+              type="text"
+              placeholder="Search by employee name..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none border-[#004368] text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Clear All Filters Button */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAllFilters}
+              className="text-gray-600 hover:text-gray-900"
             >
-              <X className="w-4 h-4" onClick={handleClearSearch} />
-            </button>
+              Clear All
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Search results info */}
-      {/* {searchQuery && (
-        <div className="mb-3 text-sm text-gray-600">
-          {filteredLeaves.length > 0 ? (
-            <span>
-              Found{" "}
-              <span className="font-semibold">{filteredLeaves.length}</span>{" "}
-              {filteredLeaves.length === 1 ? "result" : "results"} for "
-              {searchQuery}"
+      {/* Show filter summary */}
+      {hasActiveFilters && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
+          <span>
+            Showing {filteredLeaves.length} of {leaves.length} applications
+          </span>
+          {searchQuery && (
+            <span className="px-2 py-1 bg-blue-50 rounded text-blue-700">
+              Name: "{searchQuery}"
             </span>
-          ) : (
-            <span className="text-red-600">
-              No results found for "{searchQuery}"
+          )}
+          {dateRange?.from && (
+            <span className="px-2 py-1 bg-blue-50 rounded text-blue-700">
+              Date: {format(dateRange.from, "MMM dd")}
+              {dateRange?.to && ` - ${format(dateRange.to, "MMM dd")}`}
             </span>
           )}
         </div>
-      )} */}
+      )}
+
       <div className="h-[75vh] flex gap-4">
         <LeaveApplicationsList
           applications={filteredLeaves}
@@ -177,12 +308,14 @@ const LeaveApprovalPage = () => {
         {hasSelectedApplication ? (
           <LeaveApplicationDetails
             data={selectedApplication}
-            key={selectedId} // Re-mount on selection change
+            key={selectedId}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center rounded-lg ">
+          <div className="flex-1 flex items-center justify-center rounded-lg">
             <p className="text-gray-500">
-              Select an application to view details
+              {filteredLeaves.length === 0
+                ? "No applications match your filters"
+                : "Select an application to view details"}
             </p>
           </div>
         )}

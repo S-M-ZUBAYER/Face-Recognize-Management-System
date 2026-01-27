@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useLeaveData } from "@/hook/useLeaveData";
 import { useImageUpload } from "@/hook/useImageUpload";
 import { useUserStore } from "@/zustand/useUserStore";
 import updateJsonString from "@/lib/updateJsonString";
@@ -51,6 +50,8 @@ import { parseNormalData } from "@/lib/parseNormalData";
 import leaveApprove from "@/lib/leaveApprove";
 import checkLeaveDataChanges from "@/lib/checkLeaveDataChanges";
 import { sendNotificationToEmployee } from "@/utils/sendNotificationToEmployee";
+import useLeaveStore from "@/zustand/useLeaveStore";
+import { updateLeaveData } from "@/utils/leaveServices/LeaveDataService";
 
 // Constants
 const LEAVE_CATEGORIES = [
@@ -68,8 +69,6 @@ const LEAVE_CATEGORIES = [
 const LEAVE_TYPES = ["Hourly Leave", "Full Day Leave", "Extended Leave"];
 
 const LeaveApplicationDetails = ({ data }) => {
-  // Hooks
-  const { updateLeave } = useLeaveData();
   const { user } = useUserStore();
   const { uploadImage, uploading: isUploading } = useImageUpload();
 
@@ -77,6 +76,8 @@ const LeaveApplicationDetails = ({ data }) => {
   const Employees = employees();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  const { updateLeave } = useLeaveStore();
 
   // State
   const [isEditing, setIsEditing] = useState(false);
@@ -324,7 +325,16 @@ const LeaveApplicationDetails = ({ data }) => {
         status: editedData.status,
       };
 
-      await updateLeave(updatedData);
+      await updateLeaveData(updatedData);
+      const parseUpdateData = parseNormalData(updatedData);
+      updateLeave({
+        employeeId: updatedData.employeeId,
+        deviceMAC: updatedData.deviceMAC,
+        updatedLeave: {
+          ...parseUpdateData,
+          employeeId: String(updatedData.employeeId),
+        },
+      });
       const response = checkLeaveDataChanges(data, editedData);
       if (response !== "No changes") {
         await sendNotificationToEmployee({
@@ -375,8 +385,16 @@ const LeaveApplicationDetails = ({ data }) => {
         documentUrl: editedData.documentUrl,
         status: `${status}_admin`,
       };
-
-      await updateLeave(leavePayload);
+      await updateLeaveData(leavePayload);
+      const parseUpdateData = parseNormalData(leavePayload);
+      updateLeave({
+        employeeId: leavePayload.employeeId,
+        deviceMAC: leavePayload.deviceMAC,
+        updatedLeave: {
+          ...parseUpdateData,
+          employeeId: String(leavePayload.employeeId),
+        },
+      });
       leaveUpdated = true;
 
       /* =====================================================

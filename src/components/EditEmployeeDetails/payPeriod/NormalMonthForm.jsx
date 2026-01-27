@@ -210,9 +210,8 @@ function NormalMonthForm() {
           employeeId: selectedEmployee?.employeeId || 0,
           hourlyRate:
             formData.workingDay || selectedEmployee?.payPeriod?.hourlyRate,
-          isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-            ? formData.selectedOvertimeOption === "fixed-input"
-            : selectedEmployee?.payPeriod?.isSelectedFixedHourlyRate,
+          isSelectedFixedHourlyRate:
+            selectedEmployee?.payPeriod?.isSelectedFixedHourlyRate || true,
           name: formData.workingHours || selectedEmployee?.payPeriod?.name,
           otherSalary:
             otherSalaryArray.length > 0

@@ -21,6 +21,7 @@ import EmailVerification from "@/components/EmailVerification";
 import { useEffect, useState } from "react";
 import { getAllEmployeeData } from "@/utils/initializes/getAllEmployeeData";
 import { Riple } from "react-loading-indicators";
+import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
 
 const AppLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +30,7 @@ const AppLayout = () => {
       setIsLoading(true);
       try {
         await getAllEmployeeData();
+        await fetchLeavesData();
       } catch (error) {
         console.error("employee Api error", error);
       } finally {

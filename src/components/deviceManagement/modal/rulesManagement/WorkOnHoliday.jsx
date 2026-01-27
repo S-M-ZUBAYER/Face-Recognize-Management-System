@@ -117,8 +117,15 @@ export const WorkOnHoliday = () => {
         // Keep all other properties as they are
       }
 
+      const isEmptyObject = (obj) =>
+        obj && typeof obj === "object" && Object.keys(obj).length === 0;
+
+      const hasExistingRule = selectedRule && !isEmptyObject(selectedRule);
+
+      const baseSalaryRules = hasExistingRule ? salaryRules : { rules: [] };
+
       // Generate final JSON using your helper
-      const updatedJSON = finalJsonForUpdate(salaryRules, {
+      const updatedJSON = finalJsonForUpdate(baseSalaryRules, {
         empId: empId,
         rules: {
           filter: (r) => r.ruleId === 3 || r.ruleId === "3",
@@ -127,15 +134,16 @@ export const WorkOnHoliday = () => {
         generalDays: generalDaysArray, // update generalDays with selected dates
       });
 
-      if (selectedRule) {
-        await updateGlobalSalaryRules({
-          salaryRules: JSON.stringify(updatedJSON),
-        });
+      const payload = {
+        salaryRules: JSON.stringify(updatedJSON),
+      };
+
+      if (hasExistingRule) {
+        await updateGlobalSalaryRules(payload);
       } else {
-        await createGlobalSalaryRules({
-          salaryRules: JSON.stringify(updatedJSON),
-        });
+        await createGlobalSalaryRules(payload);
       }
+
       // Update Zustand store
       updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
       toast.success("Work on holiday days updated successfully!");

@@ -66,7 +66,7 @@ export const LeaveForm = () => {
             : salaryRules.rules || [];
 
         const ruleTwentyFour = rules.find(
-          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
+          (rule) => rule.ruleId === 24 || rule.ruleId === "24",
         );
         if (ruleTwentyFour && ruleTwentyFour.param1) {
           const totalDays =
@@ -135,7 +135,7 @@ export const LeaveForm = () => {
             : salaryRules.rules || [];
 
         const ruleTen = rules.find(
-          (rule) => rule.ruleId === 10 || rule.ruleId === "10"
+          (rule) => rule.ruleId === 10 || rule.ruleId === "10",
         );
 
         if (ruleTen && ruleTen.param1) {
@@ -147,7 +147,7 @@ export const LeaveForm = () => {
           if (Array.isArray(param1Data)) {
             param1Data.forEach((item, index) => {
               const leaveType = Object.keys(ruleTenMappings).find(
-                (key) => ruleTenMappings[key] === index + 1
+                (key) => ruleTenMappings[key] === index + 1,
               );
 
               if (leaveType && loadedLeaveDetails[leaveType]) {
@@ -174,10 +174,13 @@ export const LeaveForm = () => {
     let totalMinutes = 0;
 
     Object.values(leaveDetails).forEach((leave) => {
-      if (leave.timeRanges && typeof leave.timeRanges === "object") {
-        Object.values(leave.timeRanges).forEach((timeRange) => {
-          // Only calculate if both start and end times are provided
-          if (timeRange && timeRange.startTime && timeRange.endTime) {
+      if (leave.dates && Array.isArray(leave.dates)) {
+        leave.dates.forEach((date) => {
+          const dateStr = getDateString(date);
+          const timeRange = leave.timeRanges?.[dateStr];
+
+          // If both start and end times are provided, calculate the duration
+          if (timeRange?.startTime && timeRange?.endTime) {
             try {
               const [startHours, startMinutes] = timeRange.startTime
                 .split(":")
@@ -193,12 +196,15 @@ export const LeaveForm = () => {
             } catch (error) {
               console.error("Error calculating time range:", error);
             }
+          } else {
+            // If no time range is set, count as a full day (8 hours)
+            totalMinutes += 8 * 60; // 8 hours = 480 minutes
           }
         });
       }
     });
 
-    const days = Math.floor(totalMinutes / (8 * 60)); // 8 hours per day
+    const days = Math.floor(totalMinutes / (8 * 60));
     const remainingMinutes = totalMinutes % (8 * 60);
     const hours = Math.floor(remainingMinutes / 60);
     const minutes = remainingMinutes % 60;
@@ -213,7 +219,7 @@ export const LeaveForm = () => {
 
     const remainingMinutes = Math.max(
       0,
-      totalMinutesAvailable - used.totalMinutes
+      totalMinutesAvailable - used.totalMinutes,
     );
 
     const days = Math.floor(remainingMinutes / (8 * 60));
@@ -299,7 +305,7 @@ export const LeaveForm = () => {
       [leave]: {
         ...prev[leave],
         dates: prev[leave].dates.filter(
-          (date) => getDateString(date) !== dateStr
+          (date) => getDateString(date) !== dateStr,
         ),
         timeRanges: Object.keys(prev[leave].timeRanges || {})
           .filter((key) => key !== dateStr)
@@ -473,7 +479,7 @@ export const LeaveForm = () => {
 
             console.log(
               `Creating object for ${leaveName}, date ${dateStr}:`,
-              timeRange
+              timeRange,
             );
 
             const correctDateStr = formatDateForStorage(date);
@@ -530,7 +536,7 @@ export const LeaveForm = () => {
 
       // Find or create rule with ruleId = 10
       let ruleTen = existingRules.find(
-        (rule) => rule.ruleId === 10 || rule.ruleId === "10"
+        (rule) => rule.ruleId === 10 || rule.ruleId === "10",
       );
 
       if (!ruleTen) {
@@ -573,7 +579,7 @@ export const LeaveForm = () => {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
+        { salaryRules: parseNormalData(updatedJSON) },
       );
 
       toast.success("Leave configuration updated successfully!");
@@ -607,7 +613,7 @@ export const LeaveForm = () => {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
+        { salaryRules: parseNormalData(updatedJSON) },
       );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
@@ -768,7 +774,7 @@ export const LeaveForm = () => {
                                                 leave,
                                                 date,
                                                 "startTime",
-                                                e.target.value
+                                                e.target.value,
                                               )
                                             }
                                             className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -786,7 +792,7 @@ export const LeaveForm = () => {
                                                 leave,
                                                 date,
                                                 "endTime",
-                                                e.target.value
+                                                e.target.value,
                                               )
                                             }
                                             className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"

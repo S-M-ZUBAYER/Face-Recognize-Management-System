@@ -170,7 +170,7 @@ function MonthlyForm() {
     const employeePayPeriod = {
       employeeId: payPeriod?.employeeId || 0,
       hourlyRate: parseFloat(workingDay) || 26,
-      isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
+      isSelectedFixedHourlyRate: true,
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,

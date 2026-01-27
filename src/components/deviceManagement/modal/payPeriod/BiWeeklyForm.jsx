@@ -240,7 +240,7 @@ function BiWeeklyForm() {
     const employeePayPeriod = {
       employeeId: parseFloat(999),
       hourlyRate: inputDate, // Input Week field
-      isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
+      isSelectedFixedHourlyRate: false, // BiWeekly only supports fixed input
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,

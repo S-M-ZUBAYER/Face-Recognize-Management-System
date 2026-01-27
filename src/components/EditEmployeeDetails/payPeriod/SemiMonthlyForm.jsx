@@ -169,7 +169,7 @@ function SemiMonthlyForm() {
     const employeePayPeriod = {
       employeeId: selectedEmployee?.employeeId || 0,
       hourlyRate: 26, // Default for semi-monthly
-      isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
+      isSelectedFixedHourlyRate: false,
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,

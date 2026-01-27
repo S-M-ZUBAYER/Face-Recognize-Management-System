@@ -192,7 +192,7 @@ function WeeklyForm() {
               employeeId: employee?.employeeId || 0,
               hourlyRate:
                 formData.inputWeek || employee?.salaryInfo?.hourlyRate,
-              isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
+              isSelectedFixedHourlyRate: false, // Weekly only supports fixed input
               name: formData.workingHours || employee?.salaryInfo?.name,
               otherSalary:
                 otherSalaryArray.length > 0

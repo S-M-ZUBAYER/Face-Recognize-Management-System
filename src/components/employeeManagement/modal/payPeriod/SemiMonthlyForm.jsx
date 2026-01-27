@@ -191,9 +191,8 @@ function SemiMonthlyForm() {
             {
               employeeId: employee?.employeeId || 0,
               hourlyRate: 26, // Default for semi-monthly
-              isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-                ? formData.selectedOvertimeOption === "fixed-input"
-                : employee?.salaryInfo?.isSelectedFixedHourlyRate,
+              isSelectedFixedHourlyRate:
+                employee?.salaryInfo?.isSelectedFixedHourlyRate || false,
               name: formData.workingHours || employee?.salaryInfo?.name,
               otherSalary:
                 otherSalaryArray.length > 0

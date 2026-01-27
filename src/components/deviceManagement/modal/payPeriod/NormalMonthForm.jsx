@@ -208,9 +208,8 @@ function NormalMonthForm() {
       const payPeriodJSON = convertJsonForPayPeriod(payPeriod || {}, {
         employeeId: 999,
         hourlyRate: parseFloat(formData.workingDay),
-        isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-          ? formData.selectedOvertimeOption === "fixed-input"
-          : payPeriod?.isSelectedFixedHourlyRate,
+        isSelectedFixedHourlyRate: payPeriod?.isSelectedFixedHourlyRate || true,
+        leave: "",
         name: formData.workingHours || payPeriod?.name,
         otherSalary:
           otherSalaryArray.length > 0

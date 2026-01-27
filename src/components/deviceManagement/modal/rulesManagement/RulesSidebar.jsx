@@ -30,10 +30,11 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
     return [6, 7, 8, 9].includes(ruleId);
   };
 
-  // Check if rule ID is in exclusive group (18-23)
-  const isExclusiveRule = (ruleId) => {
-    return ruleId > 16 && ruleId < 23;
-  };
+  // Check if rule ID is in exclusive group (18-22)
+  const EXCLUSIVE_RULE_RANGE = { min: 17, max: 21 };
+
+  const isExclusiveRule = (ruleId) =>
+    ruleId >= EXCLUSIVE_RULE_RANGE.min && ruleId <= EXCLUSIVE_RULE_RANGE.max;
 
   // Get selected exclusive rules (18-23)
   const getSelectedExclusiveRules = () => {
@@ -70,7 +71,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
       ) {
         openDialog(
           `You can only select one rule from the group (18-22). You already have Rule ${
-            selectedExclusive[0]
+            selectedExclusive[0] + 1
           } selected. Please deselect it first if you want to select Rule ${
             rule.id + 1
           }.`,

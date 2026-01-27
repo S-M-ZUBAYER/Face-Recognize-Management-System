@@ -58,7 +58,7 @@ const LINKS = [
     path: "/Face_Attendance_Management_System/employee-management",
   },
   {
-    label: "Device List",
+    label: "Device management",
     icon: DeviceManagementIcon,
     path: "/Face_Attendance_Management_System/device-management",
   },

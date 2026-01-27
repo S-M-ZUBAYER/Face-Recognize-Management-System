@@ -190,7 +190,7 @@ function WeeklyForm() {
     const employeePayPeriod = {
       employeeId: Number(999),
       hourlyRate: parseFloat(inputWeek) || 0, // Input Week field
-      isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
+      isSelectedFixedHourlyRate: false, // Weekly only supports fixed input
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,

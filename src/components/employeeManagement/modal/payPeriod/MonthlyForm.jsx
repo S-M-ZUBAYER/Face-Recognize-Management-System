@@ -193,9 +193,9 @@ function MonthlyForm() {
               employeeId: employee?.employeeId || 0,
               hourlyRate:
                 formData.workingDay || employee?.salaryInfo?.hourlyRate,
-              isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-                ? formData.selectedOvertimeOption === "fixed-input"
-                : employee?.salaryInfo?.isSelectedFixedHourlyRate,
+              isSelectedFixedHourlyRate:
+                employee?.salaryInfo?.isSelectedFixedHourlyRate || true,
+              leave: "",
               name: formData.workingHours || employee?.salaryInfo?.name,
               otherSalary:
                 otherSalaryArray.length > 0
