@@ -25,11 +25,11 @@ const SearchBox = memo(
       <div className="flex items-center gap-2">
         <input
           type="text"
-          placeholder="Search by Date, ID, Name or Department..."
+          placeholder="Search by Date, Id, Mac, Name or Department..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="w-[13vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+          className="w-[16vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
         />
         <button
           onClick={handleSearch}
@@ -52,7 +52,7 @@ const SearchBox = memo(
         )}
       </div>
     );
-  }
+  },
 );
 
 const AttendanceTable = ({ employees = [] }) => {
@@ -121,12 +121,14 @@ const AttendanceTable = ({ employees = [] }) => {
         .toString()
         .toLowerCase();
       const department = (emp?.department || "").toLowerCase();
+      const deviceMac = (emp?.deviceMAC || "").toLowerCase();
 
       return (
         date.includes(query) ||
         name.includes(query) ||
         empId.includes(query) ||
-        department.includes(query)
+        department.includes(query) ||
+        deviceMac.includes(query)
       );
     });
   }, [employees, searchQuery]);
@@ -168,7 +170,7 @@ const AttendanceTable = ({ employees = [] }) => {
       // Available width for designation and department
       const availableForDynamic = Math.max(
         0,
-        availableWidth - totalFixedWidth - 50
+        availableWidth - totalFixedWidth - 50,
       );
 
       // Minimum widths
@@ -211,15 +213,15 @@ const AttendanceTable = ({ employees = [] }) => {
         ...fixedWidths,
         designation: Math.max(
           minWidths.designation,
-          availableForDynamic * designationRatio
+          availableForDynamic * designationRatio,
         ),
         department: Math.max(
           minWidths.department,
-          availableForDynamic * departmentRatio
+          availableForDynamic * departmentRatio,
         ),
       };
     },
-    [employees, maxPunchCount]
+    [employees, maxPunchCount],
   );
 
   // Columns definition with responsive widths
@@ -247,7 +249,7 @@ const AttendanceTable = ({ employees = [] }) => {
   // Selection logic
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
-    [selectedEmployees]
+    [selectedEmployees],
   );
 
   const isAllSelected = useMemo(() => {
@@ -288,13 +290,13 @@ const AttendanceTable = ({ employees = [] }) => {
     if (isAllSelected) {
       const filteredIds = new Set(
         filteredData.map(
-          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-        )
+          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id,
+        ),
       );
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
       const newIds = filteredData.map(
-        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
+        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id,
       );
       setSelectedEmployees((prev) => {
         const newSet = new Set(prev);
@@ -308,10 +310,10 @@ const AttendanceTable = ({ employees = [] }) => {
     () =>
       employees.filter((emp) =>
         selectedEmployees.includes(
-          emp.companyEmployeeId || emp.employeeId || emp.id
-        )
+          emp.companyEmployeeId || emp.employeeId || emp.id,
+        ),
       ),
-    [employees, selectedEmployees]
+    [employees, selectedEmployees],
   );
 
   useEffect(() => {
@@ -413,8 +415,8 @@ const AttendanceTable = ({ employees = [] }) => {
             content = Array.isArray(checkIn)
               ? checkIn[punchIndex] || ""
               : punchIndex === 0
-              ? checkIn || ""
-              : "";
+                ? checkIn || ""
+                : "";
           }
       }
 
@@ -451,7 +453,7 @@ const AttendanceTable = ({ employees = [] }) => {
         </div>
       );
     },
-    [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee]
+    [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee],
   );
 
   // Loading and empty states

@@ -411,12 +411,14 @@ function BiWeeklyForm() {
               <div className="flex gap-2">
                 <Input
                   value={salary.type}
-                  onChange={(e) =>
-                    updateSalarySectionType(salary.id, e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                    updateSalarySectionType(salary.id, value);
+                  }}
                   className="w-40"
                   placeholder="Salary Type"
                 />
+
                 <Input
                   value={salary.amount}
                   onChange={(e) =>

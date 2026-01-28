@@ -196,7 +196,7 @@ function SalaryTable({ employees }) {
                 Department
               </th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Salary
+                Basic Salary
               </th>
 
               {/* <th className="text-left p-3 text-sm font-medium text-gray-700 ">

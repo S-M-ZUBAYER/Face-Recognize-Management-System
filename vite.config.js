@@ -6,10 +6,13 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/Face_Attendance_Management_System',
+  base: "/Face_Attendance_Management_System",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // esbuild: {
+  //   drop: ["console", "debugger"],
+  // },
 });

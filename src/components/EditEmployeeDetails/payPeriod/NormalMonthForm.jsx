@@ -410,10 +410,15 @@ const AdditionalSalaryRow = ({
       <div className="flex gap-2">
         <Input
           value={salary.type}
-          onChange={(e) => onTypeChange?.(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+            onTypeChange?.(value);
+          }}
           className="w-40"
           placeholder="Salary Type"
+          type="text"
         />
+
         <Input
           value={salary.amount}
           onChange={(e) => onAmountChange?.(e.target.value)}
