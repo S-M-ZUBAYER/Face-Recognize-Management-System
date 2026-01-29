@@ -202,7 +202,6 @@ function NormalMonthForm() {
     }
 
     const otherSalaryArray = getOtherSalaryArray();
-
     try {
       const payPeriodJSON = convertJsonForPayPeriod(
         selectedEmployee?.payPeriod || {},
@@ -219,7 +218,7 @@ function NormalMonthForm() {
               : selectedEmployee?.payPeriod?.otherSalary,
           overtimeFixed:
             formData.selectedOvertimeOption === "fixed-input"
-              ? formData.overtimeRate
+              ? formData.overtimeFixed
               : selectedEmployee?.payPeriod?.overtimeFixed,
           overtimeSalary:
             formData.selectedOvertimeOption === "auto-calc"
@@ -411,7 +410,7 @@ const AdditionalSalaryRow = ({
         <Input
           value={salary.type}
           onChange={(e) => {
-            const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+            const value = e.target.value.replace(/[0-9]/g, "");
             onTypeChange?.(value);
           }}
           className="w-40"

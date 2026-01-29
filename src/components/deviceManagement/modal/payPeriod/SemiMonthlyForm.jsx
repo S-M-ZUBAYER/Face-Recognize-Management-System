@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,12 @@ import { useGlobalStore } from "@/zustand/useGlobalStore";
 function SemiMonthlyForm() {
   const [basic, setBasic] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
-  const [workingDay, setWorkingDay] = useState("");
+  // const [workingDay, setWorkingDay] = useState("");
   const [workingHours, setWorkingHours] = useState("");
   const [overtimeRate, setOvertimeRate] = useState("");
   const [overtimeFixed, setOvertimeFixed] = useState("");
-  const [selectedOvertimeOption, setSelectedOvertimeOption] = useState("");
+  const [selectedOvertimeOption, setSelectedOvertimeOption] =
+    useState("fixed-input");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const selectedPayPeriod = useGlobalStore.getState().selectPayPeriod();
@@ -32,29 +33,29 @@ function SemiMonthlyForm() {
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
     return total + (parseFloat(salary.amount) || 0);
   }, 0);
-  const otherSalaryCheckTotal = useMemo(() => {
-    return additionalSalaries
-      .filter((d) => d.isChecked)
-      .reduce((sum, d) => sum + Number(d.amount), 0);
-  }, [additionalSalaries]);
+  // const otherSalaryCheckTotal = useMemo(() => {
+  //   return additionalSalaries
+  //     .filter((d) => d.isChecked)
+  //     .reduce((sum, d) => sum + Number(d.amount), 0);
+  // }, [additionalSalaries]);
 
   // Calculate automatic overtime when basic, other salary total, or working day changes
-  useEffect(() => {
-    if (selectedOvertimeOption === "auto-calc" && basic && workingDay) {
-      const basicNum = parseFloat(basic) || 0;
-      const workingDayNum = parseFloat(workingDay) || 1; // Avoid division by zero
-      const calculatedOvertime =
-        (basicNum + otherSalaryCheckTotal) / workingDayNum;
-      setOvertimeRate(calculatedOvertime.toFixed(2));
-    }
-  }, [basic, otherSalaryCheckTotal, workingDay, selectedOvertimeOption]);
+  // useEffect(() => {
+  //   if (selectedOvertimeOption === "auto-calc" && basic && workingDay) {
+  //     const basicNum = parseFloat(basic) || 0;
+  //     const workingDayNum = parseFloat(workingDay) || 1; // Avoid division by zero
+  //     const calculatedOvertime =
+  //       (basicNum + otherSalaryCheckTotal) / workingDayNum;
+  //     setOvertimeRate(calculatedOvertime.toFixed(2));
+  //   }
+  // }, [basic, otherSalaryCheckTotal, workingDay, selectedOvertimeOption]);
 
   useEffect(() => {
     if (selectedPayPeriod?.payPeriod) {
       const payPeriod = selectedPayPeriod.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
-      setWorkingDay(payPeriod.hourlyRate?.toString() || "");
+      // setWorkingDay(payPeriod.hourlyRate?.toString() || "");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeSalary?.toString() || "");
       setSelectedDate(payPeriod.startDay?.toString() || "");
@@ -72,11 +73,8 @@ function SemiMonthlyForm() {
       setAdditionalSalaries(initialAdditionalSalaries);
 
       // Set overtime option based on selectedOvertimeOption
-      if (payPeriod.selectedOvertimeOption === 0) {
-        setSelectedOvertimeOption("auto-calc");
-      } else if (payPeriod.selectedOvertimeOption === 1) {
-        setSelectedOvertimeOption("fixed-input");
-      }
+
+      setSelectedOvertimeOption("fixed-input");
     }
   }, [selectedPayPeriod]);
 
@@ -277,7 +275,7 @@ function SemiMonthlyForm() {
                 <Input
                   value={salary.type}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                    const value = e.target.value.replace(/[0-9]/g, "");
                     updateSalarySectionType(salary.id, value);
                   }}
                   className="w-40"

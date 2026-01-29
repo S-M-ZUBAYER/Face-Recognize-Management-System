@@ -457,8 +457,7 @@ const AttendanceTable = ({ employees = [] }) => {
   );
 
   // Loading and empty states
-  const isLoading =
-    isProcessing || isFilterLoading || isRefreshing || isInitialLoad;
+  const isLoading = isProcessing || isFilterLoading || isRefreshing;
   const hasData = employees.length > 0;
   const hasFilteredData = filteredData.length > 0;
 

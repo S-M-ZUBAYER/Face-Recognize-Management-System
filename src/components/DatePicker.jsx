@@ -11,7 +11,7 @@ import {
 
 // import { useEmployeeData } from "@/hook/useEmployeeData";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
-import { useDateRangeStore } from "@/zustand/useDateRangeStore";
+// import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 
 function formatDate(date) {
   if (!date) return "";
@@ -27,7 +27,7 @@ export function DatePicker() {
 
   // ✅ get selectedDate and setter from your hook
   const { selectedDate, setSelectedDate } = useAttendanceStore();
-  const { setDateRange } = useDateRangeStore();
+  // const { setDateRange } = useDateRangeStore();
 
   // Convert string date from hook into JS Date
   const selectedDateObj = selectedDate ? new Date(selectedDate) : new Date();
@@ -62,10 +62,10 @@ export function DatePicker() {
               onSelect={(date) => {
                 if (!date) return;
                 setSelectedDate(format(date, "yyyy-MM-dd")); // ✅ update hook state
-                setDateRange(
-                  format(date, "yyyy-MM-dd"),
-                  format(date, "yyyy-MM-dd"),
-                );
+                // setDateRange(
+                //   format(date, "yyyy-MM-dd"),
+                //   format(date, "yyyy-MM-dd"),
+                // );
                 setOpen(false);
               }}
             />

@@ -541,7 +541,7 @@ const AdditionalSalaryRow = ({
         <Input
           value={salary.type}
           onChange={(e) => {
-            const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+            const value = e.target.value.replace(/[0-9]/g, "");
             onTypeChange?.(value);
           }}
           className="w-40"

@@ -93,7 +93,9 @@ export const SetTotalLeaveDays = () => {
   // Update total days automatically when leave categories change
   useEffect(() => {
     const calculatedTotal = calculateTotalFromLeaves();
-    setTotalDays(calculatedTotal > 0 ? String(calculatedTotal) : "");
+    if (calculatedTotal > 0) {
+      setTotalDays(String(calculatedTotal));
+    }
   }, [leaveDays, calculateTotalFromLeaves]);
 
   const handleLeaveDayChange = (leaveType, value) => {

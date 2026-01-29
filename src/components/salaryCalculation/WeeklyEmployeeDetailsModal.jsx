@@ -77,16 +77,16 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     setWeekRange(newRange);
   };
 
-  const handleCurrentWeek = () => {
-    setWeekOffset(0);
-    const newRange = getFirstWeekRange(
-      selectedYear,
-      selectedMonth,
-      selectedEmp?.salaryInfo?.startDay + 1 || 0,
-      0,
-    );
-    setWeekRange(newRange);
-  };
+  // const handleCurrentWeek = () => {
+  //   setWeekOffset(0);
+  //   const newRange = getFirstWeekRange(
+  //     selectedYear,
+  //     selectedMonth,
+  //     selectedEmp?.salaryInfo?.startDay + 1 || 0,
+  //     0,
+  //   );
+  //   setWeekRange(newRange);
+  // };
 
   // Format date for display
   const formatDisplayDate = (dateStr) => {
@@ -211,7 +211,7 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                   <h3 className="font-semibold text-gray-800 text-lg">
                     Week of {formatDisplayDate(weekRange.startDate)}
                   </h3>
-                  <p className="text-gray-600 text-sm">
+                  {/* <p className="text-gray-600 text-sm">
                     {weekOffset >= 0
                       ? weekOffset === 0
                         ? "(Current Week)"
@@ -221,17 +221,17 @@ const WeeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                       : `${Math.abs(weekOffset)} week${
                           Math.abs(weekOffset) !== 1 ? "s" : ""
                         } ago`}
-                  </p>
+                  </p> */}
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
+                  {/* <Button
                     onClick={handleCurrentWeek}
                     variant="outline"
                     size="sm"
                   >
                     Current Week
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={handleNextWeek}
                     variant="outline"
