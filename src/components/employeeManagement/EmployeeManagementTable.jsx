@@ -68,12 +68,14 @@ const EmployeeManagementTable = ({ employees = [] }) => {
         .toLowerCase();
       const designation = (emp?.designation || "").toLowerCase();
       const department = (emp?.department || "").toLowerCase();
+      const deviceMac = (emp?.deviceMAC || "").toLowerCase();
 
       return (
         name.includes(query) ||
         employeeId.includes(query) ||
         designation.includes(query) ||
-        department.includes(query)
+        department.includes(query) ||
+        deviceMac.includes(query)
       );
     });
   }, [employeesWithStableIds, searchQuery]);
@@ -194,11 +196,11 @@ const EmployeeManagementTable = ({ employees = [] }) => {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search by Employee ID, Name or Department..."
+            placeholder="Search by Date, Id, Mac, Name or Department..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+            className="w-[16vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
             disabled={isSearching}
           />
           <button
