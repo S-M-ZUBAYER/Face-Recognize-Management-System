@@ -26,8 +26,8 @@ export const HolidayForm = () => {
         typeof raw === "string"
           ? JSON.parse(raw)
           : Array.isArray(raw)
-          ? raw
-          : [];
+            ? raw
+            : [];
 
       const dates = parsed
         .map((str) => {
@@ -54,7 +54,7 @@ export const HolidayForm = () => {
 
     // Store dates in "local noon" to prevent timezone shifts
     const normalized = dates.map(
-      (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12)
+      (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12),
     );
     setSpecialDates(normalized);
   };
@@ -83,7 +83,7 @@ export const HolidayForm = () => {
 
       // Find or create ruleId "1"
       let ruleOne = existingRules.find(
-        (r) => r.ruleId === "1" || r.ruleId === 1
+        (r) => r.ruleId === "1" || r.ruleId === 1,
       );
       if (!ruleOne) {
         ruleOne = {
@@ -134,7 +134,7 @@ export const HolidayForm = () => {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
+        { salaryRules: parseNormalData(updatedJSON) },
       );
 
       toast.success("Holidays updated successfully!");
@@ -147,6 +147,7 @@ export const HolidayForm = () => {
     try {
       const salaryRules = selectedEmployee.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
+        holidays: [],
         deleteRuleId: 1,
       });
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
@@ -160,7 +161,7 @@ export const HolidayForm = () => {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
+        { salaryRules: parseNormalData(updatedJSON) },
       );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {

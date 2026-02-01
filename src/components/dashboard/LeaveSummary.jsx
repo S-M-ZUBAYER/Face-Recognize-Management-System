@@ -1,17 +1,15 @@
 import React from "react";
-import useLeaveStore from "@/zustand/useLeaveStore";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
-import { getLeaveCategoryArray } from "@/utils/leaveServices/LeaveDataService";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 function LeaveSummary() {
-  const leaves = useLeaveStore((state) => state.leaves);
   const { selectedDate } = useAttendanceStore();
   const [leaveCategoryArray, setLeaveCategoryArray] = React.useState([]);
+  const { employees } = useEmployeeStore();
 
   React.useEffect(() => {
-    const leaveCategoryArray = getLeaveCategoryArray(leaves, selectedDate);
-    setLeaveCategoryArray(leaveCategoryArray);
-  }, [leaves, selectedDate]);
+    setLeaveCategoryArray(getLeaveSummaryByDate(employees(), selectedDate));
+  }, [employees, selectedDate]);
 
   if (!leaveCategoryArray || leaveCategoryArray.length === 0) {
     return (
@@ -52,3 +50,60 @@ function LeaveSummary() {
 }
 
 export default LeaveSummary;
+
+const getLeaveSummaryByDate = (employees = [], date) => {
+  const counterMap = new Map();
+
+  employees.forEach((employee) => {
+    const leaveTypes = getLeaveTypes(employee, date);
+
+    leaveTypes.forEach((type) => {
+      counterMap.set(type, (counterMap.get(type) || 0) + 1);
+    });
+  });
+
+  return Array.from(counterMap.entries()).map(([category, count]) => ({
+    category,
+    count,
+  }));
+};
+
+const getLeaveTypes = (employee, date) => {
+  const leaveTypes = [];
+  const leaveMappings = {
+    m_leaves: "Maternity leave",
+    mar_leaves: "Marriage Leave",
+    p_leaves: "Personal Leave",
+    s_leaves: "Sick Leave",
+    c_leaves: "Casual Leave",
+    e_leaves: "Earned Leave",
+    w_leaves: "Without Pay Leave",
+    r_leaves: "Rest Leave",
+    o_leaves: "Other Leave",
+  };
+
+  if (!employee.salaryRules) return leaveTypes;
+  const dateOnly = date.split("T")[0];
+  const generalDays = (employee.salaryRules.generalDays || []).map(
+    (h) => h.split("T")[0],
+  );
+
+  if (generalDays.includes(dateOnly)) {
+    return [];
+  }
+
+  Object.keys(leaveMappings).forEach((leaveKey) => {
+    const leaves = employee.salaryRules[leaveKey];
+    if (Array.isArray(leaves)) {
+      const hasLeave = leaves.some((leave) => {
+        const leaveDate = leave.date?.date || leave.date;
+        return leaveDate?.toString().includes(date);
+      });
+
+      if (hasLeave) {
+        leaveTypes.push(leaveMappings[leaveKey]);
+      }
+    }
+  });
+  return leaveTypes;
+};

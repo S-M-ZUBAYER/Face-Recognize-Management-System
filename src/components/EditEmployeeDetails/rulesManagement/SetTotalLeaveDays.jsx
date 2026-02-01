@@ -253,6 +253,15 @@ export const SetTotalLeaveDays = () => {
     try {
       const salaryRules = selectedEmployee.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
+        c_leaves: [],
+        e_leaves: [],
+        m_leaves: [],
+        mar_leaves: [],
+        o_leaves: [],
+        p_leaves: [],
+        r_leaves: [],
+        s_leaves: [],
+        w_leaves: [],
         deleteRuleId: 24,
       });
       const payload = { salaryRules: JSON.stringify(updatedJSON) };

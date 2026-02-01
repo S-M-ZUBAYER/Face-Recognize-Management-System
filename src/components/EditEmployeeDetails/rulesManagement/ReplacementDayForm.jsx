@@ -60,7 +60,7 @@ export const ReplacementDayForm = () => {
       const dates = getWeekendAndHolidayDates(
         selectedEmployee.salaryRules,
         Attendance,
-        selectedEmployee.employeeId
+        selectedEmployee.employeeId,
       );
 
       // Store current values
@@ -146,7 +146,7 @@ export const ReplacementDayForm = () => {
 
     // Create a stable key to check if data has changed
     const currentKey = `${JSON.stringify(
-      selectedEmployee.salaryRules
+      selectedEmployee.salaryRules,
     )}-${JSON.stringify(Attendance)}`;
 
     // Skip if data hasn't changed and we've already initialized
@@ -217,13 +217,13 @@ export const ReplacementDayForm = () => {
       const day = replacementDays.find((d) => d.id === id);
       if (day && day.hasReplacement) {
         toast.error(
-          "This date already has a replacement and cannot be modified"
+          "This date already has a replacement and cannot be modified",
         );
         return;
       }
       setOpenPopovers((prev) => ({ ...prev, [id]: isOpen }));
     },
-    [replacementDays]
+    [replacementDays],
   );
 
   const formatDateForStorage = (date) => {
@@ -240,7 +240,7 @@ export const ReplacementDayForm = () => {
     }
 
     const hasSelectedDates = Object.values(selectedDates).some(
-      (date) => date !== null
+      (date) => date !== null,
     );
     if (!hasSelectedDates) {
       toast.error("Please select at least one replacement date");
@@ -253,7 +253,7 @@ export const ReplacementDayForm = () => {
       const empId = selectedEmployee.employeeId.toString();
 
       let ruleTwelve = existingRules.find(
-        (rule) => rule.ruleId === 12 || rule.ruleId === "12"
+        (rule) => rule.ruleId === 12 || rule.ruleId === "12",
       );
 
       if (!ruleTwelve) {
@@ -316,7 +316,7 @@ export const ReplacementDayForm = () => {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
+        { salaryRules: parseNormalData(updatedJSON) },
       );
       // Update state after successful save
       setReplacementDays(updatedReplaceDays);
@@ -358,19 +358,20 @@ export const ReplacementDayForm = () => {
   };
 
   const pendingCount = replacementDays.filter(
-    (day) => !day.hasReplacement
+    (day) => !day.hasReplacement,
   ).length;
   const completedCount = replacementDays.filter(
-    (day) => day.hasReplacement
+    (day) => day.hasReplacement,
   ).length;
   const newlySelectedCount = Object.values(selectedDates).filter(
-    (date) => date !== null
+    (date) => date !== null,
   ).length;
 
   const handleDelete = async () => {
     try {
       const salaryRules = selectedEmployee.salaryRules;
       const updatedJSON = finalJsonForUpdate(salaryRules, {
+        replaceDays: [],
         deleteRuleId: 12,
       });
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
@@ -383,7 +384,7 @@ export const ReplacementDayForm = () => {
       storeEmployeeUpdate(
         selectedEmployee.employeeId,
         selectedEmployee.deviceMAC || "",
-        { salaryRules: parseNormalData(updatedJSON) }
+        { salaryRules: parseNormalData(updatedJSON) },
       );
 
       // Reset and reinitialize
@@ -457,7 +458,7 @@ export const ReplacementDayForm = () => {
         </tr>
       );
     },
-    [openPopovers, selectedDates, togglePopover]
+    [openPopovers, selectedDates, togglePopover],
   );
 
   return (

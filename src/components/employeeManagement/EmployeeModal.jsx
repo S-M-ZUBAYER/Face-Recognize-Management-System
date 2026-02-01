@@ -12,10 +12,12 @@ import { Checkbox } from "../ui/checkbox";
 import OvertimeModal from "./OvertimeModal";
 import toast from "react-hot-toast";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import MoveDeviceModal from "./MoveDeviceModal";
 
 function EmployeeModal({ employee }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showOvertime, setShowOvertime] = useState(false);
+  const [showMove, setShowMove] = useState(false);
 
   const [selectedValues, setSelectedValues] = useState({
     workType: "",
@@ -272,6 +274,14 @@ function EmployeeModal({ employee }) {
                   ))}
                 </Accordion>
               </div>
+              <div
+                onClick={() => {
+                  setShowMove(true);
+                  setIsOpen(false);
+                }}
+              >
+                <p>Move Employee to Another Device</p>
+              </div>
 
               {/* Preview of selected values */}
               {/* {(selectedValues.workType || selectedValues.attendanceMethod) && (
@@ -327,6 +337,15 @@ function EmployeeModal({ employee }) {
         }}
         onConfirm={() => setShowOvertime(false)}
         {...employee}
+      />
+
+      <MoveDeviceModal
+        isOpen={showMove}
+        onClose={() => {
+          setShowMove(false);
+          setIsOpen(true);
+        }}
+        emp={employee}
       />
     </>
   );
