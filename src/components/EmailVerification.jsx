@@ -105,7 +105,7 @@ const EmailVerification = ({
         }
 
         await axios.post(
-          `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/alternate-email/add?email=${email}&password=${password}&alternateEmail=${alternativeEmail}`
+          `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/alternate-email/add?email=${email}&password=${password}&alternateEmail=${alternativeEmail}`,
           // {
           //   email: email,
           //   password: password,
@@ -114,11 +114,11 @@ const EmailVerification = ({
         );
 
         // Use alternative email for verification
-        setEmail(alternativeEmail);
+        // setEmail(alternativeEmail);
       } else {
         // Send verification code to primary email
         await axios.post(
-          `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/resend-verification?email=${email}&password=${password}`
+          `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/resend-verification?email=${email}&password=${password}`,
           // {
           //   email: email,
           //   password: password,
@@ -135,14 +135,14 @@ const EmailVerification = ({
       toast.success(
         `Verification code sent to ${
           isAlternateEmail ? alternativeEmail : email
-        }`
+        }`,
       );
     } catch (error) {
       console.error("Error sending verification code:", error);
       toast.error(
         error.response?.data?.message ||
           error.response?.data?.error ||
-          "Failed to send verification code. Please check your credentials."
+          "Failed to send verification code. Please check your credentials.",
       );
     } finally {
       setIsLoading(false);
@@ -177,7 +177,7 @@ const EmailVerification = ({
       // Focus last input
       setTimeout(() => {
         const lastInput = document.getElementById(
-          `code-${Math.min(pastedData.length, 5)}`
+          `code-${Math.min(pastedData.length, 5)}`,
         );
         lastInput?.focus();
       }, 0);
@@ -203,7 +203,7 @@ const EmailVerification = ({
     setIsLoading(true);
     try {
       await axios.get(
-        `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/verify?code=${code}`
+        `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/verify?code=${code}`,
       );
 
       setVerificationStatus("success");
@@ -228,7 +228,7 @@ const EmailVerification = ({
       toast.error(
         error.response?.data?.message ||
           error.response?.data?.error ||
-          "Invalid verification code"
+          "Invalid verification code",
       );
     } finally {
       setIsLoading(false);
@@ -249,25 +249,30 @@ const EmailVerification = ({
 
     setIsLoading(true);
     try {
-      if (isAlternateEmail && alternativeEmail) {
-        await axios.post(
-          `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/alternate-email/add?email=${email}&password=${password}&alternateEmail=${alternativeEmail}`
-          // {
-          //   email: email,
-          //   password: password,
-          //   alternateEmail: alternativeEmail,
-          // }
-        );
-      } else {
-        await axios.post(
-          `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/resend-verification?email=${email}&password=${password}`
-          // {
-          //   email: email,
-          //   password: password,
-          // }
-        );
-      }
+      // if (isAlternateEmail && alternativeEmail) {
+      //   await axios.post(
+      //     `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/alternate-email/add?email=${email}&password=${password}&alternateEmail=${alternativeEmail}`,
+      //     // {
+      //     //   email: email,
+      //     //   password: password,
+      //     //   alternateEmail: alternativeEmail,
+      //     // }
+      //   );
+      // } else {
+      //   await axios.post(
+      //     `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/resend-verification?email=${email}&password=${password}`,
+      //     // {
+      //     //   email: email,
+      //     //   password: password,
+      //     // }
+      //   );
+      // }
 
+      // const res =
+      await axios.post(
+        `https://grozziieget.zjweiting.com:3091/CustomerService-Chat/api/v1/user/resend-verification?email=${isAlternateEmail ? alternativeEmail : email}&password=${password}`,
+      );
+      // console.log("Resend response:", res);
       setResendCount((prev) => prev + 1);
       setTimeLeft(codeExpirySeconds);
       setVerificationCode(["", "", "", "", "", ""]);
@@ -284,7 +289,7 @@ const EmailVerification = ({
       toast.error(
         error.response?.data?.message ||
           error.response?.data?.error ||
-          "Failed to resend code"
+          "Failed to resend code",
       );
     } finally {
       setIsLoading(false);
@@ -355,7 +360,7 @@ const EmailVerification = ({
 
   const handleContinue = () => {
     if (pack === null) {
-      navigate("/");
+      navigate("/Face_Attendance_Management_System");
       return;
     } else {
       const encodedEmail = btoa(encodeURIComponent(user.userEmail));
@@ -565,7 +570,9 @@ const EmailVerification = ({
                           <p className="text-sm text-gray-600">
                             Verification code sent to
                           </p>
-                          <p className="font-semibold text-gray-900">{email}</p>
+                          <p className="font-semibold text-gray-900">
+                            {isAlternateEmail ? alternativeEmail : email}
+                          </p>
                         </div>
                       </div>
                       <button
@@ -592,8 +599,8 @@ const EmailVerification = ({
                         verificationStatus === "success"
                           ? "border-green-200 bg-green-50"
                           : verificationStatus === "failed"
-                          ? "border-red-200 bg-red-50"
-                          : "border-blue-200 bg-blue-50"
+                            ? "border-red-200 bg-red-50"
+                            : "border-blue-200 bg-blue-50"
                       }`}
                     >
                       <div className="flex flex-col items-center text-center gap-4">

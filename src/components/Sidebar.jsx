@@ -58,7 +58,7 @@ const LINKS = [
     path: "/Face_Attendance_Management_System/employee-management",
   },
   {
-    label: "Device List",
+    label: "Device management",
     icon: DeviceManagementIcon,
     path: "/Face_Attendance_Management_System/device-management",
   },
@@ -152,7 +152,7 @@ const NavItem = memo(({ link, isActive, isPending, onNavClick }) => {
         onNavClick(link.path);
       }
     },
-    [onNavClick, link.path]
+    [onNavClick, link.path],
   );
 
   return (
@@ -168,10 +168,10 @@ const NavItem = memo(({ link, isActive, isPending, onNavClick }) => {
         onClick={handleClick}
         onKeyDown={handleKeyPress}
         className={cn(
-          "flex items-center gap-3 p-2 pl-[2vw] py-2 text-sm font-medium transition-colors relative group",
+          "flex items-center gap-3 p-2 pl-[2vw] py-2 text-sm font-medium transition-colors relative group whitespace-nowrap",
           isActive || isPending
             ? "text-[#004368]"
-            : "text-[#BDBDBD] hover:text-[#004368]"
+            : "text-[#BDBDBD] hover:text-[#004368]",
         )}
         aria-label={`Navigate to ${link.label}`}
         aria-current={isActive ? "page" : undefined}
@@ -194,7 +194,7 @@ const NavItem = memo(({ link, isActive, isPending, onNavClick }) => {
             "transition-colors duration-150",
             isActive
               ? "text-[#004368]"
-              : "text-[#BDBDBD] group-hover:text-[#004368]"
+              : "text-[#BDBDBD] group-hover:text-[#004368]",
           )}
         />
 
@@ -359,7 +359,7 @@ const Sidebar = () => {
   const imageUrl = useMemo(
     () =>
       user?.photo ? base64ToImage(user.photo) : "https://i.pravatar.cc/300",
-    [user?.photo]
+    [user?.photo],
   );
 
   // Clear pending route effect
@@ -381,6 +381,8 @@ const Sidebar = () => {
 
     try {
       // Batch storage operations
+      localStorage.removeItem("hideWarningModalRules");
+      localStorage.removeItem("hideWarningModalPayPeriod");
       localStorage.removeItem("user");
       localStorage.removeItem("deviceMACs");
 
@@ -414,7 +416,7 @@ const Sidebar = () => {
           />
         );
       }),
-    [location.pathname, pendingRoute, handleNavClick]
+    [location.pathname, pendingRoute, handleNavClick],
   );
 
   return (
@@ -446,7 +448,7 @@ const Sidebar = () => {
         <motion.div
           className={cn(
             "flex items-center gap-2 justify-between cursor-pointer p-2 rounded-lg transition-colors",
-            isLoggingOut && "opacity-50 pointer-events-none"
+            isLoggingOut && "opacity-50 pointer-events-none",
           )}
           onClick={handleLogout}
           onKeyDown={(e) => {
@@ -492,7 +494,7 @@ const Sidebar = () => {
               className={cn(
                 isLoggingOut
                   ? "text-gray-400"
-                  : "text-[#004368] hover:text-red-600"
+                  : "text-[#004368] hover:text-red-600",
               )}
             />
           </div>

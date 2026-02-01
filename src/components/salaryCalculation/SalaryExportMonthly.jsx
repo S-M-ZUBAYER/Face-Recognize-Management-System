@@ -63,16 +63,16 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
       "Late Count",
       "Early Departure Count",
       "Missed Punch",
-      "Missed Full Punch",
-      "Total Lateness Hours",
+      // "Missed Full Punch",
+      "Total Lateness Minutes",
       "Normal Overtime",
       "Weekend Overtime",
       "Holiday Overtime",
       "Overtime Pay",
       "Overtime Rate",
       "Standard Pay",
-      "Earned Salary",
-      "Present Days Salary",
+      // "Earned Salary",
+      // "Present Days Salary",
       "additionalAmount",
       "Total Pay",
       "Normal Present",
@@ -80,7 +80,7 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
       "Holiday Present",
       "Absent Days",
       "Working Days",
-      "Working Days (Up to Current)",
+      // "Working Days (Up to Current)",
     ];
 
     // =========================================================
@@ -118,15 +118,15 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
       selectedRow.number,
       1,
       selectedRow.number,
-      headers.length
+      headers.length,
     );
     selectedRow.font = { bold: true, size: 14 };
 
     const now = new Date();
     const DateTime = `${now.getFullYear()}-${String(
-      now.getMonth() + 1
+      now.getMonth() + 1,
     ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(
-      now.getHours()
+      now.getHours(),
     ).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
     const exportedRow = worksheet.addRow([`Exported: ${DateTime}`]);
@@ -134,7 +134,7 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
       exportedRow.number,
       1,
       exportedRow.number,
-      headers.length
+      headers.length,
     );
     exportedRow.font = { bold: true, size: 14 };
 
@@ -171,16 +171,16 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
         stats.lateCount ?? 0,
         stats.earlyDepartureCount ?? 0,
         stats.missedPunch ?? 0,
-        stats.missedFullPunch ?? 0,
-        stats.totalLatenessHours ?? 0,
+        // stats.missedFullPunch ?? 0,
+        stats.totalLatenessMinutes ?? 0,
         overtime.normal ?? 0,
         overtime.weekend ?? 0,
         overtime.holiday ?? 0,
         emp.salaryDetails?.overtimePay ?? 0,
         emp.salaryDetails?.overtimeSalary ?? 0,
         emp.salaryDetails?.standardPay ?? 0,
-        emp.salaryDetails?.earnedSalary ?? 0,
-        emp.salaryDetails?.presentDaysSalary ?? 0,
+        // emp.salaryDetails?.earnedSalary ?? 0,
+        // emp.salaryDetails?.presentDaysSalary ?? 0,
         emp?.additionalAmount ?? 0,
         emp?.totalAmount ?? 0,
         present.normalPresent ?? 0,
@@ -188,7 +188,7 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
         present.holidayPresent ?? 0,
         emp.salaryDetails?.absent ?? 0,
         emp.salaryDetails?.workingDays ?? 0,
-        emp.salaryDetails?.workingDaysUpToCurrent ?? 0,
+        // emp.salaryDetails?.workingDaysUpToCurrent ?? 0,
       ];
 
       worksheet.addRow(rowData);

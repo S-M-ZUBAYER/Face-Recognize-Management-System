@@ -39,9 +39,9 @@ export function usePaymentInfo() {
   const { setPaymentStatus } = useSubscriptionStore();
 
   const query = useQuery({
-    queryKey: ["payment-info", user?.userEmail],
-    queryFn: () => fetchPaymentInfo(user?.userEmail),
-    enabled: !!user?.userEmail,
+    queryKey: ["payment-info", user?.alternateEmail || user?.userEmail],
+    queryFn: () => fetchPaymentInfo(user?.alternateEmail || user?.userEmail),
+    enabled: !!user?.alternateEmail || !!user?.userEmail,
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
     refetchOnWindowFocus: false,
@@ -60,16 +60,10 @@ export function usePaymentInfo() {
 
     if (query.data.paymentStatus === 0) {
       setPaymentStatus(false);
-    }
-    else if (
-      query.data.package_name !== "FreeTrial" &&
-      expireDate >= today
-    ) {
+    } else if (query.data.package_name !== "FreeTrial" && expireDate >= today) {
       setPaymentStatus(true); // active / valid
     }
   }, [query.data]);
-
-
 
   return query; // 👍 return full query object
 }

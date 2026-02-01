@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const salaryDetails = selectedEmp?.salaryDetails;
@@ -26,6 +27,28 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const totalExtraPay =
     (salaryDetails?.extraPay?.weekendNormalShiftPay || 0) +
     (salaryDetails?.extraPay?.holidayNormalShiftPay || 0);
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
+
+  //avatar
+
+  const employeeName = getEmployeeName(selectedEmp.name);
+  const initials = getInitials(employeeName);
 
   return (
     <AnimatePresence>
@@ -39,7 +62,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/5 backdrop-blur-sm"
             onClick={() => setSelectedEmp(null)}
           />
 
@@ -56,7 +79,18 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {selectedEmp?.name?.split("<")[0]}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage
+                          src={selectedEmp.image}
+                          alt={`${selectedEmp.name}'s profile`}
+                        />
+                        <AvatarFallback className="text-xs font-medium">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedEmp?.name?.split("<")[0]}
+                    </div>
                   </h2>
                   <p className="text-gray-300 mt-1 text-sm">
                     {selectedEmp?.designation} • {selectedEmp?.department}
@@ -128,15 +162,15 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           </p>
                           <p className="text-xs text-gray-500">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.normal
+                              salaryDetails?.overtimeDetails?.normal,
                             ) || 0}
                             h normal +{" "}
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.weekend
+                              salaryDetails?.overtimeDetails?.weekend,
                             ) || 0}
                             h weekend +{" "}
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.holiday
+                              salaryDetails?.overtimeDetails?.holiday,
                             ) || 0}
                             h holiday
                           </p>
@@ -160,11 +194,11 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <p className="text-xs text-gray-500">
                               Weekend:{" "}
                               {formatNumber(
-                                salaryDetails?.extraPay?.weekendNormalShiftPay
+                                salaryDetails?.extraPay?.weekendNormalShiftPay,
                               )}{" "}
                               • Holiday:{" "}
                               {formatNumber(
-                                salaryDetails?.extraPay?.holidayNormalShiftPay
+                                salaryDetails?.extraPay?.holidayNormalShiftPay,
                               )}
                             </p>
                           </div>
@@ -215,7 +249,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="text-right">
                           <span className="font-medium">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.normal
+                              salaryDetails?.overtimeDetails?.normal,
                             ) || 0}
                             h
                           </span>
@@ -229,7 +263,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="text-right">
                           <span className="font-medium">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.weekend
+                              salaryDetails?.overtimeDetails?.weekend,
                             ) || 0}
                             h
                           </span>
@@ -243,7 +277,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                         <div className="text-right">
                           <span className="font-medium">
                             {formatNumber(
-                              salaryDetails?.overtimeDetails?.holiday
+                              salaryDetails?.overtimeDetails?.holiday,
                             ) || 0}
                             h
                           </span>
@@ -371,7 +405,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="font-medium text-green-600">
                             +
                             {formatNumber(
-                              salaryDetails?.extraPay?.weekendNormalShiftPay
+                              salaryDetails?.extraPay?.weekendNormalShiftPay,
                             )}
                           </span>
                         </div>
@@ -382,7 +416,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="font-medium text-green-600">
                             +
                             {formatNumber(
-                              salaryDetails?.extraPay?.holidayNormalShiftPay
+                              salaryDetails?.extraPay?.holidayNormalShiftPay,
                             )}
                           </span>
                         </div>
@@ -422,7 +456,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.absentDeductions
+                              salaryDetails?.deductions?.absentDeductions,
                             )}
                           </span>
                         </div>
@@ -436,7 +470,8 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryDetails?.deductions?.extraAbsentDeductions
+                                salaryDetails?.deductions
+                                  ?.extraAbsentDeductions,
                               )}
                             </span>
                           </div>
@@ -446,7 +481,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.missedPunchDeductions
+                              salaryDetails?.deductions?.missedPunchDeductions,
                             )}
                           </span>
                         </div>
@@ -455,7 +490,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.lateDeductions
+                              salaryDetails?.deductions?.lateDeductions,
                             )}
                           </span>
                         </div>
@@ -466,7 +501,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.deductions?.earlyDeductions
+                              salaryDetails?.deductions?.earlyDeductions,
                             )}
                           </span>
                         </div>
@@ -482,7 +517,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.LeaveDeduction?.wLeaveDeduction
+                              salaryDetails?.LeaveDeduction?.wLeaveDeduction,
                             )}
                           </span>
                         </div>
@@ -491,7 +526,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.LeaveDeduction?.oLeaveDeduction
+                              salaryDetails?.LeaveDeduction?.oLeaveDeduction,
                             )}
                           </span>
                         </div>
@@ -500,7 +535,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                           <span className="text-red-600">
                             -
                             {formatNumber(
-                              salaryDetails?.LeaveDeduction?.sLeaveDeduction
+                              salaryDetails?.LeaveDeduction?.sLeaveDeduction,
                             )}
                           </span>
                         </div>
@@ -538,7 +573,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats?.lateCount ||
                                   0) * 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>
@@ -561,7 +596,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats
                                   ?.earlyDepartureCount || 0) * 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>
@@ -581,7 +616,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats?.missedPunch ||
                                   0) * 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>
@@ -605,7 +640,7 @@ const EmployeeSalaryDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               width: `${Math.min(
                                 (salaryDetails?.attendanceStats
                                   ?.totalLatenessMinutes || 0) / 10,
-                                100
+                                100,
                               )}%`,
                             }}
                           ></div>

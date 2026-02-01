@@ -8,6 +8,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const OVERTIME_OPTIONS = [
   {
@@ -42,6 +44,7 @@ function NormalMonthForm() {
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -91,8 +94,8 @@ function NormalMonthForm() {
           payPeriod.selectedOvertimeOption === 0
             ? "auto-calc"
             : payPeriod.selectedOvertimeOption === 1
-            ? "fixed-input"
-            : "",
+              ? "fixed-input"
+              : "",
       });
 
       // Set additional salaries from otherSalary array with isChecked status
@@ -127,7 +130,7 @@ function NormalMonthForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, otherSalaryTotal]
+    [formData.basic, otherSalaryTotal],
   );
 
   // Handle form input changes
@@ -164,8 +167,8 @@ function NormalMonthForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -173,8 +176,8 @@ function NormalMonthForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -188,7 +191,7 @@ function NormalMonthForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler
@@ -199,7 +202,6 @@ function NormalMonthForm() {
     }
 
     const otherSalaryArray = getOtherSalaryArray();
-
     try {
       const payPeriodJSON = convertJsonForPayPeriod(
         selectedEmployee?.payPeriod || {},
@@ -207,9 +209,8 @@ function NormalMonthForm() {
           employeeId: selectedEmployee?.employeeId || 0,
           hourlyRate:
             formData.workingDay || selectedEmployee?.payPeriod?.hourlyRate,
-          isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-            ? formData.selectedOvertimeOption === "fixed-input"
-            : selectedEmployee?.payPeriod?.isSelectedFixedHourlyRate,
+          isSelectedFixedHourlyRate:
+            selectedEmployee?.payPeriod?.isSelectedFixedHourlyRate || true,
           name: formData.workingHours || selectedEmployee?.payPeriod?.name,
           otherSalary:
             otherSalaryArray.length > 0
@@ -217,7 +218,7 @@ function NormalMonthForm() {
               : selectedEmployee?.payPeriod?.otherSalary,
           overtimeFixed:
             formData.selectedOvertimeOption === "fixed-input"
-              ? formData.overtimeRate
+              ? formData.overtimeFixed
               : selectedEmployee?.payPeriod?.overtimeFixed,
           overtimeSalary:
             formData.selectedOvertimeOption === "auto-calc"
@@ -229,13 +230,13 @@ function NormalMonthForm() {
             formData.selectedOvertimeOption === "auto-calc"
               ? 0
               : formData.selectedOvertimeOption === "fixed-input"
-              ? 1
-              : selectedEmployee?.payPeriod?.selectedOvertimeOption,
+                ? 1
+                : selectedEmployee?.payPeriod?.selectedOvertimeOption,
           shift: selectedEmployee?.payPeriod?.shift || "Morning",
           startDay: selectedEmployee?.payPeriod?.startDay || 1,
           startWeek: selectedEmployee?.payPeriod?.startWeek || null,
           status: selectedEmployee?.payPeriod?.status || null,
-        }
+        },
       );
 
       await updateEmployee({
@@ -243,6 +244,12 @@ function NormalMonthForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) },
+      );
       toast.success("Employee updated successfully!");
     } catch (error) {
       console.error("Update error:", error);
@@ -274,7 +281,7 @@ function NormalMonthForm() {
               }
               onChange={(newValue) => handleInputChange("basic", newValue)}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -300,7 +307,7 @@ function NormalMonthForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />
@@ -402,10 +409,15 @@ const AdditionalSalaryRow = ({
       <div className="flex gap-2">
         <Input
           value={salary.type}
-          onChange={(e) => onTypeChange?.(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[0-9]/g, "");
+            onTypeChange?.(value);
+          }}
           className="w-40"
           placeholder="Salary Type"
+          type="text"
         />
+
         <Input
           value={salary.amount}
           onChange={(e) => onAmountChange?.(e.target.value)}

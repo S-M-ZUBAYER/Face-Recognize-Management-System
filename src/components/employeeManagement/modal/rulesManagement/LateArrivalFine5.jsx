@@ -5,6 +5,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LateArrivalFine5 = () => {
   const [incrementalAmount, setIncrementalAmount] = useState("");
@@ -14,6 +15,8 @@ export const LateArrivalFine5 = () => {
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save incremental amount configuration
   const handleSave = async () => {
@@ -77,13 +80,19 @@ export const LateArrivalFine5 = () => {
             newValue: ruleTwenty, // update ruleId=20 object
           },
         });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
         await updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);

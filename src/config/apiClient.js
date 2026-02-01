@@ -22,7 +22,7 @@ apiClient.interceptors.request.use(
       useErrorStore.getState().showError("Request failed - please try again");
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor
@@ -39,8 +39,9 @@ apiClient.interceptors.response.use(
 
     // Only show error modal for GET requests
     const isGetRequest = error.config?.method?.toUpperCase() === "GET";
+    const is404 = error.response?.status === 404;
 
-    if (isGetRequest) {
+    if (isGetRequest && !is404) {
       let errorMessage = "An unexpected error occurred";
 
       if (!error.response) {
@@ -56,7 +57,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

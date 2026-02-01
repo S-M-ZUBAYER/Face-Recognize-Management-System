@@ -6,12 +6,15 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 function FlexibleWorkForm() {
   const [hourlySalary, setHourlySalary] = useState("");
   const [minimumMinutes, setMinimumMinutes] = useState("");
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const salarySections = [
     {
@@ -82,6 +85,12 @@ function FlexibleWorkForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) }
+      );
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");

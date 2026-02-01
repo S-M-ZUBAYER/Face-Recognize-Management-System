@@ -17,11 +17,37 @@ import PrivateRoute from "./PrivateRoute"; // ✅ import
 import EditEmployeeDetailsPage from "@/pages/EditEmployeeDetailsPage";
 import PayPeriodPage from "@/pages/PayPeriodPage";
 import ResignedEmployeePage from "@/pages/ResignedEmployeePage";
-import { useEmployees } from "@/hook/useEmployees";
 import EmailVerification from "@/components/EmailVerification";
+import { useEffect, useState } from "react";
+import { getAllEmployeeData } from "@/utils/initializes/getAllEmployeeData";
+import { Riple } from "react-loading-indicators";
+import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
 
 const AppLayout = () => {
-  useEmployees(); // Fetch and set employees data
+  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setIsLoading(true);
+      try {
+        await getAllEmployeeData();
+        await fetchLeavesData();
+      } catch (error) {
+        console.error("employee Api error", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="w-screen h-[100vh] flex justify-center items-center relative z-500 bg-white">
+        <Riple color="#004368" size="large" text="" textColor="" />
+      </div>
+    );
+  }
   return (
     <div className="flex h-[100vh] w-[100vw] font-poppins-regular ">
       <Sidebar />
@@ -96,7 +122,10 @@ const AppRoutes = () => {
           />
           <Route path="*" element={<Animated404 />} />
         </Route>
-        <Route path="verification" element={<EmailVerification />} />
+        <Route
+          path="/Face_Attendance_Management_System/verification"
+          element={<EmailVerification />}
+        />
       </Route>
 
       {/* Public routes */}

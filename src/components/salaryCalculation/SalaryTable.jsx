@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { EyeClosed } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import EmployeeSalaryDetailsModal from "./EmployeeSalaryDetailsModal";
@@ -7,6 +7,7 @@ import HourlyEmployeeDetailsModal from "./HourlyEmployeeDetailsModal";
 import WeeklyEmployeeDetailsModal from "./WeeklyEmployeeDetailsModal";
 import SemiMonthlyEmployeeDetailsModal from "./SemiMonthlyEmployeeDetailsModal";
 import BiweeklyEmployeeDetailsModal from "./BiweeklyEmployeeDetailsModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function SalaryTable({ employees }) {
   const [selectedEmp, setSelectedEmp] = useState(null);
@@ -33,17 +34,17 @@ function SalaryTable({ employees }) {
     setSelectedEmployees((prev) =>
       prev.includes(employeeId)
         ? prev.filter((id) => id !== employeeId)
-        : [...prev, employeeId]
+        : [...prev, employeeId],
     );
   };
 
   // --- Additional Amount Handler ---
-  const handleAdditionalAmountChange = (employeeId, amount) => {
-    setAdditionalAmounts((prev) => ({
-      ...prev,
-      [employeeId]: parseFloat(amount) || 0,
-    }));
-  };
+  // const handleAdditionalAmountChange = (employeeId, amount) => {
+  //   setAdditionalAmounts((prev) => ({
+  //     ...prev,
+  //     [employeeId]: parseFloat(amount) || 0,
+  //   }));
+  // };
 
   // --- Calculate Total Amount ---
   const calculateTotalAmount = (emp) => {
@@ -95,16 +96,35 @@ function SalaryTable({ employees }) {
     return (
       emp.name?.toLowerCase().includes(query) ||
       emp.companyEmployeeId?.toLowerCase().includes(query) ||
-      emp.department?.toLowerCase().includes(query)
+      emp.department?.toLowerCase().includes(query) ||
+      emp.deviceMAC?.toLowerCase().includes(query)
     );
   });
 
-  const toggleSalary = (empId) => {
-    setShowSalary((prev) => ({
-      ...prev,
-      [empId]: !prev[empId],
-    }));
-  };
+  // const toggleSalary = (empId) => {
+  //   setShowSalary((prev) => ({
+  //     ...prev,
+  //     [empId]: !prev[empId],
+  //   }));
+  // };
+
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
 
   return (
     <>
@@ -127,11 +147,11 @@ function SalaryTable({ employees }) {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search by Employee ID, Name or Department..."
+            placeholder="Search by Date, Id, Mac, Name or Department..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+            className="w-[16vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
             disabled={isSearching}
           />
           <button
@@ -148,7 +168,7 @@ function SalaryTable({ employees }) {
           {searchQuery && (
             <button
               onClick={handleReset}
-              className="px-4 py-2  hover:bg-gray-500  bg-[#004368] text-white rounded-md text-sm  transition-colors"
+              className="px-4 py-2  hover:bg-[#004368]  bg-[#004368] text-white rounded-md text-sm  transition-colors"
             >
               Reset
             </button>
@@ -158,182 +178,305 @@ function SalaryTable({ employees }) {
 
       {/* Table */}
       <div className="overflow-x-auto bg-white h-[62vh] overflow-y-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[#E6ECF0] sticky top-0 z-10 whitespace-nowrap">
+        <table className="w-full text-sm">
+          <thead className="bg-[#E6ECF0] sticky top-0 z-10">
             <tr>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Select
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Name
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Employee ID
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Designation
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Department
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Salary
+              {/* Selection column */}
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Select</span>
+                </div>
               </th>
 
-              <th className="text-left p-3 text-sm font-medium text-gray-700 ">
-                Working Days
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Present
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Absent
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Additional Amount
-              </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Salary Calc
+              {/* Employee information */}
+              <th className="p-3 text-sm font-medium text-gray-700 text-start">
+                <div className="flex justify-start">
+                  <span>Name</span>
+                </div>
               </th>
 
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Total Amount
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Employee ID</span>
+                </div>
               </th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">
-                Details
+
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Designation</span>
+                </div>
+              </th>
+
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Department</span>
+                </div>
+              </th>
+
+              {/* Salary section */}
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Basic Salary</span>
+                </div>
+              </th>
+
+              {/* Working Days - Temporarily hidden */}
+              {/* <th className="p-3 text-sm font-medium text-gray-700 text-center">
+          <div className="flex justify-center">
+            <span>Working Days</span>
+          </div>
+        </th> */}
+
+              {/* Attendance tracking */}
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center items-center gap-1">
+                  <span>Present</span>
+                </div>
+              </th>
+
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center items-center gap-1">
+                  <span>Absent</span>
+                </div>
+              </th>
+
+              {/* Additional Amount - Temporarily hidden */}
+              {/* <th className="p-3 text-sm font-medium text-gray-700 text-center">
+          <div className="flex justify-center">
+            <span>Additional Amount</span>
+          </div>
+        </th> */}
+
+              {/* Salary Calculation - Temporarily hidden */}
+              {/* <th className="p-3 text-sm font-medium text-gray-700 text-center">
+          <div className="flex justify-center">
+            <span>Salary Calc</span>
+          </div>
+        </th> */}
+
+              {/* Financial summary */}
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Total Amount</span>
+                </div>
+              </th>
+
+              {/* Actions */}
+              <th className="p-3 text-sm font-medium text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span>Details</span>
+                </div>
               </th>
             </tr>
           </thead>
+
           <tbody>
             {filteredEmployees.length === 0 ? (
               <tr>
-                <td colSpan="13" className="p-8 text-center">
-                  <div className="flex flex-col items-center justify-center text-gray-500">
+                <td colSpan="10" className="p-8">
+                  <div className="flex flex-col items-center justify-center text-gray-500 py-8">
                     <div className="text-lg font-medium mb-2">
                       {searchQuery
-                        ? "No employees found matching your search"
+                        ? "No matching employees found"
                         : "No employees available"}
                     </div>
+                    <p className="text-sm text-gray-400 mb-4">
+                      {searchQuery
+                        ? "Try adjusting your search criteria"
+                        : "Add employees to get started"}
+                    </p>
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
-                        className="text-[#004368] hover:text-[#003652] text-sm font-medium mt-2"
+                        className="text-[#004368] hover:text-[#003652] text-sm font-medium px-4 py-2 hover:bg-blue-50 rounded-md transition-colors"
                       >
-                        Clear search
+                        Clear search and show all
                       </button>
                     )}
                   </div>
                 </td>
               </tr>
             ) : (
-              filteredEmployees.map((emp, idx) => {
-                const empId = emp.employeeId || emp.id;
+              filteredEmployees.map((employee, index) => {
+                const employeeId = employee.employeeId || employee.id;
                 const presentDays = Object.values(
-                  emp?.salaryDetails?.Present || {}
-                ).reduce((sum, val) => sum + (val || 0), 0);
-                const totalAmount = calculateTotalAmount(emp);
+                  employee?.salaryDetails?.Present || {},
+                ).reduce((sum, value) => sum + (value || 0), 0);
+                const totalAmount = calculateTotalAmount(employee);
+                const employeeName = getEmployeeName(employee.name);
+                const initials = getInitials(employeeName);
+                const displayName =
+                  employee.name?.split("<")[0]?.trim() || "N/A";
+                const isSelected = selectedEmployees.includes(employeeId);
+                const salaryValue = employee.salary || 0;
 
                 return (
                   <tr
-                    key={`employee-${empId}-${idx}`}
-                    className="border-b hover:bg-gray-50 transition-colors duration-150"
+                    key={`employee-${employeeId}-${index}`}
+                    className="border-b hover:bg-blue-50/30 transition-colors duration-200 group"
                   >
-                    {/* Checkbox */}
+                    {/* Checkbox selection */}
                     <td className="p-3">
-                      <Checkbox
-                        checked={selectedEmployees.includes(empId)}
-                        onCheckedChange={() => handleSelectEmployee(empId)}
-                        className="data-[state=checked]:bg-[#004368]"
-                      />
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() =>
+                            handleSelectEmployee(employeeId)
+                          }
+                          className="data-[state=checked]:bg-[#004368] border-gray-300 hover:border-[#004368]"
+                          aria-label={`Select ${displayName}`}
+                        />
+                      </div>
                     </td>
 
-                    {/* Name */}
-                    <td className="p-3 font-medium text-gray-900">
-                      {emp.name?.split("<")[0]?.trim() || "N/A"}
+                    {/* Name with avatar */}
+                    <td className="p-3">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-3 w-full">
+                          <Avatar className="w-10 h-10 flex-shrink-0 ring-1 ring-gray-200">
+                            <AvatarImage
+                              src={employee.image}
+                              alt={`${employee.name}'s profile`}
+                              className="object-cover"
+                            />
+                            <AvatarFallback className="text-xs font-medium bg-blue-100 text-[#004368]">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-gray-900 truncate max-w-[180px]">
+                            {displayName}
+                          </span>
+                        </div>
+                      </div>
                     </td>
 
                     {/* Employee ID */}
-                    <td className="p-3 text-gray-900 font-medium ">
-                      {emp?.companyEmployeeId || "N/A"}
+                    <td className="p-3">
+                      <div className="flex justify-center">
+                        <span className="font-medium text-gray-700  px-3 py-1 rounded-md ">
+                          {employee?.companyEmployeeId || "N/A"}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Designation */}
-                    <td className="p-3 text-gray-900 font-medium">
-                      {emp.designation || "N/A"}
+                    <td className="p-3">
+                      <div className="flex justify-center">
+                        <span
+                          className="font-medium text-gray-700 max-w-[150px] truncate"
+                          title={employee.designation}
+                        >
+                          {employee.designation || "N/A"}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Department */}
                     <td className="p-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
-                        {emp.department || "N/A"}
-                      </span>
+                      <div className="flex justify-center">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full  font-medium  ">
+                          {employee.department || "N/A"}
+                        </span>
+                      </div>
                     </td>
 
-                    {/* Salary */}
-                    <td className="p-3 text-right font-medium text-gray-900">
-                      {emp.salary?.toLocaleString() || "0"}
+                    {/* Basic Salary */}
+                    <td className="p-3">
+                      <div className="flex justify-center">
+                        <span className="">
+                          {salaryValue.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                      </div>
                     </td>
 
-                    {/* Working Days */}
-                    <td className="p-3 text-center text-gray-700">
-                      {emp?.salaryDetails?.workingDays || 0}
-                    </td>
+                    {/* Working Days - Temporarily hidden */}
+                    {/* <td className="p-3">
+                <div className="flex justify-center">
+                  <span className="text-gray-700">
+                    {employee?.salaryDetails?.workingDays || 0}
+                  </span>
+                </div>
+              </td> */}
 
                     {/* Present Days */}
-                    <td className="p-3 text-center">
-                      <span className={`font-medium `}>{presentDays}</span>
+                    <td className="p-3">
+                      <div className="flex justify-center">
+                        <span className="font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-md">
+                          {presentDays}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Absent Days */}
-                    <td className="p-3 text-center">
-                      <span className={`font-medium `}>
-                        {emp?.salaryDetails?.absent || 0}
-                      </span>
-                    </td>
-                    {/* Additional Amount Input */}
                     <td className="p-3">
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={additionalAmounts[empId] || ""}
-                        onChange={(e) =>
-                          handleAdditionalAmountChange(empId, e.target.value)
-                        }
-                        className="w-24 no-spinner border rounded-md px-2 py-1 text-sm focus:outline-none border-gray-300"
-                      />
+                      <div className="flex justify-center">
+                        <span className="font-semibold text-red-600 bg-red-50 px-3 py-1 rounded-md">
+                          {employee?.salaryDetails?.absent || 0}
+                        </span>
+                      </div>
                     </td>
 
-                    {/* Salary Visibility */}
-                    <td className="p-3">
-                      {showSalary[empId] ? (
-                        <span className="font-bold text-green-700">
-                          {emp.salaryDetails?.totalPay || 0}
-                        </span>
-                      ) : (
-                        <EyeClosed
-                          className="cursor-pointer text-gray-600 hover:text-gray-800"
-                          onClick={() => toggleSalary(empId)}
-                        />
-                      )}
-                    </td>
+                    {/* Additional Amount Input - Temporarily hidden */}
+                    {/* <td className="p-3">
+                <div className="flex justify-center">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={additionalAmounts[employeeId] || ""}
+                    onChange={(e) =>
+                      handleAdditionalAmountChange(employeeId, e.target.value)
+                    }
+                    className="w-28 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+              </td> */}
+
+                    {/* Salary Calculation - Temporarily hidden */}
+                    {/* <td className="p-3">
+                <div className="flex justify-center">
+                  {showSalary[employeeId] ? (
+                    <span className="font-bold text-green-700">
+                      {employee.salaryDetails?.totalPay?.toLocaleString() || "0"}
+                    </span>
+                  ) : (
+                    <EyeClosed
+                      className="cursor-pointer text-gray-600 hover:text-gray-800 transition-colors"
+                      onClick={() => toggleSalary(employeeId)}
+                      size={18}
+                    />
+                  )}
+                </div>
+              </td> */}
 
                     {/* Total Amount */}
-                    <td className="p-3 text-right font-bold text-green-700">
-                      {totalAmount.toLocaleString()}
+                    <td className="p-3">
+                      <div className="flex justify-center">
+                        <span className="font-bold text-black bg-green-50 px-3 py-1.5 rounded-md border border-green-100">
+                          {totalAmount.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Action Button */}
                     <td className="p-3">
-                      <button
-                        onClick={() => {
-                          console.log("Viewing employee details:", emp);
-                          setSelectedEmp(emp);
-                        }}
-                        className="bg-[#004368] hover:bg-[#003652] text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 hover:shadow-md active:scale-95 min-w-[80px]"
-                      >
-                        View
-                      </button>
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => {
+                            console.log("Viewing employee details:", employee);
+                            setSelectedEmp(employee);
+                          }}
+                          className="bg-[#004368] hover:bg-[#003652] text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md active:scale-[0.98] min-w-[80px] group-hover:shadow-sm"
+                        >
+                          View
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

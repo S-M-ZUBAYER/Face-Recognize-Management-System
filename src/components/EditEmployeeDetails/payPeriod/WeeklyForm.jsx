@@ -17,6 +17,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 function WeeklyForm() {
   const [basic, setBasic] = useState("");
@@ -29,6 +31,7 @@ function WeeklyForm() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedWeekday, setSelectedWeekday] = useState("");
   const { selectedEmployee } = useEditEmployeeStore();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -47,7 +50,7 @@ function WeeklyForm() {
       "Saturday",
       "Sunday",
     ],
-    []
+    [],
   );
 
   useEffect(() => {
@@ -125,23 +128,23 @@ function WeeklyForm() {
 
   const removeSalarySection = (id) => {
     setAdditionalSalaries(
-      additionalSalaries.filter((salary) => salary.id !== id)
+      additionalSalaries.filter((salary) => salary.id !== id),
     );
   };
 
   const updateSalarySectionType = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, type: value } : salary
-      )
+        salary.id === id ? { ...salary, type: value } : salary,
+      ),
     );
   };
 
   const updateSalarySectionAmount = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, amount: value } : salary
-      )
+        salary.id === id ? { ...salary, amount: value } : salary,
+      ),
     );
   };
 
@@ -161,8 +164,8 @@ function WeeklyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -183,7 +186,7 @@ function WeeklyForm() {
     const employeePayPeriod = {
       employeeId: selectedEmployee?.employeeId || 0,
       hourlyRate: parseFloat(inputWeek) || 0, // Input Week field
-      isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
+      isSelectedFixedHourlyRate: false, // Weekly only supports fixed input
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,
@@ -211,6 +214,12 @@ function WeeklyForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) },
+      );
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
@@ -314,7 +323,7 @@ function WeeklyForm() {
                 readOnly={isReadOnly}
               />
             </div>
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -331,12 +340,14 @@ function WeeklyForm() {
               <div className="flex gap-2">
                 <Input
                   value={salary.type}
-                  onChange={(e) =>
-                    updateSalarySectionType(salary.id, e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[0-9]/g, "");
+                    updateSalarySectionType(salary.id, value);
+                  }}
                   className="w-40"
                   placeholder="Salary Type"
                 />
+
                 <Input
                   value={salary.amount}
                   onChange={(e) =>
@@ -363,7 +374,7 @@ function WeeklyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0]"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             style={{ padding: "16px 52px" }}
             onClick={addSalarySection}
           >

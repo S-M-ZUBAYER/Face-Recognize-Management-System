@@ -6,12 +6,13 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const { setGlobalRulesIds } = useUserStore();
 
@@ -99,12 +100,16 @@ export const HolidayForm = () => {
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        return updateEmployee({
+        updateEmployee({
           mac: selectedEmployee.deviceMAC || "",
           id: selectedEmployee.employeeId,
           payload,
         });
-        // return console.log(payload);
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);

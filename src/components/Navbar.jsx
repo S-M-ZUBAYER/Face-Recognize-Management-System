@@ -19,7 +19,7 @@ const Navbar = () => {
 
   const handleNavigate = () => {
     if (!verify) {
-      navigate("/verification");
+      navigate("/Face_Attendance_Management_System/verification");
     }
   };
   // const handleShow = () => {

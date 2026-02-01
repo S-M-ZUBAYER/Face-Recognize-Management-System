@@ -61,7 +61,7 @@ const EmployeeAttendance = () => {
       currentData.endDate !== prevDataRef.current.endDate;
 
     if (hasDataChanged && !processedRef.current) {
-      console.log("🔄 Data changed, processing attendance...");
+      // console.log("🔄 Data changed, processing attendance...");
       processedRef.current = true;
 
       processAttendanceData(
@@ -69,7 +69,7 @@ const EmployeeAttendance = () => {
         Attendance || [],
         overTime || [],
         startDate,
-        endDate
+        endDate,
       );
 
       // Update previous data reference

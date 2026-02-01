@@ -33,7 +33,7 @@ function AdminTable() {
   // Selection state calculations
   const selectedAdminIdsSet = useMemo(
     () => new Set(selectedAdmins),
-    [selectedAdmins]
+    [selectedAdmins],
   );
 
   const isAllPageSelected = useMemo(() => {
@@ -59,7 +59,7 @@ function AdminTable() {
         const id = admin.adminId || admin.id || admin.adminEmail;
         return selectedAdmins.includes(id);
       }),
-    [admins, selectedAdmins]
+    [admins, selectedAdmins],
   );
 
   // Adjust current page if it becomes invalid after data changes
@@ -74,13 +74,13 @@ function AdminTable() {
     if (isAllPageSelected) {
       // Unselect current page admins
       const currentPageIds = new Set(
-        admins.map((admin) => admin.adminId || admin.id || admin.adminEmail)
+        admins.map((admin) => admin.adminId || admin.id || admin.adminEmail),
       );
       setSelectedAdmins((prev) => prev.filter((id) => !currentPageIds.has(id)));
     } else {
       // Select current page admins
       const currentPageIds = admins.map(
-        (admin) => admin.adminId || admin.id || admin.adminEmail
+        (admin) => admin.adminId || admin.id || admin.adminEmail,
       );
       setSelectedAdmins((prev) => [...new Set([...prev, ...currentPageIds])]);
     }
@@ -90,7 +90,7 @@ function AdminTable() {
     setSelectedAdmins((prev) =>
       prev.includes(adminId)
         ? prev.filter((id) => id !== adminId)
-        : [...prev, adminId]
+        : [...prev, adminId],
     );
   }, []);
 
@@ -158,7 +158,7 @@ function AdminTable() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white max-h-[62vh] h-auto overflow-y-auto">
+      <div className="overflow-x-auto bg-white max-h-[72vh] h-auto overflow-y-auto">
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500 border-b sticky top-0 z-10 bg-[#E6ECF0]">
             <tr className="bg-[#E6ECF0]">

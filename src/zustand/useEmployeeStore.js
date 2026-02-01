@@ -2,9 +2,13 @@ import { create } from "zustand";
 
 export const useEmployeeStore = create((set, get) => ({
   employeesArray: [],
+  employeeCounts: [],
+  deviceCount: 0,
 
   // --- Set full array ---
   setEmployeesArray: (data) => set({ employeesArray: data }),
+  setEmployeeCount: (count) => set({ employeeCounts: count }),
+  setDeviceCount: (count) => set({ deviceCount: count }),
 
   // --- Computed Active Employees ---
   employees: () => {
@@ -23,10 +27,12 @@ export const useEmployeeStore = create((set, get) => ({
   },
 
   // --- Update any employee field ---
-  updateEmployee: (employeeId, updateData) => {
+  updateEmployee: (employeeId, deviceMAC, updateData) => {
     set((state) => ({
       employeesArray: state.employeesArray.map((emp) =>
-        emp.employeeId === employeeId ? { ...emp, ...updateData } : emp
+        emp.employeeId === employeeId && emp.deviceMAC === deviceMAC
+          ? { ...emp, ...updateData }
+          : emp
       ),
     }));
   },

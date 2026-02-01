@@ -1,0 +1,200 @@
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
+
+export const LateArrivalPenalty2 = () => {
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check if ruleId === 17 already exists
+  useEffect(() => {
+    if (selectedRule?.salaryRules?.rules) {
+      try {
+        const existingRules =
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
+
+        const ruleSeventeen = existingRules.find(
+          (rule) => rule.ruleId === 17 || rule.ruleId === "17",
+        );
+
+        // Rule 17 exists, no need to do anything on load
+        if (ruleSeventeen) {
+          console.log("Rule 17 already exists:", ruleSeventeen);
+        }
+      } catch (error) {
+        console.error("Error checking rule 17:", error);
+      }
+    }
+  }, [selectedRule]);
+
+  // Save rule configuration
+  const handleSave = async () => {
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsSaving(true);
+    try {
+      const salaryRules = selectedRule.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = parseFloat(999);
+
+      // Find or create rule with ruleId = 17
+      let ruleSeventeen = existingRules.find(
+        (rule) => rule.ruleId === 17 || rule.ruleId === "17",
+      );
+
+      if (!ruleSeventeen) {
+        // Create new rule with ruleId = 17 if it doesn't exist
+        ruleSeventeen = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "17", // string
+          ruleStatus: 1, // number
+          param1: null,
+          param2: null,
+          param3: null,
+          param4: null,
+          param5: null,
+          param6: null,
+        };
+      } else {
+        // Rule already exists, just ensure empId is correct
+        ruleSeventeen.empId = empId; // string
+        // Keep all other properties as they are
+      }
+
+      const isEmptyObject = (obj) =>
+        obj && typeof obj === "object" && Object.keys(obj).length === 0;
+
+      const hasExistingRule = selectedRule && !isEmptyObject(selectedRule);
+
+      const baseSalaryRules = hasExistingRule ? salaryRules : { rules: [] };
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(baseSalaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 17 || r.ruleId === "17",
+          newValue: ruleSeventeen, // update ruleId=17 object
+        },
+      });
+
+      const payload = {
+        salaryRules: JSON.stringify(updatedJSON),
+      };
+
+      if (hasExistingRule) {
+        await updateGlobalSalaryRules(payload);
+      } else {
+        await createGlobalSalaryRules(payload);
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
+      toast.success("Late arrival penalty rule activated successfully!");
+    } catch (error) {
+      console.error("Error saving late arrival penalty rule:", error);
+      toast.error("Failed to activate late arrival penalty rule.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const handleDelete = async () => {
+    if (!selectedRule?.salaryRules?.rules) {
+      toast.error("No late arrival penalty rule to delete.");
+      return;
+    }
+    setIsDeleting(true);
+
+    try {
+      const salaryRules = selectedRule.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 17,
+      });
+
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
+      });
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="space-y-4">
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">
+              Late &lt; Half Day = Deduct Half Day's Salary
+            </h3>
+          </div>
+
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800">
+              Late &gt; Half Day = Deduct Full Day's Salary
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2 mb-1.5">
+          <li className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>If late before half day, deduct half day's salary.</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-2">•</span>
+            <span>If late after half day, deduct full day's salary.</span>
+          </li>
+        </ul>
+
+        <h4 className="text-sm font-semibold text-gray-900 mb-2">Example:</h4>
+        <p className="text-sm text-gray-700">
+          Suppose your company works from 08:00–12:00 in the morning and
+          13:00–17:00 in the afternoon. If an employee is late between 08:00 and
+          12:00, deduct half day's salary; if late after 12:00, deduct full
+          day's salary. (Note: If absent without leave, treat as absenteeism.)
+        </p>
+      </div>
+
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
+        </button>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+};

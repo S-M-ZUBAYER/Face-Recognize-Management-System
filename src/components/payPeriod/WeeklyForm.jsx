@@ -17,6 +17,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const OVERTIME_OPTIONS = [
   {
@@ -61,7 +62,7 @@ function WeeklyForm() {
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -70,9 +71,9 @@ function WeeklyForm() {
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const salarySections = useMemo(
@@ -102,7 +103,7 @@ function WeeklyForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, formData.inputWeek, otherSalaryTotal]
+    [formData.basic, formData.inputWeek, otherSalaryTotal],
   );
 
   // Handle form input changes
@@ -145,8 +146,8 @@ function WeeklyForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -154,8 +155,8 @@ function WeeklyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -169,7 +170,7 @@ function WeeklyForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler - following the same pattern
@@ -184,37 +185,48 @@ function WeeklyForm() {
 
     try {
       const updatePromises = Employees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate: formData.inputWeek || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: true, // Weekly only supports fixed input
-            name: formData.workingHours || employee?.salaryInfo?.name,
-            otherSalary:
-              otherSalaryArray.length > 0
-                ? otherSalaryArray
-                : employee?.salaryInfo?.otherSalary,
-            overtimeFixed:
-              formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
-            overtimeSalary: 0, // Not used for Weekly
-            payPeriod: "weekly",
-            salary: formData.basic || employee?.salaryInfo?.salary,
-            selectedOvertimeOption: 2, // Always fixed input for Weekly
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: formData.selectedWeekday
-              ? selectedWeekdayIndex
-              : employee?.salaryInfo?.startDay,
-            startWeek: null, // Weekly doesn't use startWeek
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.inputWeek || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: false, // Weekly only supports fixed input
+              name: formData.workingHours || employee?.salaryInfo?.name,
+              otherSalary:
+                otherSalaryArray.length > 0
+                  ? otherSalaryArray
+                  : employee?.salaryInfo?.otherSalary,
+              overtimeFixed:
+                formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
+              overtimeSalary: 0, // Not used for Weekly
+              payPeriod: "weekly",
+              salary: formData.basic || employee?.salaryInfo?.salary,
+              selectedOvertimeOption: 2, // Always fixed input for Weekly
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: formData.selectedWeekday
+                ? selectedWeekdayIndex
+                : employee?.salaryInfo?.startDay,
+              startWeek: null, // Weekly doesn't use startWeek
+              status: employee?.salaryInfo?.status || null,
+            },
+          );
 
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);
@@ -258,7 +270,7 @@ function WeeklyForm() {
                 ) {
                   handleInputChange(
                     id === SALARY_SECTION_TYPES.BASIC ? "basic" : "inputWeek",
-                    ""
+                    "",
                   );
                 }
               }}
@@ -270,7 +282,7 @@ function WeeklyForm() {
                 }
               }}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -296,7 +308,7 @@ function WeeklyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />
@@ -446,10 +458,15 @@ const AdditionalSalaryRow = ({
       <div className="flex gap-2">
         <Input
           value={salary.type}
-          onChange={(e) => onTypeChange?.(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[0-9]/g, "");
+            onTypeChange?.(value);
+          }}
           className="w-40"
           placeholder="Salary Type"
+          type="text"
         />
+
         <Input
           value={salary.amount}
           onChange={(e) => onAmountChange?.(e.target.value)}

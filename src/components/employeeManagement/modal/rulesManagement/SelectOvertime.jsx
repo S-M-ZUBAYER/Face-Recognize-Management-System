@@ -7,6 +7,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const SelectOvertime = () => {
   const [allowOvertime, setAllowOvertime] = useState("No");
@@ -14,7 +15,7 @@ export const SelectOvertime = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
-
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const { setRulesIds } = useUserStore();
 
   // Save overtime configuration
@@ -78,8 +79,6 @@ export const SelectOvertime = () => {
           },
         });
 
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -87,6 +86,12 @@ export const SelectOvertime = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
       setRulesIds(23);

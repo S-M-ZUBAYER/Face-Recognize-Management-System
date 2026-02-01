@@ -11,9 +11,10 @@ import { TimeRangePicker } from "@/components/TimePicker";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WorkShiftTimeForm = () => {
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
@@ -431,7 +432,9 @@ export const WorkShiftTimeForm = () => {
           id: employeeId,
           payload,
         });
-
+        storeEmployeeUpdate(emp.employeeId, emp.deviceMAC || "", {
+          salaryRules: parseNormalData(updatedJSON),
+        });
         toast.success(`Shift configuration saved for employee ${employeeId}!`);
       }
       setGlobalRulesIds(0);

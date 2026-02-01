@@ -14,6 +14,8 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useAttendanceData } from "@/hook/useAttendanceData";
 import getWeekendAndHolidayDates from "@/lib/getWeekendAndHolidayDates";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const ReplacementDayForm = () => {
   const [replacementDays, setReplacementDays] = useState([]);
@@ -22,6 +24,7 @@ export const ReplacementDayForm = () => {
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { Attendance } = useAttendanceData();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Use refs to track previous values and prevent infinite loops
   const prevSalaryRulesRef = useRef(null);
@@ -310,7 +313,11 @@ export const ReplacementDayForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
-
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       // Update state after successful save
       setReplacementDays(updatedReplaceDays);
       setSelectedDates({});
@@ -373,6 +380,11 @@ export const ReplacementDayForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       // Reset and reinitialize
       isInitializedRef.current = false;

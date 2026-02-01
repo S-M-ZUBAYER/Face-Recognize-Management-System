@@ -1,7 +1,12 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const LeaveApplicationsList = ({ applications = [], selectedId, onSelect }) => {
+const LeaveApplicationsList = ({
+  applications = [],
+  selectedId,
+  selectedMac,
+  onSelect,
+}) => {
   // Memoize the getInitials function to prevent recreation on each render
   const getInitials = useCallback((name) => {
     if (!name) return "??";
@@ -40,16 +45,16 @@ const LeaveApplicationsList = ({ applications = [], selectedId, onSelect }) => {
   }, []);
 
   // Memoize filtered and sorted applications if needed
-  const processedApplications = useMemo(() => {
-    // Add any filtering or sorting logic here
-    return applications.filter((app) => app && typeof app === "object");
-  }, [applications]);
+  // const processedApplications = useMemo(() => {
+  //   // Add any filtering or sorting logic here
+  //   return applications.filter((app) => app && typeof app === "object");
+  // }, [applications]);
 
   // Handle application selection with validation
   const handleAppSelect = useCallback(
     (app) => {
       if (app?.id && typeof onSelect === "function") {
-        onSelect(app.id);
+        onSelect(app.id, app.deviceMAC);
       }
     },
     [onSelect]
@@ -76,16 +81,17 @@ const LeaveApplicationsList = ({ applications = [], selectedId, onSelect }) => {
       </div>
       <div className="h-[calc(100%-3rem)] overflow-y-auto custom-scrollbar">
         <div className="flex flex-col gap-2 pl-2.5 pr-1.5">
-          {processedApplications.map((app) => {
+          {applications.map((app, index) => {
             if (!app || !app.id) return null;
 
             const employeeName = getEmployeeName(app.employeeName);
             const initials = getInitials(employeeName);
-            const isSelected = selectedId === app.id;
+            const isSelected =
+              selectedId === app.id && selectedMac === app.deviceMAC;
 
             return (
               <div
-                key={app.id}
+                key={index}
                 onClick={() => handleAppSelect(app)}
                 className={`flex items-center gap-3 px-3 py-2 rounded-[10px] cursor-pointer transition-all ${
                   isSelected
@@ -161,4 +167,4 @@ const LeaveApplicationsList = ({ applications = [], selectedId, onSelect }) => {
   );
 };
 
-export default React.memo(LeaveApplicationsList);
+export default LeaveApplicationsList;

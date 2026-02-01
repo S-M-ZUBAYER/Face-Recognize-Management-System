@@ -17,10 +17,13 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
+import { format } from "date-fns";
 
 function BiWeeklyForm() {
   const [basic, setBasic] = useState("");
-  const [inputWeek, setInputWeek] = useState("");
+  const [inputDate, setInputDate] = useState("");
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [workingHours, setWorkingHours] = useState("");
   const [overtimeRate, setOvertimeRate] = useState("");
@@ -30,6 +33,7 @@ function BiWeeklyForm() {
   const [selectedWeekday, setSelectedWeekday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const { selectedEmployee } = useEditEmployeeStore();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -48,7 +52,7 @@ function BiWeeklyForm() {
       "Saturday",
       "Sunday",
     ],
-    []
+    [],
   );
 
   const getCurrentMonthDates = (weekday) => {
@@ -81,7 +85,7 @@ function BiWeeklyForm() {
       const payPeriod = selectedEmployee.payPeriod;
 
       setBasic(payPeriod.salary?.toString() || "");
-      setInputWeek(payPeriod.hourlyRate?.toString() || "");
+      setInputDate(payPeriod.hourlyRate?.toString() || "");
       setWorkingHours(payPeriod.name?.toString() || "");
       setOvertimeRate(payPeriod.overtimeFixed?.toString() || "");
 
@@ -123,12 +127,13 @@ function BiWeeklyForm() {
       hasValue: !!basic,
     },
     {
-      id: "input-week",
-      label: "Input Week",
-      value: inputWeek,
-      setValue: setInputWeek,
+      id: "input-date",
+      label: "Date",
+      value: inputDate,
+      setValue: setInputDate,
       placeholder: "000000",
-      hasValue: !!inputWeek,
+      hasValue: !!inputDate,
+      isReadOnly: true,
     },
     {
       id: "other-salary",
@@ -154,23 +159,23 @@ function BiWeeklyForm() {
 
   const removeSalarySection = (id) => {
     setAdditionalSalaries(
-      additionalSalaries.filter((salary) => salary.id !== id)
+      additionalSalaries.filter((salary) => salary.id !== id),
     );
   };
 
   const updateSalarySectionType = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, type: value } : salary
-      )
+        salary.id === id ? { ...salary, type: value } : salary,
+      ),
     );
   };
 
   const updateSalarySectionAmount = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, amount: value } : salary
-      )
+        salary.id === id ? { ...salary, amount: value } : salary,
+      ),
     );
   };
 
@@ -180,6 +185,15 @@ function BiWeeklyForm() {
   };
 
   const handleDateSelect = (date) => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = now.getMonth(); // already 0-based
+
+    const selectedDateObj = new Date(year, month, date);
+    const formattedDate = format(selectedDateObj, "yyyy-MM-dd");
+
+    setInputDate(formattedDate);
     setSelectedDate(date);
     setShowDatePicker(false);
   };
@@ -195,8 +209,8 @@ function BiWeeklyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -216,8 +230,8 @@ function BiWeeklyForm() {
     // Create the payPeriod object according to your structure
     const employeePayPeriod = {
       employeeId: selectedEmployee?.employeeId || 0,
-      hourlyRate: parseFloat(inputWeek) || 0, // Input Week field
-      isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
+      hourlyRate: inputDate || selectedEmployee?.salaryInfo?.hourlyRate, // Input Week field
+      isSelectedFixedHourlyRate: false, // BiWeekly only supports fixed input
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,
@@ -245,6 +259,11 @@ function BiWeeklyForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) },
+      );
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
@@ -371,11 +390,11 @@ function BiWeeklyForm() {
                 }
                 className="w-80"
                 placeholder={placeholder}
-                type={"number"}
+                type={id === "input-date" ? "text" : "number"}
                 readOnly={isReadOnly}
               />
             </div>
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -392,12 +411,14 @@ function BiWeeklyForm() {
               <div className="flex gap-2">
                 <Input
                   value={salary.type}
-                  onChange={(e) =>
-                    updateSalarySectionType(salary.id, e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[0-9]/g, "");
+                    updateSalarySectionType(salary.id, value);
+                  }}
                   className="w-40"
                   placeholder="Salary Type"
                 />
+
                 <Input
                   value={salary.amount}
                   onChange={(e) =>
@@ -424,7 +445,7 @@ function BiWeeklyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0]"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             style={{ padding: "16px 52px" }}
             onClick={addSalarySection}
           >

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
@@ -14,7 +15,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth + 1,
       splitEndDate,
-      0
+      0,
     );
   });
   const [salaryData, setSalaryData] = useState(null);
@@ -40,7 +41,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
           salaryRules,
           startDate,
           endDate,
-          id
+          id,
         );
         setSalaryData(data);
       } catch (error) {
@@ -88,7 +89,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth + 1,
       splitEndDate,
-      0
+      0,
     );
     setSemiMonthlyRange(newRange);
   };
@@ -100,7 +101,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
       selectedYear,
       selectedMonth + 1,
       splitEndDate,
-      1
+      1,
     );
     setSemiMonthlyRange(newRange);
   };
@@ -140,6 +141,29 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
 
   const daysInPeriod = getDaysInPeriod();
 
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
+
+  //avatar
+
+  const employeeName = getEmployeeName(selectedEmp.name);
+  const initials = getInitials(employeeName);
+
   return (
     <AnimatePresence>
       {selectedEmp && (
@@ -152,7 +176,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/5 backdrop-blur-sm"
             onClick={() => setSelectedEmp(null)}
           />
 
@@ -169,7 +193,18 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {selectedEmp?.name?.split("<")[0]}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage
+                          src={selectedEmp.image}
+                          alt={`${selectedEmp.name}'s profile`}
+                        />
+                        <AvatarFallback className="text-xs font-medium">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedEmp?.name?.split("<")[0]}
+                    </div>
                   </h2>
                   <p className="text-white/80 text-sm mt-1">
                     Semi-Monthly Salary Details • {selectedEmp?.department} •{" "}
@@ -195,7 +230,11 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                   onClick={handleFirstHalf}
                   variant={periodOffset === 0 ? "default" : "outline"}
                   size="sm"
-                  className={periodOffset === 0 ? "bg-[#004368]" : ""}
+                  className={
+                    periodOffset === 0
+                      ? "bg-[#004368] hover:bg-[#004368] "
+                      : "hover:bg-white "
+                  }
                 >
                   <ChevronLeft className="h-4 w-4" />
                   1st Half
@@ -220,7 +259,11 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     onClick={handleSecondHalf}
                     variant={periodOffset === 1 ? "default" : "outline"}
                     size="sm"
-                    className={periodOffset === 1 ? "bg-[#004368]" : ""}
+                    className={
+                      periodOffset === 1
+                        ? "bg-[#004368] hover:bg-[#004368] "
+                        : "hover:bg-white "
+                    }
                   >
                     2nd Half
                     <ChevronRight className="h-4 w-4" />
@@ -307,12 +350,12 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 Weekend:{" "}
                                 {formatNumber(
                                   salaryData?.extraPay?.weekendNormalShiftPay ||
-                                    0
+                                    0,
                                 )}{" "}
                                 • Holiday:{" "}
                                 {formatNumber(
                                   salaryData?.extraPay?.holidayNormalShiftPay ||
-                                    0
+                                    0,
                                 )}
                               </p>
                             </div>
@@ -514,7 +557,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.absentDeductions || 0
+                                salaryData?.deductions?.absentDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -524,7 +567,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               -
                               {formatNumber(
                                 salaryData?.deductions?.extraAbsentDeductions ||
-                                  0
+                                  0,
                               )}
                             </span>
                           </div>
@@ -536,7 +579,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               -
                               {formatNumber(
                                 salaryData?.deductions?.missedPunchDeductions ||
-                                  0
+                                  0,
                               )}
                             </span>
                           </div>
@@ -545,7 +588,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.lateDeductions || 0
+                                salaryData?.deductions?.lateDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -556,7 +599,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.earlyDeductions || 0
+                                salaryData?.deductions?.earlyDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -572,7 +615,8 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.wLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.wLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -581,7 +625,8 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.oLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.oLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -590,7 +635,8 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.sLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.sLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -622,7 +668,8 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="font-medium text-green-600">
                               +
                               {formatNumber(
-                                salaryData?.extraPay?.weekendNormalShiftPay || 0
+                                salaryData?.extraPay?.weekendNormalShiftPay ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -633,7 +680,8 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="font-medium text-green-600">
                               +
                               {formatNumber(
-                                salaryData?.extraPay?.holidayNormalShiftPay || 0
+                                salaryData?.extraPay?.holidayNormalShiftPay ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -677,7 +725,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats?.lateCount ||
                                     0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -700,7 +748,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats
                                     ?.earlyDepartureCount || 0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -722,7 +770,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats?.missedPunch ||
                                     0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -746,7 +794,7 @@ const SemiMonthlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats
                                     ?.totalLatenessMinutes || 0) / 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>

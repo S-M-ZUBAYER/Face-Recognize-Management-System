@@ -7,6 +7,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 const SALARY_SECTION_TYPES = {
   BASED_HOUR: "based-hour",
@@ -23,6 +25,7 @@ function FlexibleWorkForm() {
   const { selectedEmployees, updateEmployeeSalaryInfo } =
     useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const salarySections = useMemo(
     () => [
@@ -68,34 +71,46 @@ function FlexibleWorkForm() {
 
     try {
       const updatePromises = selectedEmployees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate:
-              formData.minimumMinutes || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: false, // Not used for flexible work
-            name: employee?.salaryInfo?.name || "",
-            otherSalary: null, // No other salary for flexible work
-            overtimeFixed: 0, // Not used for flexible work
-            overtimeSalary: 0, // Not used for flexible work
-            payPeriod: "hourly",
-            salary: formData.hourlySalary || employee?.salaryInfo?.salary,
-            selectedOvertimeOption: 0, // Not used for flexible work
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: employee?.salaryInfo?.startDay || 1,
-            startWeek: null, // Not used for flexible work
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
-        const parsed = JSON.parse(payPeriodJSON);
-        parsed.otherSalary = JSON.parse(parsed.otherSalary);
-        updateEmployeeSalaryInfo(employee.employeeId, parsed);
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.minimumMinutes || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: false, // Not used for flexible work
+              name: employee?.salaryInfo?.name || "",
+              otherSalary: null, // No other salary for flexible work
+              overtimeFixed: 0, // Not used for flexible work
+              overtimeSalary: 0, // Not used for flexible work
+              payPeriod: "hourly",
+              salary: formData.hourlySalary || employee?.salaryInfo?.salary,
+              selectedOvertimeOption: 0, // Not used for flexible work
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: employee?.salaryInfo?.startDay || 1,
+              startWeek: null, // Not used for flexible work
+              status: employee?.salaryInfo?.status || null,
+            }
+          );
+          const parsed = JSON.parse(payPeriodJSON);
+          parsed.otherSalary = JSON.parse(parsed.otherSalary);
+
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+
+          updateEmployeeSalaryInfo(employee.employeeId, parsed);
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);

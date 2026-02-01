@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Check,
   X,
@@ -25,6 +25,7 @@ const SubscriptionModal = () => {
   const currency = "USD";
   const navigate = useNavigate();
   const { user } = useUserStore();
+  const bottomRef = useRef(null);
 
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [currentPackage, setCurrentPackage] = useState(null);
@@ -69,7 +70,7 @@ const SubscriptionModal = () => {
     if (paymentInfo?.paymentStatus === 1) {
       const currentPackageName = paymentInfo.package_name;
       const userPackage = packages.find(
-        (pkg) => pkg.package_name === currentPackageName
+        (pkg) => pkg.package_name === currentPackageName,
       );
 
       if (userPackage) {
@@ -90,6 +91,9 @@ const SubscriptionModal = () => {
 
   // Handle package selection
   const handlePackageSelect = (pkg) => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
     if (currentPackage?.id === pkg.id) {
       // If selecting current package, enable multiple purchase
       setBuyMultiple(true);
@@ -115,13 +119,15 @@ const SubscriptionModal = () => {
     if (!selectedPackage) return;
 
     if (user.emailVerified !== true) {
-      navigate("/verification");
+      navigate("/Face_Attendance_Management_System/verification");
       setIsSubscriptionModal(false);
       setPackage(selectedPackage);
       return;
     }
 
-    const encodedEmail = btoa(encodeURIComponent(user.userEmail));
+    const encodedEmail = btoa(
+      encodeURIComponent(user?.alternateEmail || user?.userEmail),
+    );
     const url = `https://grozziieget.zjweiting.com:3090/attendance/payment/web/${selectedPackage.id}/${encodedEmail}/attendance`;
 
     // Add quantity parameter if buying multiple
@@ -227,8 +233,8 @@ const SubscriptionModal = () => {
                             expiryDays > 30
                               ? "bg-green-100 text-green-800"
                               : expiryDays > 7
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {expiryDays > 0
@@ -298,24 +304,6 @@ const SubscriptionModal = () => {
                         } ${isPopular ? "ring-2 ring-[#004368]/30" : ""}`}
                         onClick={() => handlePackageSelect(pkg)}
                       >
-                        {/* Current Plan Badge */}
-                        {isCurrent && (
-                          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-5">
-                            <div className="px-3 py-1 bg-[#004368] text-white text-xs font-bold rounded-full shadow-md">
-                              CURRENT
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Popular Badge */}
-                        {isPopular && !isCurrent && (
-                          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                            <div className="px-3 py-1 bg-gradient-to-r from-[#004368] to-[#003152] text-white text-xs font-bold rounded-full shadow-md">
-                              POPULAR
-                            </div>
-                          </div>
-                        )}
-
                         <div className="p-4 h-full flex flex-col">
                           {/* Package Name & Duration */}
                           <div className="mb-4">
@@ -323,9 +311,24 @@ const SubscriptionModal = () => {
                               <h3 className="text-lg font-bold text-gray-900">
                                 {pkg.package_name}
                               </h3>
-                              <span className="px-2 py-1 bg-[#004368]/10 text-[#004368] text-xs font-medium rounded">
-                                {pkg.duration_months}{" "}
-                                {pkg.duration_months === 1 ? "Month" : "Months"}
+                              <span className="px-2 py-1  text-xs font-medium rounded">
+                                {/* Current Plan Badge */}
+                                {isCurrent && (
+                                  <div>
+                                    <div className="px-3 py-1 bg-[#004368] text-white text-xs font-bold rounded-full shadow-md">
+                                      CURRENT
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Popular Badge */}
+                                {isPopular && !isCurrent && (
+                                  <div>
+                                    <div className="px-3 py-1 bg-gradient-to-r from-[#004368] to-[#003152] text-white text-xs font-bold rounded-full shadow-md">
+                                      POPULAR
+                                    </div>
+                                  </div>
+                                )}
                               </span>
                             </div>
 
@@ -360,7 +363,7 @@ const SubscriptionModal = () => {
                             {pkg.features
                               .filter(
                                 (feature) =>
-                                  !feature.includes("https://printernoble.com")
+                                  !feature.includes("https://printernoble.com"),
                               )
                               .map((feature, idx) => (
                                 <div key={idx} className="flex items-start">
@@ -378,8 +381,8 @@ const SubscriptionModal = () => {
                               isCurrent
                                 ? "bg-[#004368] text-white shadow-md"
                                 : isSelected
-                                ? "bg-[#004368] text-white shadow-md"
-                                : "bg-[#004368]/10 text-[#004368] hover:bg-[#004368]/20"
+                                  ? "bg-[#004368] text-white shadow-md"
+                                  : "bg-[#004368]/10 text-[#004368] hover:bg-[#004368]/20"
                             }`}
                           >
                             {isCurrent ? (
@@ -405,6 +408,7 @@ const SubscriptionModal = () => {
 
               {/* Footer */}
               <motion.div
+                ref={bottomRef}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}

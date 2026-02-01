@@ -1,4 +1,6 @@
+import getExpectedCheckInTime from "@/lib/getExpectedCheckInTime";
 import { create } from "zustand";
+import { useGlobalStore } from "./useGlobalStore";
 
 export const useAttendanceStore = create((set, get) => ({
   selectedDate: new Date().toISOString().split("T")[0],
@@ -8,12 +10,14 @@ export const useAttendanceStore = create((set, get) => ({
   punchData: [],
   presentEmployees: [],
   absentEmployees: [],
+  lateEmployees: [],
   overTimeEmployees: [],
 
   // Counts
   totalCount: 0,
   presentCount: 0,
   absentCount: 0,
+  lateCount: 0,
 
   // UI states
   activeFilter: "punchData",
@@ -41,7 +45,7 @@ export const useAttendanceStore = create((set, get) => ({
     attendance,
     overTime,
     startDate,
-    endDate
+    endDate,
   ) => {
     const state = get();
 
@@ -66,7 +70,7 @@ export const useAttendanceStore = create((set, get) => ({
         // Get date range
         const dateRange = getDateRange(startDate, endDate);
         console.log(
-          `📊 Processing ${employees.length} employees for ${dateRange.length} days`
+          `📊 Processing ${employees.length} employees for ${dateRange.length} days`,
         );
 
         // Process data
@@ -74,7 +78,7 @@ export const useAttendanceStore = create((set, get) => ({
           employees,
           attendance,
           overTime,
-          dateRange
+          dateRange,
         );
 
         // Update state with processed data
@@ -83,10 +87,12 @@ export const useAttendanceStore = create((set, get) => ({
           punchData: result.punchData,
           presentEmployees: result.presentEmployees,
           absentEmployees: result.absentEmployees,
+          lateEmployees: result.lateEmployees,
           overTimeEmployees: result.overTimeEmployees,
           totalCount: result.allEmployees.length,
           presentCount: result.presentEmployees.length,
           absentCount: result.absentEmployees.length,
+          lateCount: result.lateEmployees.length,
           isProcessing: false,
         });
 
@@ -113,6 +119,8 @@ export const useAttendanceStore = create((set, get) => ({
         return state.presentEmployees;
       case "absent":
         return state.absentEmployees;
+      case "late":
+        return state.lateEmployees;
       case "overtime":
         return state.overTimeEmployees;
       default:
@@ -127,10 +135,12 @@ export const useAttendanceStore = create((set, get) => ({
       punchData: [],
       presentEmployees: [],
       absentEmployees: [],
+      lateEmployees: [],
       overTimeEmployees: [],
       totalCount: 0,
       presentCount: 0,
       absentCount: 0,
+      lateCount: 0,
       isProcessing: false,
       isFilterLoading: false,
     });
@@ -173,6 +183,9 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
   const presentEmployees = [];
   const absentEmployees = [];
   const overTimeEmployees = [];
+  const lateEmployees = [];
+
+  const rules = useGlobalStore.getState().globalRules;
 
   // Create quick lookup maps
   const attendanceMap = createAttendanceMap(attendance);
@@ -217,8 +230,8 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
           checkIn: isPresent
             ? checkIn
             : leaveTypes.length > 0
-            ? leaveTypes
-            : dayType,
+              ? leaveTypes
+              : dayType,
         },
         isPresent,
         hasOvertime: overtimeSet.has(employeeId),
@@ -231,6 +244,37 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
 
       if (isPresent) {
         presentEmployees.push(record);
+
+        // Check for lateness
+        const { expectedTime, latenessGraceMin } = getExpectedCheckInTime({
+          employee,
+          selectedDate: date,
+          rules,
+        });
+
+        let actualCheckIn;
+
+        try {
+          actualCheckIn = checkIn?.[0];
+        } catch {
+          return;
+        }
+
+        if (!actualCheckIn || !expectedTime) return;
+
+        const toMinutes = (time) => {
+          const [h, m] = time.split(":").map(Number);
+          return h * 60 + m;
+        };
+
+        const actualMin = toMinutes(actualCheckIn);
+        const expectedMin = toMinutes(expectedTime) + latenessGraceMin;
+
+        if (actualMin > expectedMin) {
+          return lateEmployees.push(record);
+        }
+
+        return;
       } else if (leaveTypes.length === 0 && dayType.length === 0) {
         // No leave, no holiday → true absent
         absentEmployees.push(record);
@@ -247,6 +291,7 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
     punchData,
     presentEmployees,
     absentEmployees,
+    lateEmployees,
     overTimeEmployees,
   };
 };
@@ -294,6 +339,14 @@ const getLeaveTypes = (employee, date) => {
   };
 
   if (!employee.salaryRules) return leaveTypes;
+  const dateOnly = date.split("T")[0];
+  const generalDays = (employee.salaryRules.generalDays || []).map(
+    (h) => h.split("T")[0],
+  );
+
+  if (generalDays.includes(dateOnly)) {
+    return [];
+  }
 
   Object.keys(leaveMappings).forEach((leaveKey) => {
     const leaves = employee.salaryRules[leaveKey];
@@ -316,6 +369,17 @@ function getDayType(salaryRules, date) {
   const day = new Date(date);
   const dayName = day.toLocaleString("en-US", { weekday: "long" });
 
+  const dateOnly = date.split("T")[0];
+
+  // 2. Get all general dates (YYYY-MM-DD)
+  const generalDays = (salaryRules.generalDays || []).map(
+    (h) => h.split("T")[0],
+  );
+
+  if (generalDays.includes(dateOnly)) {
+    return [];
+  }
+
   // 1. Find ruleId === 2 (weekend rules)
   const weekendRule = salaryRules.rules.find((r) => r.ruleId === 2);
 
@@ -331,23 +395,23 @@ function getDayType(salaryRules, date) {
         ) {
           weekendNames.push(weekendRule[key].trim());
         }
-      }
+      },
     );
   }
 
   // 2. Get all holiday dates (YYYY-MM-DD)
   const holidayDates = (salaryRules.holidays || []).map((h) => h.split("T")[0]);
 
-  const dateOnly = date.split("T")[0];
-
-  const rdates = salaryRules.replaceDays
-    .filter((item) => item.rdate !== null)
-    .map((item) => item.rdate.split("T")[0]);
+  const replaceDaysSet = new Set(
+    (salaryRules.replaceDays ?? [])
+      .filter((item) => item?.rdate)
+      .map((item) => item.rdate.split("T")[0]),
+  );
 
   // ---- LOGIC ----
 
   //ReplaceDays
-  if (rdates.includes(dateOnly)) {
+  if (replaceDaysSet.has(dateOnly)) {
     return ["Replace Day"];
   }
 

@@ -210,7 +210,7 @@ function getWorkingDaysInMonth(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet,
-  fullDayLeaveDates
+  fullDayLeaveDates,
   // id
 ) {
   let workingDays = 0;
@@ -297,7 +297,7 @@ function getWorkingDaysUpToDate(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet,
-  fullDayLeaveDates
+  fullDayLeaveDates,
   // id
 ) {
   let workingDays = 0;
@@ -429,7 +429,7 @@ function getStartTimeFromLateDoc(latePunchDocuments, date) {
 function isPunchNearApprovedTime(
   punchTime,
   approvedStartTime,
-  toleranceMinutes = 60
+  toleranceMinutes = 60,
 ) {
   if (!punchTime || !approvedStartTime) return false;
 
@@ -520,7 +520,7 @@ function getMonthlyRollingRange(year, month, startDay) {
   const endDate = formatDate(
     endDateObj.getFullYear(),
     endDateObj.getMonth() + 1,
-    endDateObj.getDate()
+    endDateObj.getDate(),
   );
 
   return { startDate, endDate };
@@ -531,7 +531,7 @@ export function calculateRangeSalary(
   salaryRules,
   startDate,
   endDate,
-  id
+  id,
 ) {
   const { selectedMonth, selectedYear } = useDateStore.getState();
   if (payPeriod.payPeriod === "weekly") {
@@ -539,7 +539,7 @@ export function calculateRangeSalary(
       const firstWeekRange = getFirstWeekRange(
         selectedYear,
         selectedMonth,
-        payPeriod?.startDay + 1
+        payPeriod?.startDay + 1,
       );
       startDate = firstWeekRange.startDate;
       endDate = firstWeekRange.endDate;
@@ -548,11 +548,10 @@ export function calculateRangeSalary(
   if (payPeriod.payPeriod === "biWeekly") {
     if (startDate === undefined && endDate === undefined) {
       const firstWeekRange = getBiweeklyRangeWithDirection(
+        payPeriod?.hourlyRate,
+        0,
         selectedYear,
         selectedMonth + 1,
-        payPeriod?.startWeek,
-        payPeriod?.startDay,
-        0
       );
       startDate = firstWeekRange.startDate;
       endDate = firstWeekRange.endDate;
@@ -564,7 +563,7 @@ export function calculateRangeSalary(
         selectedYear,
         selectedMonth + 1,
         payPeriod?.startDay,
-        0
+        0,
       );
       startDate = firstWeekRange.startDate;
       endDate = firstWeekRange.endDate;
@@ -576,7 +575,7 @@ export function calculateRangeSalary(
       const firstWeekRange = getMonthlyRollingRange(
         selectedYear,
         selectedMonth + 1,
-        payPeriod?.startDay
+        payPeriod?.startDay,
       );
       startDate = firstWeekRange.startDate;
       endDate = firstWeekRange.endDate;
@@ -626,18 +625,18 @@ export function calculateRangeSalary(
     .filter(Boolean);
 
   const holidaysSet = new Set(
-    (holidaysArr || []).map(normalizeDate).filter(Boolean)
+    (holidaysArr || []).map(normalizeDate).filter(Boolean),
   );
   const replaceDaysSet = new Set(
-    (replaceDaysArr || []).map(normalizeDate).filter(Boolean)
+    (replaceDaysArr || []).map(normalizeDate).filter(Boolean),
   );
   const generalDaysSet = new Set(
-    (generalDaysArr || []).map(normalizeDate).filter(Boolean)
+    (generalDaysArr || []).map(normalizeDate).filter(Boolean),
   );
 
   const weekendDayNames = new Set();
   const allRule3s = filteredRules.filter(
-    (r) => String(r.ruleId) === String(3 - 1) && Number(r.ruleStatus) === 1
+    (r) => String(r.ruleId) === String(3 - 1) && Number(r.ruleStatus) === 1,
   );
   allRule3s.forEach((r) => {
     const params = getParamsArray(r);
@@ -683,7 +682,7 @@ export function calculateRangeSalary(
 
   const rule10 = getRule(10);
   // const holidayMultiplier = Number(firstNumericParam(rule10) || 0);
-  const holidayNormalShiftMultiplier = Number(secondNumericParam(rule10) || 1);
+  const holidayNormalShiftMultiplier = Number(rule10?.param2 || 1);
 
   const rule11 = getRule(11);
 
@@ -716,7 +715,7 @@ export function calculateRangeSalary(
   const rule20 = getRule(20);
   const rule20Threshold = Number((rule20 && firstNumericParam(rule20)) || 0);
   const rule20Fixed = Number(
-    (rule20 && firstNonEmptyParam(rule20) && rule20.param2) || 0
+    (rule20 && firstNonEmptyParam(rule20) && rule20.param2) || 0,
   );
 
   const rule21 = getRule(21);
@@ -736,7 +735,7 @@ export function calculateRangeSalary(
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
   const { checkedTotal, uncheckedTotal } = parseOtherSalary(
-    payPeriod.otherSalary
+    payPeriod.otherSalary,
   );
 
   const monthlySalary = Number(payPeriod.salary || 0) + checkedTotal;
@@ -839,7 +838,7 @@ export function calculateRangeSalary(
       generalDaysSet,
       replaceDaysSet,
       fullDayLeaveDates,
-      id
+      id,
     );
     workingDaysUpToCurrent = details.workingDays;
     thisMonthLeave = details.thisMonthLeave;
@@ -855,7 +854,7 @@ export function calculateRangeSalary(
       generalDaysSet,
       replaceDaysSet,
       fullDayLeaveDates,
-      id
+      id,
     );
     workingDaysUpToCurrent = details.workingDays;
     thisMonthLeave = details.thisMonthLeave;
@@ -881,7 +880,7 @@ export function calculateRangeSalary(
     const doc = punchDocs.find(
       (d) =>
         normalizeDate(d.date) === normalizeDate(date) &&
-        String(d.empId) === String(empId)
+        String(d.empId) === String(empId),
     );
     if (doc) {
       if (doc.CutSalary === "No") return false;
@@ -926,7 +925,7 @@ export function calculateRangeSalary(
       sLeaves,
       oLeaves,
       wLeaves,
-      attendanceRecords
+      attendanceRecords,
     );
     sLeaveDeduction = s_deduction;
     oLeaveDeduction = o_deduction;
@@ -1131,11 +1130,11 @@ export function calculateRangeSalary(
           // Check if date has late punch document
           const hasLateDoc = isDateInLatePunchDocuments(
             latePunchDocuments,
-            date
+            date,
           );
           const approvedStartTime = getStartTimeFromLateDoc(
             latePunchDocuments,
-            date
+            date,
           );
 
           // Skip late count if punch is near approved start time from late document
@@ -1201,7 +1200,7 @@ export function calculateRangeSalary(
           ) {
             const dayLateMins = Math.max(
               0,
-              toMinutes(punches[shiftStartPunchIndex]) - lateThresh
+              toMinutes(punches[shiftStartPunchIndex]) - lateThresh,
             );
 
             if (dayLateMins > 0) {

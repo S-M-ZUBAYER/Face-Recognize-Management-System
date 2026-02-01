@@ -5,6 +5,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const MissedPunch = () => {
   const [costPerMissedPunch, setCostPerMissedPunch] = useState("");
@@ -14,7 +15,7 @@ export const MissedPunch = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
-
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   // Save missed punch configuration
   const handleSave = async () => {
     if (selectedEmployees.length === 0) {
@@ -84,7 +85,7 @@ export const MissedPunch = () => {
             newValue: ruleTwentyTwo, // update ruleId=22 object
           },
         });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -92,6 +93,13 @@ export const MissedPunch = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
       setRulesIds(22);

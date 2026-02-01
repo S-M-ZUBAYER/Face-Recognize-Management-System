@@ -17,6 +17,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
+import { format } from "date-fns";
 
 const OVERTIME_OPTIONS = [
   {
@@ -52,7 +54,7 @@ const WEEKDAYS_ISO = [
 function BiWeeklyForm() {
   const [formData, setFormData] = useState({
     basic: "",
-    inputWeek: "",
+    inputDate: "",
     workingHours: "",
     overtimeRate: "",
     selectedOvertimeOption: "fixed-input",
@@ -62,7 +64,7 @@ function BiWeeklyForm() {
 
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
@@ -72,9 +74,9 @@ function BiWeeklyForm() {
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const salarySections = useMemo(
@@ -89,11 +91,11 @@ function BiWeeklyForm() {
       },
       {
         id: SALARY_SECTION_TYPES.INPUT_WEEK,
-        label: "Input Week",
-        value: formData.inputWeek,
+        label: "Date",
+        value: formData.inputDate,
         placeholder: "000000",
-        hasValue: !!formData.inputWeek,
-        readOnly: false,
+        hasValue: !!formData.inputDate,
+        readOnly: true,
       },
       {
         id: SALARY_SECTION_TYPES.OTHER,
@@ -104,7 +106,7 @@ function BiWeeklyForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, formData.inputWeek, otherSalaryTotal]
+    [formData.basic, formData.inputDate, otherSalaryTotal],
   );
 
   // Get current month dates for selected weekday
@@ -146,8 +148,21 @@ function BiWeeklyForm() {
     }));
   }, []);
 
-  const handleDateSelect = useCallback((date) => {
-    setFormData((prev) => ({ ...prev, selectedDate: date }));
+  const handleDateSelect = useCallback((day) => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = now.getMonth(); // already 0-based
+
+    const selectedDateObj = new Date(year, month, day);
+    const formattedDate = format(selectedDateObj, "yyyy-MM-dd");
+
+    setFormData((prev) => ({
+      ...prev,
+      selectedDate: day,
+      inputDate: formattedDate,
+    }));
+
     setShowDatePicker(false);
   }, []);
 
@@ -181,8 +196,8 @@ function BiWeeklyForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -190,8 +205,8 @@ function BiWeeklyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -205,7 +220,7 @@ function BiWeeklyForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler - following the same pattern
@@ -220,39 +235,50 @@ function BiWeeklyForm() {
 
     try {
       const updatePromises = Employees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate: formData.inputWeek || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: true, // BiWeekly only supports fixed input
-            name: formData.workingHours || employee?.salaryInfo?.name,
-            otherSalary:
-              otherSalaryArray.length > 0
-                ? otherSalaryArray
-                : employee?.salaryInfo?.otherSalary,
-            overtimeFixed:
-              formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
-            overtimeSalary: 0, // Not used for BiWeekly
-            payPeriod: "biWeekly",
-            salary: formData.basic || employee?.salaryInfo?.salary,
-            selectedOvertimeOption: 1, // Always fixed input for BiWeekly
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: formData.selectedWeekday
-              ? selectedWeekdayIndex
-              : employee?.salaryInfo?.startDay,
-            startWeek: formData.selectedDate
-              ? parseInt(formData.selectedDate)
-              : employee?.salaryInfo?.startWeek,
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.inputDate || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: false, // BiWeekly only supports fixed input
+              name: formData.workingHours || employee?.salaryInfo?.name,
+              otherSalary:
+                otherSalaryArray.length > 0
+                  ? otherSalaryArray
+                  : employee?.salaryInfo?.otherSalary,
+              overtimeFixed:
+                formData.overtimeRate || employee?.salaryInfo?.overtimeFixed,
+              overtimeSalary: 0, // Not used for BiWeekly
+              payPeriod: "biWeekly",
+              salary: formData.basic || employee?.salaryInfo?.salary,
+              selectedOvertimeOption: 1, // Always fixed input for BiWeekly
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: formData.selectedWeekday
+                ? selectedWeekdayIndex
+                : employee?.salaryInfo?.startDay,
+              startWeek: formData.selectedDate
+                ? parseInt(formData.selectedDate)
+                : employee?.salaryInfo?.startWeek,
+              status: employee?.salaryInfo?.status || null,
+            },
+          );
 
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);
@@ -298,8 +324,8 @@ function BiWeeklyForm() {
                   id === SALARY_SECTION_TYPES.INPUT_WEEK
                 ) {
                   handleInputChange(
-                    id === SALARY_SECTION_TYPES.BASIC ? "basic" : "inputWeek",
-                    ""
+                    id === SALARY_SECTION_TYPES.BASIC ? "basic" : "inputDate",
+                    "",
                   );
                 }
               }}
@@ -307,11 +333,11 @@ function BiWeeklyForm() {
                 if (id === SALARY_SECTION_TYPES.BASIC) {
                   handleInputChange("basic", newValue);
                 } else if (id === SALARY_SECTION_TYPES.INPUT_WEEK) {
-                  handleInputChange("inputWeek", newValue);
+                  handleInputChange("inputDate", newValue);
                 }
               }}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -337,7 +363,7 @@ function BiWeeklyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />
@@ -490,7 +516,7 @@ const SalaryRow = ({
       onChange={(e) => onChange?.(e.target.value)}
       className="w-80"
       placeholder={placeholder}
-      type="number"
+      type={id === SALARY_SECTION_TYPES.BASIC ? "number" : "text"}
       readOnly={readOnly}
     />
   </div>
@@ -514,10 +540,15 @@ const AdditionalSalaryRow = ({
       <div className="flex gap-2">
         <Input
           value={salary.type}
-          onChange={(e) => onTypeChange?.(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[0-9]/g, "");
+            onTypeChange?.(value);
+          }}
           className="w-40"
           placeholder="Salary Type"
+          type="text"
         />
+
         <Input
           value={salary.amount}
           onChange={(e) => onAmountChange?.(e.target.value)}

@@ -10,6 +10,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
@@ -17,6 +19,7 @@ export const WorkShiftTimeForm = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
@@ -665,6 +668,12 @@ export const WorkShiftTimeForm = () => {
         payload,
       });
 
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+
       toast.success("Shift rules updated successfully!");
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
@@ -691,6 +700,12 @@ export const WorkShiftTimeForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);

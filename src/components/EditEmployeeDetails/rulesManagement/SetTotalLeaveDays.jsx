@@ -3,6 +3,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const SetTotalLeaveDays = () => {
   const [totalDays, setTotalDays] = useState("");
@@ -20,6 +22,7 @@ export const SetTotalLeaveDays = () => {
 
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Load existing leave values from selectedEmployee
   useEffect(() => {
@@ -31,7 +34,7 @@ export const SetTotalLeaveDays = () => {
             : selectedEmployee.salaryRules.rules || [];
 
         const ruleTwentyFour = existingRules.find(
-          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
+          (rule) => rule.ruleId === 24 || rule.ruleId === "24",
         );
 
         if (ruleTwentyFour) {
@@ -54,17 +57,17 @@ export const SetTotalLeaveDays = () => {
             if (typeof leaveDaysObj === "object" && leaveDaysObj !== null) {
               setLeaveDays({
                 "Maternity Leave": String(
-                  leaveDaysObj["Maternity Leave"] || ""
+                  leaveDaysObj["Maternity Leave"] || "",
                 ),
                 "Marriage Leave": String(leaveDaysObj["Marriage Leave"] || ""),
                 "Paternity Leave": String(
-                  leaveDaysObj["Paternity Leave"] || ""
+                  leaveDaysObj["Paternity Leave"] || "",
                 ),
                 "Sick Leave": String(leaveDaysObj["Sick Leave"] || ""),
                 "Casual Leave": String(leaveDaysObj["Casual Leave"] || ""),
                 "Earned leave": String(leaveDaysObj["Earned leave"] || ""),
                 "Without Pay Leave": String(
-                  leaveDaysObj["Without Pay Leave"] || ""
+                  leaveDaysObj["Without Pay Leave"] || "",
                 ),
                 "Rest Leave": String(leaveDaysObj["Rest Leave"] || ""),
                 Others: String(leaveDaysObj["Others"] || ""),
@@ -88,7 +91,9 @@ export const SetTotalLeaveDays = () => {
   // Update total days automatically when leave categories change
   useEffect(() => {
     const calculatedTotal = calculateTotalFromLeaves();
-    setTotalDays(calculatedTotal > 0 ? String(calculatedTotal) : "");
+    if (calculatedTotal > 0) {
+      setTotalDays(String(calculatedTotal));
+    }
   }, [leaveDays, calculateTotalFromLeaves]);
 
   const handleLeaveDayChange = (leaveType, value) => {
@@ -126,7 +131,7 @@ export const SetTotalLeaveDays = () => {
           // Adjust for rounding differences
           const distributedTotal = Object.values(updatedLeaves).reduce(
             (sum, days) => sum + (parseInt(days) || 0),
-            0
+            0,
           );
           if (distributedTotal !== newTotal) {
             // Find the largest category to adjust the difference
@@ -141,7 +146,7 @@ export const SetTotalLeaveDays = () => {
             });
             const adjustment = newTotal - distributedTotal;
             updatedLeaves[maxKey] = String(
-              (parseInt(updatedLeaves[maxKey]) || 0) + adjustment
+              (parseInt(updatedLeaves[maxKey]) || 0) + adjustment,
             );
           }
 
@@ -191,7 +196,7 @@ export const SetTotalLeaveDays = () => {
 
       // Find or create rule with ruleId = 24
       let ruleTwentyFour = existingRules.find(
-        (rule) => rule.ruleId === 24 || rule.ruleId === "24"
+        (rule) => rule.ruleId === 24 || rule.ruleId === "24",
       );
 
       if (!ruleTwentyFour) {
@@ -233,6 +238,11 @@ export const SetTotalLeaveDays = () => {
         payload,
       });
 
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) },
+      );
       toast.success("Leave settings updated successfully!");
     } catch (error) {
       console.error("Error saving leave settings:", error);
@@ -252,6 +262,11 @@ export const SetTotalLeaveDays = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) },
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);

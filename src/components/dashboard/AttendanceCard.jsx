@@ -3,6 +3,8 @@ import CountUp from "react-countup";
 import { useNavigate } from "react-router-dom";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
+import { useDateRangeStore } from "@/zustand/useDateRangeStore";
 
 // Animation variants
 const cardVariants = {
@@ -152,6 +154,9 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
   const setActiveFilter = useAttendanceStore((state) => state.setActiveFilter);
   const [loopKey, setLoopKey] = useState(0);
 
+  const { selectedDate } = useAttendanceStore();
+  const { setDateRange } = useDateRangeStore();
+
   // Fixed: Properly memoized parsed value calculation
   const parsedValue = useMemo(() => {
     const num = Number(String(count || 0).replace(/[^0-9.-]+/g, ""));
@@ -166,7 +171,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
       Absent: "absent",
       "Late Punch": "late",
     }),
-    []
+    [],
   );
 
   // Fixed: Continuous loading animation
@@ -186,14 +191,16 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
   const handleRedirect = useCallback(() => {
     try {
       const filter = filterMap[title];
-      if (filter !== "late") {
-        setActiveFilter(filter);
-        navigate("/Face_Attendance_Management_System/attendance");
-      }
+      setActiveFilter(filter);
+      setDateRange(
+        format(selectedDate, "yyyy-MM-dd"),
+        format(selectedDate, "yyyy-MM-dd"),
+      );
+      navigate("/Face_Attendance_Management_System/attendance");
     } catch (error) {
       console.error("Navigation error:", error);
     }
-  }, [title, filterMap, setActiveFilter, navigate]);
+  }, [title, filterMap, setActiveFilter, navigate, selectedDate, setDateRange]);
 
   // Fixed: Memoized keyboard handler
   const handleKeyDown = useCallback(
@@ -203,7 +210,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
         handleRedirect();
       }
     },
-    [handleRedirect]
+    [handleRedirect],
   );
 
   // Fixed: Enhanced variants with delay
@@ -218,7 +225,7 @@ function AttendanceCard({ title, count, icon, isLoading, delay = 0 }) {
         },
       },
     }),
-    [delay]
+    [delay],
   );
 
   return (

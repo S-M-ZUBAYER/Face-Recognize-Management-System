@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -6,17 +6,17 @@ import { format } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import { calculateRangeSalary } from "@/lib/calculateRangeSalary";
 import getBiweeklyRangeWithDirection from "@/lib/calculateSalary/getBiweeklyRangeWithDirection";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore.getState();
 
   const [biweeklyRange, setBiweeklyRange] = useState(() => {
     return getBiweeklyRangeWithDirection(
+      selectedEmp?.salaryInfo?.hourlyRate,
+      0,
       selectedYear,
       selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      0
     );
   });
   const [salaryData, setSalaryData] = useState(null);
@@ -40,7 +40,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
           salaryRules,
           startDate,
           endDate,
-          id
+          id,
         );
         setSalaryData(data);
       } catch (error) {
@@ -59,56 +59,40 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     const newOffset = biweeklyOffset - 1;
 
     const newRange = getBiweeklyRangeWithDirection(
+      selectedEmp?.salaryInfo?.hourlyRate,
+      newOffset,
       selectedYear,
       selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      newOffset
     );
 
-    const newDate = new Date(newRange.startDate);
-    const newYear = Number(format(newDate, "yyyy"));
-    const newMonth = Number(format(newDate, "MM"));
-
-    // console.log(selectedMonth + 1, newMonth, selectedYear, newYear);
-
-    if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
-      setBiweeklyOffset(newOffset);
-      setBiweeklyRange(newRange);
-    }
+    setBiweeklyOffset(newOffset);
+    setBiweeklyRange(newRange);
   };
 
   const handleNextBiweekly = () => {
     const newOffset = biweeklyOffset + 1;
 
     const newRange = getBiweeklyRangeWithDirection(
+      selectedEmp?.salaryInfo?.hourlyRate,
+      newOffset,
       selectedYear,
       selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      newOffset
     );
-    const newDate = new Date(newRange.startDate);
-    const newYear = Number(format(newDate, "yyyy"));
-    const newMonth = Number(format(newDate, "MM"));
-
-    if (selectedMonth + 1 === newMonth && selectedYear === newYear) {
-      setBiweeklyOffset(newOffset);
-      setBiweeklyRange(newRange);
-    }
-  };
-
-  const handleCurrentBiweekly = () => {
-    setBiweeklyOffset(0);
-    const newRange = getBiweeklyRangeWithDirection(
-      selectedYear,
-      selectedMonth + 1,
-      selectedEmp?.salaryInfo?.startWeek,
-      selectedEmp?.salaryInfo?.startDay,
-      0
-    );
+    setBiweeklyOffset(newOffset);
     setBiweeklyRange(newRange);
   };
+
+  // const handleCurrentBiweekly = () => {
+  //   setBiweeklyOffset(0);
+  //   const newRange = getBiweeklyRangeWithDirection(
+  //     selectedYear,
+  //     selectedMonth + 1,
+  //     selectedEmp?.salaryInfo?.startWeek,
+  //     selectedEmp?.salaryInfo?.startDay,
+  //     0,
+  //   );
+  //   setBiweeklyRange(newRange);
+  // };
 
   // Format date for display
   const formatDisplayDate = (dateStr) => {
@@ -136,6 +120,29 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
     (salaryData?.extraPay?.weekendNormalShiftPay || 0) +
     (salaryData?.extraPay?.holidayNormalShiftPay || 0);
 
+  // avatar function
+
+  const getInitials = useCallback((name) => {
+    if (!name) return "??";
+    return (
+      name
+        .split(" ")
+        .map((n) => (n && n[0] ? n[0] : ""))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
+  }, []);
+  const getEmployeeName = useCallback((fullName) => {
+    if (!fullName) return "Unknown";
+    return fullName.split("<")[0];
+  }, []);
+
+  //avatar
+
+  const employeeName = getEmployeeName(selectedEmp.name);
+  const initials = getInitials(employeeName);
+
   return (
     <AnimatePresence>
       {selectedEmp && (
@@ -148,7 +155,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/5 backdrop-blur-sm"
             onClick={() => setSelectedEmp(null)}
           />
 
@@ -165,7 +172,18 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {selectedEmp?.name?.split("<")[0]}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage
+                          src={selectedEmp.image}
+                          alt={`${selectedEmp.name}'s profile`}
+                        />
+                        <AvatarFallback className="text-xs font-medium">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedEmp?.name?.split("<")[0]}
+                    </div>
                   </h2>
                   <p className="text-white/80 text-sm mt-1">
                     Biweekly Salary Details • {selectedEmp?.department} •
@@ -205,7 +223,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                     14 days •{" "}
                     {biweeklyOffset >= 0
                       ? biweeklyOffset === 0
-                        ? "(Current Period)"
+                        ? "(1st Period)"
                         : `${biweeklyOffset} period${
                             biweeklyOffset !== 1 ? "s" : ""
                           } ahead`
@@ -216,13 +234,13 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
+                  {/* <Button
                     onClick={handleCurrentBiweekly}
                     variant="outline"
                     size="sm"
                   >
                     Current Period
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={handleNextBiweekly}
                     variant="outline"
@@ -308,12 +326,12 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 Weekend:{" "}
                                 {formatNumber(
                                   salaryData?.extraPay?.weekendNormalShiftPay ||
-                                    0
+                                    0,
                                 )}{" "}
                                 • Holiday:{" "}
                                 {formatNumber(
                                   salaryData?.extraPay?.holidayNormalShiftPay ||
-                                    0
+                                    0,
                                 )}
                               </p>
                             </div>
@@ -517,7 +535,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.absentDeductions || 0
+                                salaryData?.deductions?.absentDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -527,7 +545,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               -
                               {formatNumber(
                                 salaryData?.deductions?.extraAbsentDeductions ||
-                                  0
+                                  0,
                               )}
                             </span>
                           </div>
@@ -539,7 +557,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                               -
                               {formatNumber(
                                 salaryData?.deductions?.missedPunchDeductions ||
-                                  0
+                                  0,
                               )}
                             </span>
                           </div>
@@ -548,7 +566,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.lateDeductions || 0
+                                salaryData?.deductions?.lateDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -559,7 +577,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.deductions?.earlyDeductions || 0
+                                salaryData?.deductions?.earlyDeductions || 0,
                               )}
                             </span>
                           </div>
@@ -575,7 +593,8 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.wLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.wLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -584,7 +603,8 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.oLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.oLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -593,7 +613,8 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="text-red-600">
                               -
                               {formatNumber(
-                                salaryData?.LeaveDeduction?.sLeaveDeduction || 0
+                                salaryData?.LeaveDeduction?.sLeaveDeduction ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -625,7 +646,8 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="font-medium text-green-600">
                               +
                               {formatNumber(
-                                salaryData?.extraPay?.weekendNormalShiftPay || 0
+                                salaryData?.extraPay?.weekendNormalShiftPay ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -636,7 +658,8 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                             <span className="font-medium text-green-600">
                               +
                               {formatNumber(
-                                salaryData?.extraPay?.holidayNormalShiftPay || 0
+                                salaryData?.extraPay?.holidayNormalShiftPay ||
+                                  0,
                               )}
                             </span>
                           </div>
@@ -680,7 +703,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats?.lateCount ||
                                     0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -703,7 +726,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats
                                     ?.earlyDepartureCount || 0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -725,7 +748,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats?.missedPunch ||
                                     0) * 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>
@@ -749,7 +772,7 @@ const BiweeklyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
                                 width: `${Math.min(
                                   (salaryData?.attendanceStats
                                     ?.totalLatenessMinutes || 0) / 10,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             ></div>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useLeaveData } from "@/hook/useLeaveData";
 import { useImageUpload } from "@/hook/useImageUpload";
 import { useUserStore } from "@/zustand/useUserStore";
 import updateJsonString from "@/lib/updateJsonString";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+import { TimeRangePicker } from "../TimePicker";
 
 // Icons
 import {
@@ -43,6 +43,15 @@ import {
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import formatDateForStorage from "@/lib/formatDateForStorage";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import { parseNormalData } from "@/lib/parseNormalData";
+import leaveApprove from "@/lib/leaveApprove";
+import checkLeaveDataChanges from "@/lib/checkLeaveDataChanges";
+import { sendNotificationToEmployee } from "@/utils/sendNotificationToEmployee";
+import useLeaveStore from "@/zustand/useLeaveStore";
+import { updateLeaveData } from "@/utils/leaveServices/LeaveDataService";
 
 // Constants
 const LEAVE_CATEGORIES = [
@@ -60,10 +69,15 @@ const LEAVE_CATEGORIES = [
 const LEAVE_TYPES = ["Hourly Leave", "Full Day Leave", "Extended Leave"];
 
 const LeaveApplicationDetails = ({ data }) => {
-  // Hooks
-  const { updateLeave } = useLeaveData();
   const { user } = useUserStore();
   const { uploadImage, uploading: isUploading } = useImageUpload();
+
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+  const Employees = employees();
+
+  const { updateEmployee, updating } = useSingleEmployeeDetails();
+
+  const { updateLeave } = useLeaveStore();
 
   // State
   const [isEditing, setIsEditing] = useState(false);
@@ -72,6 +86,7 @@ const LeaveApplicationDetails = ({ data }) => {
 
   // Derived state
   const isExtendedLeave = editedData?.leaveType === "Extended Leave";
+  const isHourlyLeave = editedData?.leaveType === "Hourly Leave";
 
   // Parse description from data
   const parseDescription = useCallback((desc) => {
@@ -187,6 +202,24 @@ const LeaveApplicationDetails = ({ data }) => {
     setIsEditing(!isEditing);
   };
 
+  // Helper function to normalize time format to HH:MM
+  const normalizeTime = (time) => {
+    if (!time) return "";
+
+    // If already in correct format, return as is
+    if (/^\d{2}:\d{2}$/.test(time)) return time;
+
+    // Parse and format time with leading zeros
+    const parts = time.split(":");
+    if (parts.length === 2) {
+      const hours = parts[0].padStart(2, "0");
+      const minutes = parts[1].padStart(2, "0");
+      return `${hours}:${minutes}`;
+    }
+
+    return time;
+  };
+
   const handleFieldChange = (field, value) => {
     if (field === "description") {
       // Update only the 'des' field of the description object
@@ -195,6 +228,16 @@ const LeaveApplicationDetails = ({ data }) => {
         description: {
           ...prev.description,
           des: value,
+        },
+      }));
+    } else if (field.startsWith("time_")) {
+      // Handle time fields
+      const timeField = field.replace("time_", "");
+      setEditedData((prev) => ({
+        ...prev,
+        description: {
+          ...prev.description,
+          [timeField]: value,
         },
       }));
     } else {
@@ -282,9 +325,25 @@ const LeaveApplicationDetails = ({ data }) => {
         status: editedData.status,
       };
 
-      // console.log(updatedData);
-
-      await updateLeave(updatedData);
+      await updateLeaveData(updatedData);
+      const parseUpdateData = parseNormalData(updatedData);
+      updateLeave({
+        employeeId: updatedData.employeeId,
+        deviceMAC: updatedData.deviceMAC,
+        updatedLeave: {
+          ...parseUpdateData,
+          employeeId: String(updatedData.employeeId),
+        },
+      });
+      const response = checkLeaveDataChanges(data, editedData);
+      if (response !== "No changes") {
+        await sendNotificationToEmployee({
+          employeeId: data.employeeId,
+          deviceMAC: data.deviceMAC,
+          title: `Leave Application Edited by ${user.userName}`,
+          messageBody: `Your leave application has been updated. Changes: ${response}`,
+        });
+      }
       toast.success("Leave application updated successfully");
       setIsEditing(false);
       setDocumentFile(null);
@@ -295,30 +354,129 @@ const LeaveApplicationDetails = ({ data }) => {
   };
 
   const handleUpdateLeave = async (status) => {
+    let leaveUpdated = false;
+    let employeeUpdated = false;
+
     try {
-      const updatedData = {
-        id: data.id,
-        employeeId: data.employeeId,
-        employeeName: data.employeeName.split("<")[0],
-        approverName: updateJsonString("admin", user?.userName),
-        deviceMAC: data.deviceMAC,
-        startDate: data.startDate,
-        endDate: data.endDate,
+      /* =====================================================
+       * SECTION 1: UPDATE LEAVE STATUS
+       * ===================================================== */
+      if (!data || !user) {
+        throw new Error("Invalid leave or user data");
+      }
+
+      const leavePayload = {
+        id: editedData.id,
+        employeeId: editedData.employeeId,
+        employeeName: editedData.employeeName?.split("<")[0] || "",
+        approverName: updateJsonString("admin", user.userName),
+        deviceMAC: editedData.deviceMAC,
+        startDate: formatDateForStorage(editedData.startDate) || null,
+        endDate:
+          isExtendedLeave && editedData.endDate
+            ? formatDateForStorage(editedData.endDate)
+            : null,
         description:
-          typeof data.description === "object"
-            ? JSON.stringify(data.description)
-            : data.description,
-        leaveCategory: data.leaveCategory,
-        leaveType: data.leaveType,
-        documentUrl: data.documentUrl,
+          typeof editedData.description === "object"
+            ? JSON.stringify(editedData.description)
+            : editedData.description,
+        leaveCategory: editedData.leaveCategory,
+        leaveType: editedData.leaveType,
+        documentUrl: editedData.documentUrl,
         status: `${status}_admin`,
       };
+      await updateLeaveData(leavePayload);
+      const parseUpdateData = parseNormalData(leavePayload);
+      updateLeave({
+        employeeId: leavePayload.employeeId,
+        deviceMAC: leavePayload.deviceMAC,
+        updatedLeave: {
+          ...parseUpdateData,
+          employeeId: String(leavePayload.employeeId),
+        },
+      });
+      leaveUpdated = true;
 
-      await updateLeave(updatedData);
-      toast.success(`Leave ${status} successfully`);
+      /* =====================================================
+       * SECTION 2: UPDATE EMPLOYEE SALARY RULES
+       * ===================================================== */
+      const employee = Employees.find(
+        (emp) => emp.employeeId === data.employeeId,
+      );
+
+      if (!employee) {
+        throw new Error("Employee not found");
+      }
+
+      const empId = String(employee.employeeId);
+      const salaryRules = employee.salaryRules || {};
+      const existingRules = salaryRules.rules || [];
+
+      // Ensure Rule #10 exists
+      const ruleTen = existingRules.find(
+        (rule) => rule.ruleId === 10 || rule.ruleId === "10",
+      ) || {
+        id: Math.floor(10 + Math.random() * 90),
+        empId,
+        ruleId: "10",
+        ruleStatus: 1,
+        param1: "",
+        param2: "",
+        param3: "",
+        param4: "",
+        param5: "",
+        param6: "",
+      };
+
+      ruleTen.empId = empId;
+
+      // Apply leave-based salary rules
+      const leaveSalaryRules = leaveApprove({
+        salaryRules,
+        leave: data,
+      });
+
+      const updatedSalaryRules = finalJsonForUpdate(salaryRules, {
+        empId,
+        rules: {
+          filter: (r) => r.ruleId === 10 || r.ruleId === "10",
+          newValue: ruleTen,
+        },
+        ...leaveSalaryRules,
+      });
+
+      const payload = {
+        salaryRules: JSON.stringify(updatedSalaryRules),
+      };
+
+      await updateEmployee({
+        mac: employee.deviceMAC || "",
+        id: employee.employeeId,
+        payload,
+      });
+
+      storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+        salaryRules: parseNormalData(updatedSalaryRules),
+      });
+
+      await sendNotificationToEmployee({
+        employeeId: data.employeeId,
+        deviceMAC: data.deviceMAC,
+        title: `Leave Application ${status} by ${user.userName}`,
+        messageBody: `Your leave application has been ${status}.`,
+      });
+
+      employeeUpdated = true;
+
+      /* =====================================================
+       * FINAL SUCCESS
+       * ===================================================== */
+      if (leaveUpdated && employeeUpdated) {
+        toast.success(`Leave ${status} successfully updated`);
+      }
     } catch (error) {
+      console.error("Leave update process failed:", error);
       toast.error(`Leave ${status} failed`);
-      console.error("Status update error:", error);
     }
   };
 
@@ -360,30 +518,33 @@ const LeaveApplicationDetails = ({ data }) => {
       <span className="text-[1.4vh] font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
         Application Details
       </span>
-      <Button
-        onClick={handleEditToggle}
-        variant="outline"
-        size="sm"
-        className="flex items-center gap-2"
-        disabled={isUploading}
-      >
-        {isUploading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-[#004368] rounded-full animate-spin" />
-            Uploading...
-          </>
-        ) : isEditing ? (
-          <>
-            <X className="w-4 h-4" />
-            Cancel Edit
-          </>
-        ) : (
-          <>
-            <Edit2 className="w-4 h-4" />
-            Edit Application
-          </>
-        )}
-      </Button>
+      {(data.status === "pending_leader" ||
+        data.status === "pending_admin") && (
+        <Button
+          onClick={handleEditToggle}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-[#004368] rounded-full animate-spin" />
+              Uploading...
+            </>
+          ) : isEditing ? (
+            <>
+              <X className="w-4 h-4" />
+              Cancel Edit
+            </>
+          ) : (
+            <>
+              <Edit2 className="w-4 h-4" />
+              Edit Application
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 
@@ -447,6 +608,75 @@ const LeaveApplicationDetails = ({ data }) => {
       )}
     </div>
   );
+
+  const renderTimeInputs = () => {
+    if (!isEditing) return null;
+
+    if (isHourlyLeave) {
+      return (
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-50/30 to-white p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            HOURLY LEAVE TIME
+          </p>
+          <TimeRangePicker
+            label="Leave Time"
+            startTime={normalizeTime(editedData.description?.fromTime) || ""}
+            endTime={normalizeTime(editedData.description?.toTime) || ""}
+            onStartChange={(value) => handleFieldChange("time_fromTime", value)}
+            onEndChange={(value) => handleFieldChange("time_toTime", value)}
+            removeFn={null}
+          />
+        </div>
+      );
+    }
+
+    if (isExtendedLeave) {
+      return (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-green-50/30 to-white p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              FIRST DAY TIME
+            </p>
+            <TimeRangePicker
+              label="First Day"
+              startTime={
+                normalizeTime(editedData.description?.fStartHour) || ""
+              }
+              endTime={normalizeTime(editedData.description?.fEndHour) || ""}
+              onStartChange={(value) =>
+                handleFieldChange("time_fStartHour", value)
+              }
+              onEndChange={(value) => handleFieldChange("time_fEndHour", value)}
+              removeFn={null}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-purple-50/30 to-white p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              LAST DAY TIME
+            </p>
+            <TimeRangePicker
+              label="Last Day"
+              startTime={
+                normalizeTime(editedData.description?.lStartHour) || ""
+              }
+              endTime={normalizeTime(editedData.description?.lEndHour) || ""}
+              onStartChange={(value) =>
+                handleFieldChange("time_lStartHour", value)
+              }
+              onEndChange={(value) => handleFieldChange("time_lEndHour", value)}
+              removeFn={null}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   const renderLeaveDetails = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -852,6 +1082,7 @@ const LeaveApplicationDetails = ({ data }) => {
         >
           <button
             onClick={handleReject}
+            disabled={updating}
             className="group relative px-6 py-3 text-sm font-semibold text-red-600 bg-gradient-to-br from-red-50 to-white border border-red-100 rounded-2xl hover:border-red-200 hover:shadow-lg hover:shadow-red-100/50 transition-all duration-300 active:scale-[0.98] overflow-hidden sm:w-[50%]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -863,6 +1094,7 @@ const LeaveApplicationDetails = ({ data }) => {
 
           <button
             onClick={handleApprove}
+            disabled={updating}
             className="group relative px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-[#004368] to-[#003152] rounded-2xl hover:from-[#005580] hover:to-[#004368] hover:shadow-xl hover:shadow-[#004368]/30 transition-all duration-300 active:scale-[0.98] overflow-hidden sm:w-[50%]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -888,6 +1120,7 @@ const LeaveApplicationDetails = ({ data }) => {
             {renderBasicInfo()}
             {renderDescription()}
             {renderLeaveDetails()}
+            {renderTimeInputs()}
             {renderDateRange()}
             {renderDocument()}
           </div>
@@ -901,4 +1134,4 @@ const LeaveApplicationDetails = ({ data }) => {
   );
 };
 
-export default React.memo(LeaveApplicationDetails);
+export default LeaveApplicationDetails;
