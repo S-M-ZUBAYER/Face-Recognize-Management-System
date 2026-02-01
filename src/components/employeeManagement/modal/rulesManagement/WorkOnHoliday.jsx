@@ -6,6 +6,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
@@ -14,6 +15,7 @@ export const WorkOnHoliday = () => {
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Handle calendar date selection - fix timezone issue
   const handleCalendarSelect = (dates) => {
@@ -62,6 +64,8 @@ export const WorkOnHoliday = () => {
           formatDateForStorage(date)
         );
 
+        const existGeneralDays = selectedEmployee.salaryRules.generalDays || [];
+
         // Find or create rule with ruleId = 3
         let ruleFour = existingRules.find(
           (rule) => rule.ruleId === 3 || rule.ruleId === "3"
@@ -94,21 +98,25 @@ export const WorkOnHoliday = () => {
             filter: (r) => r.ruleId === 3 || r.ruleId === "3",
             newValue: ruleFour, // update ruleId=3 object
           },
-          generalDays: generalDaysArray, // update generalDays with selected dates
+          generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
         });
-
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        return updateEmployee({
+        updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
 

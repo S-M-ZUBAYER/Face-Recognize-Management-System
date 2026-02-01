@@ -5,12 +5,13 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -92,15 +93,20 @@ export const WeekendForm = () => {
         });
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        return updateEmployee({
+        updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
-      setRulesIds(2);
+      setGlobalRulesIds(2);
       toast.success("Weekend days updated successfully!");
     } catch (error) {
       console.error("Error saving weekend days:", error);
@@ -111,7 +117,11 @@ export const WeekendForm = () => {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-semibold mb-3">Weekend Days</label>
+        <label className="block text-sm font-semibold ">Weekend Days</label>
+        {/* Show selected days count */}
+        <div className="my-2 text-xs text-gray-500">
+          {selectedDays.length}/5 days selected
+        </div>
         <div className="space-y-3">
           {daysOfWeek.map((day) => (
             <label key={day} className="flex items-center gap-2 cursor-pointer">
@@ -134,11 +144,6 @@ export const WeekendForm = () => {
               </span>
             </label>
           ))}
-        </div>
-
-        {/* Show selected days count */}
-        <div className="mt-2 text-xs text-gray-500">
-          {selectedDays.length}/5 days selected
         </div>
       </div>
 

@@ -6,12 +6,15 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
   const { setRulesIds } = useUserStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -93,15 +96,22 @@ export const WeekendForm = () => {
         });
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-        return updateEmployee({
+
+        updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
@@ -116,7 +126,11 @@ export const WeekendForm = () => {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-semibold mb-3">Weekend Days</label>
+        <label className="block text-sm font-semibold ">Weekend Days</label>
+        {/* Show selected days count */}
+        <div className="my-2 text-xs text-gray-500">
+          {selectedDays.length}/5 days selected
+        </div>
         <div className="space-y-3">
           {daysOfWeek.map((day) => (
             <label key={day} className="flex items-center gap-2 cursor-pointer">
@@ -139,11 +153,6 @@ export const WeekendForm = () => {
               </span>
             </label>
           ))}
-        </div>
-
-        {/* Show selected days count */}
-        <div className="mt-2 text-xs text-gray-500">
-          {selectedDays.length}/5 days selected
         </div>
       </div>
 

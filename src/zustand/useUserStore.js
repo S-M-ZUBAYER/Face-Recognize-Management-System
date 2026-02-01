@@ -5,6 +5,12 @@ export const useUserStore = create((set) => ({
   deviceMACs: null,
   rulesIds: [],
 
+  globalRulesIds: [],
+
+  setGlobalRulesIds: (ids) => {
+    set((state) => ({ globalRulesIds: [...state.globalRulesIds, ids] }));
+  },
+
   setRulesIds: (ids) => {
     set((state) => ({ rulesIds: [...state.rulesIds, ids] }));
   },

@@ -6,14 +6,15 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   // 🟦 Handle selection — keep dates in local time, normalized
   const handleCalendarSelect = (dates) => {
@@ -55,6 +56,7 @@ export const HolidayForm = () => {
         const existingRules = Array.isArray(salaryRules.rules)
           ? salaryRules.rules
           : [];
+        const alreadyExistHoliday = selectedEmployee.salaryRules.holidays || [];
 
         // Find or create ruleId "1"
         let ruleOne = existingRules.find(
@@ -78,13 +80,13 @@ export const HolidayForm = () => {
         }
 
         const formattedHolidays = specialDates.map(formatDateForStorage);
-
-        // console.log(formattedHolidays);
+        const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
+        // console.log(formattedHolidays, alreadyExistHoliday, finalHoliday);
 
         // 🧩 Build final JSON
         const updatedJSON = finalJsonForUpdate(salaryRules, {
           empId: empId,
-          holidays: formattedHolidays, // raw array, helper stringifies
+          holidays: finalHoliday, // raw array, helper stringifies
           rules: {
             filter: (r) => r.ruleId === 1 || r.ruleId === "1",
             newValue: ruleOne,
@@ -98,17 +100,21 @@ export const HolidayForm = () => {
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        return updateEmployee({
+        updateEmployee({
           mac: selectedEmployee.deviceMAC || "",
           id: selectedEmployee.employeeId,
           payload,
         });
-        // return console.log(payload);
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
 
-      setRulesIds(1);
+      setGlobalRulesIds(1);
 
       toast.success("Holidays updated successfully!");
     } catch (error) {

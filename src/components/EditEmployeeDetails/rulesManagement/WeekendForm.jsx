@@ -4,11 +4,14 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WeekendForm = () => {
   const [selectedDays, setSelectedDays] = useState([]);
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const daysOfWeek = [
     "Sunday",
@@ -122,7 +125,11 @@ export const WeekendForm = () => {
         payload,
       });
 
-      console.log("Weekend days updated successfully:", selectedDays.join(","));
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Weekend days updated successfully!");
     } catch (error) {
       console.error("Error saving weekend days:", error);
@@ -143,6 +150,11 @@ export const WeekendForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
@@ -153,7 +165,11 @@ export const WeekendForm = () => {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-semibold mb-3">Weekend Days</label>
+        <label className="block text-sm font-semibold ">Weekend Days</label>
+        {/* Show selected days count */}
+        <div className="my-2 text-xs text-gray-500">
+          {selectedDays.length}/5 days selected
+        </div>
         <div className="space-y-3">
           {daysOfWeek.map((day) => (
             <label key={day} className="flex items-center gap-2 cursor-pointer">
@@ -176,11 +192,6 @@ export const WeekendForm = () => {
               </span>
             </label>
           ))}
-        </div>
-
-        {/* Show selected days count */}
-        <div className="mt-2 text-xs text-gray-500">
-          {selectedDays.length}/5 days selected
         </div>
       </div>
 

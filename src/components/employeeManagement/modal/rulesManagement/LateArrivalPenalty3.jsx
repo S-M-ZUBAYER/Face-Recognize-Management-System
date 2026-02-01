@@ -4,13 +4,17 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LateArrivalPenalty3 = () => {
   const [hourlyRate, setHourlyRate] = useState("");
+  const { setRulesIds } = useUserStore();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save hourly rate configuration
   const handleSave = async () => {
@@ -67,7 +71,7 @@ export const LateArrivalPenalty3 = () => {
             newValue: ruleEighteen, // update ruleId=18 object
           },
         });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -75,9 +79,17 @@ export const LateArrivalPenalty3 = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+
+      setRulesIds(18);
       toast.success("Hourly late penalty rate updated successfully!");
     } catch (error) {
       console.error("Error saving hourly late penalty rate:", error);

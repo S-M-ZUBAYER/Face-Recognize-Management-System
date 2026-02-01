@@ -25,19 +25,19 @@ const SearchBox = memo(
       <div className="flex items-center gap-2">
         <input
           type="text"
-          placeholder="Search by Date, ID, Name or Department..."
+          placeholder="Search by Date, Id, Mac, Name or Department..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+          className="w-[16vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
         />
         <button
           onClick={handleSearch}
           disabled={!searchInput.trim()}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             searchInput.trim()
-              ? "bg-[#004368] text-white hover:bg-[#003155]"
-              : "bg-gray-400 text-white cursor-not-allowed"
+              ? "bg-[#004368] text-white "
+              : "bg-[#004368] text-white cursor-not-allowed"
           }`}
         >
           Search
@@ -45,14 +45,14 @@ const SearchBox = memo(
         {searchQuery && (
           <button
             onClick={handleReset}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 bg-[#004368] text-white rounded-md text-sm  transition-colors"
           >
             Reset
           </button>
         )}
       </div>
     );
-  }
+  },
 );
 
 const AttendanceTable = ({ employees = [] }) => {
@@ -121,12 +121,14 @@ const AttendanceTable = ({ employees = [] }) => {
         .toString()
         .toLowerCase();
       const department = (emp?.department || "").toLowerCase();
+      const deviceMac = (emp?.deviceMAC || "").toLowerCase();
 
       return (
         date.includes(query) ||
         name.includes(query) ||
         empId.includes(query) ||
-        department.includes(query)
+        department.includes(query) ||
+        deviceMac.includes(query)
       );
     });
   }, [employees, searchQuery]);
@@ -168,7 +170,7 @@ const AttendanceTable = ({ employees = [] }) => {
       // Available width for designation and department
       const availableForDynamic = Math.max(
         0,
-        availableWidth - totalFixedWidth - 50
+        availableWidth - totalFixedWidth - 50,
       );
 
       // Minimum widths
@@ -211,15 +213,15 @@ const AttendanceTable = ({ employees = [] }) => {
         ...fixedWidths,
         designation: Math.max(
           minWidths.designation,
-          availableForDynamic * designationRatio
+          availableForDynamic * designationRatio,
         ),
         department: Math.max(
           minWidths.department,
-          availableForDynamic * departmentRatio
+          availableForDynamic * departmentRatio,
         ),
       };
     },
-    [employees, maxPunchCount]
+    [employees, maxPunchCount],
   );
 
   // Columns definition with responsive widths
@@ -247,7 +249,7 @@ const AttendanceTable = ({ employees = [] }) => {
   // Selection logic
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
-    [selectedEmployees]
+    [selectedEmployees],
   );
 
   const isAllSelected = useMemo(() => {
@@ -288,13 +290,13 @@ const AttendanceTable = ({ employees = [] }) => {
     if (isAllSelected) {
       const filteredIds = new Set(
         filteredData.map(
-          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-        )
+          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id,
+        ),
       );
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
       const newIds = filteredData.map(
-        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
+        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id,
       );
       setSelectedEmployees((prev) => {
         const newSet = new Set(prev);
@@ -308,10 +310,10 @@ const AttendanceTable = ({ employees = [] }) => {
     () =>
       employees.filter((emp) =>
         selectedEmployees.includes(
-          emp.companyEmployeeId || emp.employeeId || emp.id
-        )
+          emp.companyEmployeeId || emp.employeeId || emp.id,
+        ),
       ),
-    [employees, selectedEmployees]
+    [employees, selectedEmployees],
   );
 
   useEffect(() => {
@@ -413,8 +415,8 @@ const AttendanceTable = ({ employees = [] }) => {
             content = Array.isArray(checkIn)
               ? checkIn[punchIndex] || ""
               : punchIndex === 0
-              ? checkIn || ""
-              : "";
+                ? checkIn || ""
+                : "";
           }
       }
 
@@ -451,12 +453,11 @@ const AttendanceTable = ({ employees = [] }) => {
         </div>
       );
     },
-    [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee]
+    [filteredData, columns, selectedEmployeeIdsSet, toggleSelectEmployee],
   );
 
   // Loading and empty states
-  const isLoading =
-    isProcessing || isFilterLoading || isRefreshing || isInitialLoad;
+  const isLoading = isProcessing || isFilterLoading || isRefreshing;
   const hasData = employees.length > 0;
   const hasFilteredData = filteredData.length > 0;
 

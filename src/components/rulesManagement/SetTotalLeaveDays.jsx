@@ -3,6 +3,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const SetTotalLeaveDays = () => {
   const [totalDays, setTotalDays] = useState("");
@@ -17,10 +19,11 @@ export const SetTotalLeaveDays = () => {
     "Rest Leave": "",
     Others: "",
   });
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
   // Calculate total from leave categories
@@ -177,10 +180,17 @@ export const SetTotalLeaveDays = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
 
+      setGlobalRulesIds(24);
       toast.success("Leave settings updated successfully!");
     } catch (error) {
       console.error("Error saving leave settings:", error);
@@ -216,6 +226,7 @@ export const SetTotalLeaveDays = () => {
               type="number"
               value={totalDays}
               onChange={(e) => handleTotalDaysChange(e.target.value)}
+              disabled
               placeholder="0"
               min="0"
               className="w-50 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#004368] focus:border-transparent"

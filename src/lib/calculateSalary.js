@@ -1,9 +1,9 @@
-import calculateHourlySalary from "./calculateHourlySalary";
-import calculateLeaveDeductions from "./calculateLeaveDeductions";
-import { calculateWeeklySalary } from "./calculateWeeklySalary";
-import calculateWorkedTime from "./calculateWorkedTime";
-import countWorkingMissPunch from "./countWorkingMissPunch";
-import { getFullDayLeaveDates } from "./getFullDayLeaveDates";
+import calculateHourlySalary from "./calculateSalary/calculateHourlySalary";
+import calculateLeaveDeductions from "./calculateSalary/calculateLeaveDeductions";
+import { calculateRangeSalary } from "./calculateRangeSalary";
+import calculateWorkedTime from "./calculateSalary/calculateWorkedTime";
+import countWorkingMissPunch from "./calculateSalary/countWorkingMissPunch";
+import { getFullDayLeaveDates } from "./calculateSalary/getFullDayLeaveDates";
 import punchAndShiftDetails from "./punchAndShiftDetails";
 
 function toMinutes(time) {
@@ -207,7 +207,7 @@ function getWorkingDaysInMonth(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet,
-  fullDayLeaveDates
+  fullDayLeaveDates,
 ) {
   let workingDays = 0;
   let thisMonthLeave = 0;
@@ -232,7 +232,7 @@ function getWorkingDaysInMonth(
 
     // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
+      thisMonthLeave++;
       continue;
     }
 
@@ -269,7 +269,7 @@ function getWorkingDaysUpToDate(
   holidaysSet,
   generalDaysSet,
   replaceDaysSet,
-  fullDayLeaveDates // Add this parameter
+  fullDayLeaveDates, // Add this parameter
   // id
 ) {
   let workingDays = 0;
@@ -294,6 +294,10 @@ function getWorkingDaysUpToDate(
 
     // Check holidays
     if (holidaysSet.has(dateStr)) {
+      continue;
+    }
+
+    if (replaceDaysSet.has(dateStr)) {
       continue;
     }
     futureAbsent++;
@@ -321,7 +325,7 @@ function getWorkingDaysUpToDate(
 
     // Check replacement days first (these override everything)
     if (replaceDaysSet.has(dateStr)) {
-      workingDays++;
+      thisMonthLeave++;
       continue;
     }
 
@@ -343,6 +347,9 @@ function getWorkingDaysUpToDate(
       continue;
     }
 
+    // if (id === "2109058927") {
+    //   console.log(dateStr, workingDays);
+    // }
     // Normal working day
     workingDays++;
   }
@@ -376,6 +383,41 @@ function identifyShiftType(shifts) {
 
   return endMinutes <= startMinutes ? "Night Shift" : "Day Shift";
 }
+// Helper function to check if date exists in latePunchDocuments
+function isDateInLatePunchDocuments(latePunchDocuments, date) {
+  if (!latePunchDocuments || latePunchDocuments.length === 0) return false;
+
+  const targetDateStr = new Date(date).toISOString().split("T")[0];
+
+  return latePunchDocuments.some((doc) => {
+    const docDateStr = doc.date.split("T")[0];
+    return docDateStr === targetDateStr;
+  });
+}
+
+// Helper function to get startTime from latePunchDocuments for a specific date
+function getStartTimeFromLateDoc(latePunchDocuments, date) {
+  if (!latePunchDocuments || latePunchDocuments.length === 0) return null;
+
+  return (
+    latePunchDocuments.find((doc) => doc.date.split("T")[0] === date)
+      ?.startTime || null
+  );
+}
+
+// Helper function to check if punch time is near approved start time
+function isPunchNearApprovedTime(
+  punchTime,
+  approvedStartTime,
+  toleranceMinutes = 60,
+) {
+  if (!punchTime || !approvedStartTime) return false;
+
+  const punchMins = toMinutes(punchTime);
+  const approvedMins = toMinutes(approvedStartTime);
+
+  return Math.abs(punchMins - approvedMins) <= toleranceMinutes;
+}
 
 export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
@@ -407,20 +449,16 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   if (payPeriod.payPeriod === "hourly") {
     return calculateHourlySalary(attendanceRecords, salaryRules, payPeriod);
   }
-  if (payPeriod.payPeriod === "weekly") {
+  if (
+    payPeriod.payPeriod === "weekly" ||
+    payPeriod.payPeriod === "biWeekly" ||
+    payPeriod.payPeriod === "semiMonthly" ||
+    payPeriod.payPeriod === "monthly"
+  ) {
     let startDate = undefined;
     let endDate = undefined;
-    return calculateWeeklySalary(
-      payPeriod,
-      salaryRules,
-      startDate,
-      endDate,
-      id
-    );
+    return calculateRangeSalary(payPeriod, salaryRules, startDate, endDate, id);
   }
-  // if (id === "3531774215") {
-  //   console.log(attendanceRecords);
-  // }
 
   const rulesArr = Array.isArray(salaryRules.rules)
     ? salaryRules.rules
@@ -434,23 +472,24 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const generalDaysArr = Array.isArray(salaryRules.generalDays)
     ? salaryRules.generalDays
     : tryParseMaybeString(salaryRules.generalDays);
-  const replaceDaysArr = Array.isArray(salaryRules.replaceDays)
-    ? salaryRules.replaceDays
-    : tryParseMaybeString(salaryRules.replaceDays);
+  const replaceDaysArr = (salaryRules?.replaceDays ?? [])
+    .filter((item) => item?.rdate)
+    .map((item) => item.rdate.split("T")[0])
+    .filter(Boolean);
 
   const holidaysSet = new Set(
-    (holidaysArr || []).map(normalizeDate).filter(Boolean)
+    (holidaysArr || []).map(normalizeDate).filter(Boolean),
   );
   const replaceDaysSet = new Set(
-    (replaceDaysArr || []).map(normalizeDate).filter(Boolean)
+    (replaceDaysArr || []).map(normalizeDate).filter(Boolean),
   );
   const generalDaysSet = new Set(
-    (generalDaysArr || []).map(normalizeDate).filter(Boolean)
+    (generalDaysArr || []).map(normalizeDate).filter(Boolean),
   );
 
   const weekendDayNames = new Set();
   const allRule3s = filteredRules.filter(
-    (r) => String(r.ruleId) === String(3 - 1) && Number(r.ruleStatus) === 1
+    (r) => String(r.ruleId) === String(3 - 1) && Number(r.ruleStatus) === 1,
   );
   allRule3s.forEach((r) => {
     const params = getParamsArray(r);
@@ -484,6 +523,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule7 = getRule(7);
   const rule7Enabled = !!rule7;
+  const lateTimeModular = Number(rule7?.param1 || 0);
+  const lateTimeCost = Number(rule7?.param2 || 0);
 
   const rule8 = getRule(8);
   const minOTUnit = Number(firstNumericParam(rule8) || 0);
@@ -494,9 +535,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule10 = getRule(10);
   // const holidayMultiplier = Number(firstNumericParam(rule10) || 0);
-  const holidayNormalShiftMultiplier = Number(secondNumericParam(rule10) || 1);
+  const holidayNormalShiftMultiplier = Number(rule10?.param2 || 1);
 
   const rule11 = getRule(11);
+
+  const latePunchDocuments = salaryRules.latePunchDocuments || [];
 
   // const mLeaves = salaryRules.m_leaves || [];
   // const marLeaves = salaryRules.mar_leaves || [];
@@ -525,7 +568,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   const rule20 = getRule(20);
   const rule20Threshold = Number((rule20 && firstNumericParam(rule20)) || 0);
   const rule20Fixed = Number(
-    (rule20 && firstNonEmptyParam(rule20) && rule20.param2) || 0
+    (rule20 && firstNonEmptyParam(rule20) && rule20.param2) || 0,
   );
 
   const rule21 = getRule(21);
@@ -541,11 +584,11 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const rule24 = getRule(24);
 
-  const overtimeAllowed = rule24 ? true : false;
+  const overtimeAllowed = rule24?.param1;
   const normalOTMultiplier = Number(rule24?.param2 || 1);
 
   const { checkedTotal, uncheckedTotal } = parseOtherSalary(
-    payPeriod.otherSalary
+    payPeriod.otherSalary,
   );
 
   const monthlySalary = Number(payPeriod.salary || 0) + checkedTotal;
@@ -625,7 +668,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       generalDaysSet,
       replaceDaysSet,
       fullDayLeaveDates,
-      id
+      id,
     );
     workingDaysUpToCurrent = details.workingDays;
     thisMonthLeave = details.thisMonthLeave;
@@ -641,7 +684,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       generalDaysSet,
       replaceDaysSet,
       fullDayLeaveDates,
-      id
+      id,
     );
     workingDaysUpToCurrent = details.workingDays;
     thisMonthLeave = details.thisMonthLeave;
@@ -651,8 +694,8 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
 
   const standardPay = monthlySalary + uncheckedTotal;
   const dailyRate = monthlySalary / payPeriod.hourlyRate || 0;
-  // if (id === "70709903") {
-  //   console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate);
+  // if (id === "70709905") {
+  //   console.log(monthlySalary, checkedTotal, payPeriod.hourlyRate, dailyRate);
   // }
 
   const punchDocs = Array.isArray(salaryRules.punchDocuments)
@@ -663,7 +706,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
     const doc = punchDocs.find(
       (d) =>
         normalizeDate(d.date) === normalizeDate(date) &&
-        String(d.empId) === String(empId)
+        String(d.empId) === String(empId),
     );
     if (doc) {
       if (doc.CutSalary === "No") return false;
@@ -708,7 +751,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       sLeaves,
       oLeaves,
       wLeaves,
-      attendanceRecords
+      attendanceRecords,
     );
     sLeaveDeduction = s_deduction;
     oLeaveDeduction = o_deduction;
@@ -768,7 +811,7 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
       weekendPresent += 1;
     } else if (isWorkingDay) {
       normalPresent += 1;
-      // if (id === "70709913") {
+      // if (id === "2109058927") {
       //   console.log(date, normalPresent);
       // }
     }
@@ -795,147 +838,242 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         missedPunch += missedCount.missPunchCount;
       }
 
-      // if (id === "8938086979") {
+      // if (id === "3531774219") {
       //   console.log("Missed punch on", date, missedCount, punches);
       // }
     }
 
     // NEW: Late count logic (only index 0 and index 2)
     // Index 0: Shift start
-    if (!rule6 && punches[0] && punches[0] !== "00:00" && shift[0]) {
-      const punchMins = toMinutes(punches[0]);
-      const shiftMins = toMinutes(shift[0]);
-      const lateThresh = shiftMins + latenessGraceMin;
+    // if (
+    //   !rule6 &&
+    //   punches[0] &&
+    //   punches[0] !== "00:00" &&
+    //   shift[0] &&
+    //   workingDecoded.length > 1
+    // ) {
+    //   const punchMins = toMinutes(punches[0]);
+    //   const shiftMins = toMinutes(shift[0]);
+    //   const lateThresh = shiftMins + latenessGraceMin;
+    //   const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
+    //   const approvedStartTime = getStartTimeFromLateDoc(
+    //     latePunchDocuments,
+    //     date
+    //   );
 
-      if (punchMins > lateThresh) {
-        const lateMins = punchMins - lateThresh;
-        lateCount += 1;
-        totalLatenessMinutes += lateMins;
+    //   // Skip late count if punch is near approved start time from late document
+    //   const shouldSkipLate =
+    //     hasLateDoc &&
+    //     (approvedStartTime !== null
+    //       ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+    //       : true);
 
-        if (identifyShiftType(workingDecoded) === "Day Shift") {
-          dayLateCount += 1;
-        } else if (identifyShiftType(workingDecoded) === "Night Shift") {
-          nightLateCount += 1;
-        }
+    //   // if (id === "2109058927") {
+    //   //   console.log(
+    //   //     hasLateDoc,
+    //   //     shouldSkipLate,
+    //   //     date,
+    //   //     approvedStartTime,
+    //   //     isPunchNearApprovedTime(punches[0], approvedStartTime)
+    //   //   );
+    //   // }
 
-        // if (id === "44141318") {
-        //   console.log("Late on", date, lateMins, latenessGraceMin);
-        // }
+    //   if (punchMins > lateThresh && !shouldSkipLate) {
+    //     const lateMins = punchMins - lateThresh;
+    //     lateCount += 1;
+    //     totalLatenessMinutes += lateMins;
 
-        if (rule18) {
-          halfDayLateCount += 1;
-        }
-      }
-    }
+    //     if (identifyShiftType(workingDecoded) === "Day Shift") {
+    //       dayLateCount += 1;
+    //     } else if (identifyShiftType(workingDecoded) === "Night Shift") {
+    //       nightLateCount += 1;
+    //     }
+    //     // if (id === "2109058927") {
+    //     //   console.log("Late on", date, lateMins, latenessGraceMin);
+    //     // }
 
-    // if (id === "70709917") {
-    //   console.log(latenessGraceMin);
+    //     if (rule18) {
+    //       halfDayLateCount += 1;
+    //     }
+    //   }
     // }
 
-    // Index 2: Lunch in
-    if (!rule6 && punches[2] && punches[2] !== "00:00" && shift[2]) {
-      const punchMins = toMinutes(punches[2]);
-      const shiftMins = toMinutes(shift[2]);
-      const lateThresh = shiftMins + latenessGraceMin;
+    // // Index 2: Lunch in
+    // if (
+    //   !rule6 &&
+    //   punches[2] &&
+    //   punches[2] !== "00:00" &&
+    //   shift[2] &&
+    //   workingDecoded.length > 1
+    // ) {
+    //   const punchMins = toMinutes(punches[2]);
+    //   const shiftMins = toMinutes(shift[2]);
+    //   const lateThresh = shiftMins + latenessGraceMin;
+    //   const hasLateDoc = isDateInLatePunchDocuments(latePunchDocuments, date);
+    //   const approvedStartTime = getStartTimeFromLateDoc(
+    //     latePunchDocuments,
+    //     date
+    //   );
 
-      if (punchMins > lateThresh) {
-        const lateMins = punchMins - lateThresh;
-        lateCount += 1;
-        totalLatenessMinutes += lateMins;
+    //   // Skip late count if punch is near approved start time from late document
+    //   const shouldSkipLate =
+    //     hasLateDoc &&
+    //     (approvedStartTime !== null
+    //       ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+    //       : true);
 
-        if (identifyShiftType(workingDecoded) === "Day Shift") {
-          dayLateCount += 1;
-        } else if (identifyShiftType(workingDecoded) === "Night Shift") {
-          nightLateCount += 1;
-        }
-        // if (id === "44141318") {
-        //   console.log(
-        //     "Late on",
-        //     date,
-        //     lateMins,
-        //     latenessGraceMin,
-        //     workingDecoded,
-        //     identifyShiftType(workingDecoded)
-        //   );
-        // }
+    //   if (punchMins > lateThresh && !shouldSkipLate) {
+    //     const lateMins = punchMins - lateThresh;
+    //     lateCount += 1;
+    //     totalLatenessMinutes += lateMins;
 
-        if (rule18 && punches[0] === "00:00" && punches[1] === "00:00") {
-          fullDayLateCount += 1;
-        } else if (rule18) {
-          halfDayLateCount += 1;
+    //     if (identifyShiftType(workingDecoded) === "Day Shift") {
+    //       dayLateCount += 1;
+    //     } else if (identifyShiftType(workingDecoded) === "Night Shift") {
+    //       nightLateCount += 1;
+    //     }
+    //     if (id === "2109058927") {
+    //       console.log(
+    //         "Late on",
+    //         date,
+    //         lateMins,
+    //         latenessGraceMin
+    //         // workingDecoded,
+    //         // identifyShiftType(workingDecoded)
+    //       );
+    //     }
+
+    //     if (rule18 && punches[0] === "00:00" && punches[1] === "00:00") {
+    //       fullDayLateCount += 1;
+    //     } else if (rule18) {
+    //       halfDayLateCount += 1;
+    //     }
+    //   }
+    // }
+    // Dynamically handle additional shifts (3rd, 4th, 5th, etc.)
+    if (workingDecoded) {
+      // Start from 1st shift to handle all shifts in workingDecoded
+      for (let shiftNum = 1; shiftNum <= workingDecoded.length; shiftNum++) {
+        const punchIndex = (shiftNum - 1) * 2; // 0 for 1st shift, 2 for 2nd, 4 for 3rd, etc.
+
+        if (
+          !rule6 &&
+          shift[punchIndex] &&
+          punches[punchIndex] &&
+          punches[punchIndex] !== "00:00"
+        ) {
+          const punchMins = toMinutes(punches[punchIndex]);
+          const shiftMins = toMinutes(shift[punchIndex]);
+          const lateThresh = shiftMins + latenessGraceMin;
+
+          // Check if date has late punch document
+          const hasLateDoc = isDateInLatePunchDocuments(
+            latePunchDocuments,
+            date,
+          );
+          const approvedStartTime = getStartTimeFromLateDoc(
+            latePunchDocuments,
+            date,
+          );
+
+          // Skip late count if punch is near approved start time from late document
+          const shouldSkipLate =
+            hasLateDoc &&
+            (approvedStartTime !== null
+              ? isPunchNearApprovedTime(punches[0], approvedStartTime)
+              : true);
+          if (punchMins > lateThresh && !shouldSkipLate) {
+            const lateMins = punchMins - lateThresh;
+            lateCount += 1;
+            totalLatenessMinutes += lateMins;
+
+            if (identifyShiftType(workingDecoded) === "Day Shift") {
+              dayLateCount += 1;
+            } else if (identifyShiftType(workingDecoded) === "Night Shift") {
+              nightLateCount += 1;
+            }
+
+            if (rule18) {
+              halfDayLateCount += 1;
+            }
+
+            // Optional: Debug log
+            // if (id === "7070969796") {
+            //   console.log(`Late on shift ${shiftNum}`, date, lateMins);
+            // }
+          }
         }
       }
     }
 
     // NEW: Early departure logic (only index 1 and index 3)
-    // Index 1: Lunch out
-    if (punches[1] && punches[1] !== "00:00" && shift[1]) {
-      const punchMins = toMinutes(punches[1]);
-      let shiftMins = toMinutes(shift[1]);
-      if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
-        const shiftStartMins = toMinutes(shift[0]);
-        const lateThresh = shiftStartMins + latenessGraceMin;
-        const dayLateMins = Math.max(0, toMinutes(punches[0]) - lateThresh);
+    // Calculate number of shifts based on workingDecoded array length
+    const numShifts = workingDecoded ? workingDecoded.length : 0;
 
-        if (dayLateMins > 0) {
-          const units = Math.ceil(dayLateMins * perMinExtraUnite);
-          shiftMins = shiftMins + units;
+    // Loop through each shift
+    for (let shiftIndex = 0; shiftIndex < numShifts; shiftIndex++) {
+      // Each shift has: start punch (0, 2, 4...) and end punch (1, 3, 5...)
+      const startPunchIndex = shiftIndex * 2; // 0, 2, 4
+      const endPunchIndex = startPunchIndex + 1; // 1, 3, 5
+
+      // Check shift end (early departure)
+      if (
+        punches[endPunchIndex] &&
+        punches[endPunchIndex] !== "00:00" &&
+        shift[endPunchIndex]
+      ) {
+        const punchMins = toMinutes(punches[endPunchIndex]);
+        let shiftEndMins = toMinutes(shift[endPunchIndex]);
+
+        // Apply flex rule if applicable (only for shift end, not start)
+        if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
+          // Find the corresponding start punch for this shift (the start of this shift block)
+          const shiftStartPunchIndex = startPunchIndex; // This shift's start
+          const shiftStartMins = toMinutes(shift[shiftStartPunchIndex]);
+          const lateThresh = shiftStartMins + latenessGraceMin;
+
+          // Check if there was lateness at the start of this shift
+          if (
+            punches[shiftStartPunchIndex] &&
+            punches[shiftStartPunchIndex] !== "00:00"
+          ) {
+            const dayLateMins = Math.max(
+              0,
+              toMinutes(punches[shiftStartPunchIndex]) - lateThresh,
+            );
+
+            if (dayLateMins > 0) {
+              const units = Math.ceil(dayLateMins * perMinExtraUnite);
+              shiftEndMins = shiftEndMins + units;
+            }
+          }
         }
-      }
 
-      if (punchMins < shiftMins) {
-        earlyDepartureCount += 1;
+        if (punchMins < shiftEndMins) {
+          earlyDepartureCount += 1;
 
-        // if (id === "2109058928") {
-        //   console.log(
-        //     "Early departure on",
-        //     date,
-        //     punchMins,
-        //     shiftMins,
-        //     punches[1],
-        //     shift[1],
-        //     "RAW SHIFT MINS:",
-        //     toMinutes(shift[1])
-        //   );
-        // }
+          // Debug for specific employee
+          // if (id === "2109058928") {
+          //   console.log(
+          //     `Early departure on shift ${shiftIndex + 1}`,
+          //     date,
+          //     punches[endPunchIndex],
+          //     shift[endPunchIndex],
+          //     "Difference:", shiftEndMins - punchMins, "minutes"
+          //   );
+          // }
+        }
       }
     }
 
-    // Index 3: Shift end
-    if (punches[3] && punches[3] !== "00:00" && shift[3]) {
-      const punchMins = toMinutes(punches[3]);
-      let shiftEndMins = toMinutes(shift[3]);
-
-      // Apply flex rule if applicable
-      if (rule6 && flexLateUnit > 0 && flexExtraUnit > 0) {
-        const LunchEndMins = toMinutes(shift[2]);
-        const lateThresh = LunchEndMins + latenessGraceMin;
-        const dayLateMins = Math.max(0, toMinutes(punches[2]) - lateThresh);
-
-        if (dayLateMins > 0) {
-          const units = Math.ceil(dayLateMins * perMinExtraUnite);
-          shiftEndMins = shiftEndMins + units;
-        }
-      }
-
-      if (punchMins < shiftEndMins) {
-        earlyDepartureCount += 1;
-
-        // if (id === "2109058928") {
-        //   console.log(
-        //     "Early departure on",
-        //     date,
-        //     punchMins,
-        //     shiftEndMins,
-        //     punches[3],
-        //     shift[3],
-        //     "RAW SHIFT MINS:",
-        //     toMinutes(shift[3])
-        //   );
-        // }
-      }
-    }
-
+    // if (isWeekend) {
+    //   if (id === "7070969796") {
+    //     console.log(
+    //       workingDecoded && overtimeDecoded && punches.length >= 2,
+    //       date
+    //     );
+    //   }
+    // }
     // NEW: Overtime calculation
     if (workingDecoded && overtimeDecoded && punches.length >= 2) {
       // Calculate working time (if needed)
@@ -985,6 +1123,14 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         overtimeHoliday += calculateWorkedTime(workingDecoded, punches);
       } else if (isWeekend) {
         overtimeWeekend += calculateWorkedTime(workingDecoded, punches);
+        // if (id === "70709908") {
+        //   console.log(
+        //     date,
+        //     workingDecoded,
+        //     punches,
+        //     calculateWorkedTime(workingDecoded, punches)
+        //   );
+        // }
       } else {
         overtimeNormal += otMinutes;
         // if (id === "8938086979") {
@@ -1026,9 +1172,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         overtimeWeekend += otMinutes;
       } else {
         overtimeNormal += otMinutes;
-        if (id === "8938086979") {
-          console.log(date, overtimeNormal);
-        }
+        // if (id === "8938086979") {
+        //   console.log(date, overtimeNormal);
+        // }
       }
       if (rule8 && minOTUnit > 0) {
         overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
@@ -1073,9 +1219,9 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
         overtimeWeekend += otMinutes;
       } else {
         overtimeNormal += otMinutes;
-        if (id === "8938086979") {
-          console.log(date, overtimeNormal);
-        }
+        // if (id === "8938086979") {
+        //   console.log(date, overtimeNormal);
+        // }
       }
       if (rule8 && minOTUnit > 0) {
         overtimeNormal = roundOvertime(overtimeNormal, minOTUnit);
@@ -1165,19 +1311,29 @@ export function calculateSalary(attendanceRecords, payPeriod, salaryRules, id) {
   // }
 
   if (rule7Enabled && totalLatenessMinutes > 0) {
-    let remaining = totalLatenessMinutes;
-    const useFromHoliday = Math.min(remaining, overtimeHoliday);
-    overtimeHoliday -= useFromHoliday;
-    remaining -= useFromHoliday;
-    if (remaining > 0) {
+    const lateness = (lateTimeCost / lateTimeModular) * totalLatenessMinutes;
+    let remaining = lateness;
+
+    // Deduct from holiday overtime
+    if (overtimeHoliday > 0) {
+      const useFromHoliday = Math.min(remaining, overtimeHoliday);
+      overtimeHoliday -= useFromHoliday;
+      remaining -= useFromHoliday;
+      totalLatenessMinutes = 0;
+    }
+    // Deduct from weekend overtime
+    else if (overtimeWeekend > 0) {
       const useFromWeekend = Math.min(remaining, overtimeWeekend);
       overtimeWeekend -= useFromWeekend;
       remaining -= useFromWeekend;
+      totalLatenessMinutes = 0;
     }
-    if (remaining > 0) {
+    // Deduct from normal overtime
+    else if (overtimeNormal > 0) {
       const useFromNormal = Math.min(remaining, overtimeNormal);
       overtimeNormal -= useFromNormal;
       remaining -= useFromNormal;
+      totalLatenessMinutes = 0;
     }
   }
 

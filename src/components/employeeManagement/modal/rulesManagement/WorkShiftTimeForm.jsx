@@ -12,6 +12,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WorkShiftTimeForm = () => {
   const { selectedEmployees, updateEmployeeSalaryRules } =
@@ -22,6 +23,7 @@ export const WorkShiftTimeForm = () => {
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
@@ -288,45 +290,45 @@ export const WorkShiftTimeForm = () => {
   // ===== Save handler =====
   const handleSave = async () => {
     try {
-      if (shiftType === "normal") {
-        if (workingTimes.length === 0) {
-          toast.error("Please add at least one working time before saving!");
-          return;
-        }
-        if (overtimes.length === 0) {
-          toast.error("Please add at least one overtime before saving!");
-          return;
-        }
-      }
+      // if (shiftType === "normal") {
+      //   if (workingTimes.length === 0) {
+      //     toast.error("Please add at least one working time before saving!");
+      //     return;
+      //   }
+      //   if (overtimes.length === 0) {
+      //     toast.error("Please add at least one overtime before saving!");
+      //     return;
+      //   }
+      // }
 
-      if (shiftType === "special") {
-        if (specialDates.length === 0) {
-          toast.error("Please select at least one special date!");
-          return;
-        }
+      // if (shiftType === "special") {
+      //   if (specialDates.length === 0) {
+      //     toast.error("Please select at least one special date!");
+      //     return;
+      //   }
 
-        // Check for each selected date
-        for (const date of specialDates) {
-          const dateStr = date;
-          const config = dateConfigs[dateStr];
-          if (!config || config.workingTimes.length === 0) {
-            toast.error(
-              `Please add at least one working time for ${formatDateForDisplay(
-                date
-              )}!`
-            );
-            return;
-          }
-          if (!config || config.overtimes.length === 0) {
-            toast.error(
-              `Please add at least one overtime for ${formatDateForDisplay(
-                date
-              )}!`
-            );
-            return;
-          }
-        }
-      }
+      //   // Check for each selected date
+      //   for (const date of specialDates) {
+      //     const dateStr = date;
+      //     const config = dateConfigs[dateStr];
+      //     if (!config || config.workingTimes.length === 0) {
+      //       toast.error(
+      //         `Please add at least one working time for ${formatDateForDisplay(
+      //           date
+      //         )}!`
+      //       );
+      //       return;
+      //     }
+      //     if (!config || config.overtimes.length === 0) {
+      //       toast.error(
+      //         `Please add at least one overtime for ${formatDateForDisplay(
+      //           date
+      //         )}!`
+      //       );
+      //       return;
+      //     }
+      //   }
+      // }
 
       // Check if any employees are selected
       if (selectedEmployees.length === 0) {
@@ -426,13 +428,16 @@ export const WorkShiftTimeForm = () => {
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        updateEmployeeSalaryRules(employeeId, parseNormalData(updatedJSON));
-
         // ✅ Use the mutation function instead of calling the hook directly
         await updateEmployee({
           mac: emp?.deviceMAC || "",
           id: employeeId,
           payload,
+        });
+
+        updateEmployeeSalaryRules(employeeId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(emp.employeeId, emp.deviceMAC || "", {
+          salaryRules: parseNormalData(updatedJSON),
         });
 
         toast.success(`Shift configuration saved for employee ${employeeId}!`);

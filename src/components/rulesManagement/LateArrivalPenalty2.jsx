@@ -2,11 +2,14 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalPenalty2 = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { setGlobalRulesIds } = useUserStore();
 
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
   // Save rule configuration
@@ -66,8 +69,16 @@ export const LateArrivalPenalty2 = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(17);
 
       toast.success("Late arrival penalty rule activated successfully!");
     } catch (error) {

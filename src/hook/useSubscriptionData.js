@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useUserData } from "./useUserData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 
 const BASE_URL = "https://grozziieget.zjweiting.com:8033/tht/attendance";
 
@@ -37,12 +37,11 @@ async function fetchPaymentInfo(email) {
 export function usePaymentInfo() {
   const { user } = useUserData();
   const { setPaymentStatus } = useSubscriptionStore();
-  const currentDate = useMemo(() => new Date(), []);
 
   const query = useQuery({
-    queryKey: ["payment-info", user?.userEmail],
-    queryFn: () => fetchPaymentInfo(user?.userEmail),
-    enabled: !!user?.userEmail,
+    queryKey: ["payment-info", user?.alternateEmail || user?.userEmail],
+    queryFn: () => fetchPaymentInfo(user?.alternateEmail || user?.userEmail),
+    enabled: !!user?.alternateEmail || !!user?.userEmail,
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
     refetchOnWindowFocus: false,
@@ -52,16 +51,19 @@ export function usePaymentInfo() {
   useEffect(() => {
     if (!query.data) return;
 
+    const expireDate = new Date(query.data.paymentExpireTime);
+    const today = new Date();
+
+    // Normalize both dates to start of day
+    expireDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
     if (query.data.paymentStatus === 0) {
       setPaymentStatus(false);
-    } else if (
-      query.data.paymentStatus === 1 &&
-      query.data.package_name !== "FreeTrial" &&
-      new Date(query.data.paymentExpireTime) < currentDate
-    ) {
-      setPaymentStatus(true);
+    } else if (query.data.package_name !== "FreeTrial" && expireDate >= today) {
+      setPaymentStatus(true); // active / valid
     }
-  }, [query.data, setPaymentStatus, currentDate]);
+  }, [query.data]);
 
   return query; // 👍 return full query object
 }

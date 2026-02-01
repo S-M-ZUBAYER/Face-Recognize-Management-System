@@ -9,6 +9,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertNumbersToStrings from "@/lib/convertNumbersToStrings";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 function MonthlyForm() {
   const [basic, setBasic] = useState("");
@@ -21,6 +23,7 @@ function MonthlyForm() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const { selectedEmployee } = useEditEmployeeStore();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total from additional salaries
   const otherSalaryTotal = additionalSalaries.reduce((total, salary) => {
@@ -109,23 +112,23 @@ function MonthlyForm() {
 
   const removeSalarySection = (id) => {
     setAdditionalSalaries(
-      additionalSalaries.filter((salary) => salary.id !== id)
+      additionalSalaries.filter((salary) => salary.id !== id),
     );
   };
 
   const updateSalarySectionType = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, type: value } : salary
-      )
+        salary.id === id ? { ...salary, type: value } : salary,
+      ),
     );
   };
 
   const updateSalarySectionAmount = (id, value) => {
     setAdditionalSalaries(
       additionalSalaries.map((salary) =>
-        salary.id === id ? { ...salary, amount: value } : salary
-      )
+        salary.id === id ? { ...salary, amount: value } : salary,
+      ),
     );
   };
 
@@ -146,8 +149,8 @@ function MonthlyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -165,7 +168,7 @@ function MonthlyForm() {
     const employeePayPeriod = {
       employeeId: selectedEmployee?.employeeId || 0,
       hourlyRate: parseFloat(workingDay) || 26,
-      isSelectedFixedHourlyRate: selectedOvertimeOption === "fixed-input",
+      isSelectedFixedHourlyRate: true,
       leave: "",
       name: parseInt(workingHours) || 8,
       otherSalary: otherSalaryArray,
@@ -197,6 +200,11 @@ function MonthlyForm() {
         id: selectedEmployee?.employeeId,
         payload: { payPeriod: payPeriodJSON },
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryInfo: parseNormalData(payPeriodJSON) },
+      );
       toast.success("Employee updated successfully!");
     } catch {
       toast.error("Failed to update employee.");
@@ -284,7 +292,7 @@ function MonthlyForm() {
                 readOnly={isReadOnly}
               />
             </div>
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -295,18 +303,20 @@ function MonthlyForm() {
                 className={checkboxStyle}
                 checked={salary.isChecked !== false}
                 onCheckedChange={(
-                  checked // ← FIXED THIS LINE
+                  checked, // ← FIXED THIS LINE
                 ) => toggleSalaryCheckbox(salary.id, checked)}
               />
               <div className="flex gap-2">
                 <Input
                   value={salary.type}
-                  onChange={(e) =>
-                    updateSalarySectionType(salary.id, e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[0-9]/g, "");
+                    updateSalarySectionType(salary.id, value);
+                  }}
                   className="w-40"
                   placeholder="Salary Type"
                 />
+
                 <Input
                   value={salary.amount}
                   onChange={(e) =>
@@ -332,7 +342,7 @@ function MonthlyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0]"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             style={{ padding: "16px 52px" }}
             onClick={addSalarySection}
           >

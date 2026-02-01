@@ -4,8 +4,10 @@ import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { DEFAULT_QUERY_CONFIG, INFINITE_QUERY_CONFIG } from "./queryConfig";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
 export const useLeaveData = () => {
+  const { selectedDate } = useAttendanceStore();
   const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -22,20 +24,20 @@ export const useLeaveData = () => {
             .catch((error) => {
               console.error(
                 `❌ Failed to fetch leaves for device ${mac.deviceMAC}:`,
-                error
+                error,
               );
               return { data: [] }; // Return empty array for failed requests
-            })
-        )
+            }),
+        ),
       );
 
       const leavesData = response.flatMap((res) => res.data || []);
 
       // Process leaves with employee data
-      return leavesData.map((leave, index) => {
+      return leavesData.map((leave) => {
         // Find matching employee by employeeId
         const matchingEmployee = Employees?.find(
-          (emp) => emp.employeeId === leave.employeeId
+          (emp) => emp.employeeId === leave.employeeId,
         );
 
         // Safe JSON parsing with fallbacks
@@ -47,7 +49,7 @@ export const useLeaveData = () => {
         } catch (parseError) {
           console.warn(
             `Failed to parse approverName for leave ${leave.id}:`,
-            parseError
+            parseError,
           );
         }
 
@@ -56,13 +58,12 @@ export const useLeaveData = () => {
         } catch (parseError) {
           console.warn(
             `Failed to parse description for leave ${leave.id}:`,
-            parseError
+            parseError,
           );
         }
 
         return {
           ...leave,
-          id: leavesData.length - index,
           approverName,
           description,
           // Add employee image if found
@@ -92,7 +93,11 @@ export const useLeaveData = () => {
     queryFn: fetchLeaves,
     enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
     ...DEFAULT_QUERY_CONFIG,
-    select: (data) => data.sort((a, b) => (b.id || 0) - (a.id || 0)),
+    select: (data) =>
+      data.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
   });
 
   // Update leave mutation
@@ -100,7 +105,7 @@ export const useLeaveData = () => {
     mutationFn: async (updatedLeave) => {
       const response = await apiClient.put(
         getApiUrl("/leave/update"),
-        updatedLeave
+        updatedLeave,
       );
       return response.data;
     },
@@ -120,15 +125,12 @@ export const useLeaveData = () => {
     return updateLeaveMutation.mutateAsync(leaveData);
   };
 
-  // Count leave categories for today's date
-  const today = new Date().toISOString().split("T")[0];
-
   const leaveCategoryCounts = leaves.reduce((acc, leave) => {
     if (leave.startDate && leave.endDate) {
       try {
         const start = new Date(leave.startDate);
         const end = new Date(leave.endDate);
-        const current = new Date(today);
+        const current = new Date(selectedDate);
 
         if (current >= start && current <= end) {
           const category = leave.leaveCategory || "Unknown";
@@ -146,7 +148,7 @@ export const useLeaveData = () => {
     ([category, count]) => ({
       category,
       count,
-    })
+    }),
   );
 
   const isLoading = leavesLoading || macsLoading;

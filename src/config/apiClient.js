@@ -12,14 +12,17 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(`🚀 API Call: ${config.method?.toUpperCase()} ${config.url}`);
+    // console.log(`🚀 API Call: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
     console.error("❌ Request Error:", error);
-    useErrorStore.getState().showError("Request failed - please try again");
+    // Only show error modal for GET requests
+    if (error.config?.method?.toUpperCase() === "GET") {
+      useErrorStore.getState().showError("Request failed - please try again");
+    }
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor
@@ -34,21 +37,27 @@ apiClient.interceptors.response.use(
       message: error.message,
     });
 
-    let errorMessage = "An unexpected error occurred";
+    // Only show error modal for GET requests
+    const isGetRequest = error.config?.method?.toUpperCase() === "GET";
+    const is404 = error.response?.status === 404;
 
-    if (!error.response) {
-      errorMessage = "Network error - please check your internet connection";
-    } else if (error.response.status >= 500) {
-      errorMessage = "Server error - please try again later";
-    } else if (error.response.data?.message) {
-      errorMessage = error.response.data.message;
+    if (isGetRequest && !is404) {
+      let errorMessage = "An unexpected error occurred";
+
+      if (!error.response) {
+        errorMessage = "Network error - please check your internet connection";
+      } else if (error.response.status >= 500) {
+        errorMessage = "Server error - please try again later";
+      } else if (error.response.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      // Show error modal only for GET requests
+      useErrorStore.getState().showError(errorMessage);
     }
 
-    // Show error modal
-    useErrorStore.getState().showError(errorMessage);
-
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

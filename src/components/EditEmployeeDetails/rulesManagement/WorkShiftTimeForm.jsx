@@ -10,6 +10,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WorkShiftTimeForm = () => {
   const [shiftType, setShiftType] = useState("normal");
@@ -17,6 +19,7 @@ export const WorkShiftTimeForm = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const [workingTimes, setWorkingTimes] = useState([
     { id: 1, label: "Working Time 1", startTime: "08:00", endTime: "12:00" },
@@ -541,24 +544,24 @@ export const WorkShiftTimeForm = () => {
         }
 
         // Check each special date has at least one working time and overtime
-        for (const date of specialDates) {
-          const dateStr = formatDateForDisplay(date);
-          const config = dateConfigs[dateStr];
+        // for (const date of specialDates) {
+        //   const dateStr = formatDateForDisplay(date);
+        //   const config = dateConfigs[dateStr];
 
-          if (
-            !config ||
-            !config.workingTimes ||
-            config.workingTimes.length === 0
-          ) {
-            toast.error(`Please add at least one working time for ${dateStr}!`);
-            return;
-          }
+        //   if (
+        //     !config ||
+        //     !config.workingTimes ||
+        //     config.workingTimes.length === 0
+        //   ) {
+        //     toast.error(`Please add at least one working time for ${dateStr}!`);
+        //     return;
+        //   }
 
-          if (!config || !config.overtimes || config.overtimes.length === 0) {
-            toast.error(`Please add at least one overtime for ${dateStr}!`);
-            return;
-          }
-        }
+        //   if (!config || !config.overtimes || config.overtimes.length === 0) {
+        //     toast.error(`Please add at least one overtime for ${dateStr}!`);
+        //     return;
+        //   }
+        // }
       }
 
       // Validation for normal shift type
@@ -665,6 +668,12 @@ export const WorkShiftTimeForm = () => {
         payload,
       });
 
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
+
       toast.success("Shift rules updated successfully!");
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
@@ -691,6 +700,12 @@ export const WorkShiftTimeForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
@@ -986,14 +1001,6 @@ export const WorkShiftTimeForm = () => {
       </div>
 
       <div className=" flex items-center w-full justify-between mt-4 gap-4">
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          disabled={updating}
-          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {updating ? "Saving..." : "Save"}
-        </button>
         {/* Delete */}
 
         <button
@@ -1002,6 +1009,14 @@ export const WorkShiftTimeForm = () => {
           className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updating ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={updating}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updating ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

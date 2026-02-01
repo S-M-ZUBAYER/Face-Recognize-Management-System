@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const WeekendOvertime = () => {
   // const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
@@ -11,7 +13,10 @@ export const WeekendOvertime = () => {
     useState("");
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save weekend overtime configuration
   const handleSave = async () => {
@@ -89,19 +94,26 @@ export const WeekendOvertime = () => {
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-
         await updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+      setRulesIds(8);
       toast.success("Weekend overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving weekend overtime settings:", error);

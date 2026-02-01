@@ -7,6 +7,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const SALARY_SECTION_TYPES = {
   BASED_HOUR: "based-hour",
@@ -21,7 +22,7 @@ function FlexibleWorkForm() {
   });
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
   const salarySections = useMemo(
@@ -68,31 +69,41 @@ function FlexibleWorkForm() {
 
     try {
       const updatePromises = Employees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate:
-              formData.minimumMinutes || employee?.salaryInfo?.hourlyRate,
-            isSelectedFixedHourlyRate: false, // Not used for flexible work
-            name: employee?.salaryInfo?.name || "",
-            otherSalary: null, // No other salary for flexible work
-            overtimeFixed: 0, // Not used for flexible work
-            overtimeSalary: 0, // Not used for flexible work
-            payPeriod: "hourly",
-            salary: formData.hourlySalary || employee?.salaryInfo?.salary,
-            selectedOvertimeOption: 0, // Not used for flexible work
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: employee?.salaryInfo?.startDay || 1,
-            startWeek: null, // Not used for flexible work
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate:
+                formData.minimumMinutes || employee?.salaryInfo?.hourlyRate,
+              isSelectedFixedHourlyRate: false, // Not used for flexible work
+              name: employee?.salaryInfo?.name || "",
+              otherSalary: null, // No other salary for flexible work
+              overtimeFixed: 0, // Not used for flexible work
+              overtimeSalary: 0, // Not used for flexible work
+              payPeriod: "hourly",
+              salary: formData.hourlySalary || employee?.salaryInfo?.salary,
+              selectedOvertimeOption: 0, // Not used for flexible work
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: employee?.salaryInfo?.startDay || 1,
+              startWeek: null, // Not used for flexible work
+              status: employee?.salaryInfo?.status || null,
+            }
+          );
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);

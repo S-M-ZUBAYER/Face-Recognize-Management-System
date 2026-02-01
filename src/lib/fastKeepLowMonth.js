@@ -1,28 +1,28 @@
-function fastKeepHighMonth(data) {
+function fastKeepLowMonth(data) {
   if (!data.length) return data;
 
-  // 1. First quick loop → detect highest year & month
-  let highYear = -Infinity;
-  let highMonth = -Infinity;
+  // 1. First quick loop → detect lowest year & month
+  let lowYear = Infinity;
+  let lowMonth = Infinity;
 
   for (const item of data) {
     const d = new Date(item.date);
     const y = d.getFullYear();
     const m = d.getMonth();
 
-    if (y > highYear) {
-      highYear = y;
-      highMonth = m;
-    } else if (y === highYear && m > highMonth) {
-      highMonth = m;
+    if (y < lowYear) {
+      lowYear = y;
+      lowMonth = m;
+    } else if (y === lowYear && m < lowMonth) {
+      lowMonth = m;
     }
   }
 
-  // 2. Second loop → keep only items matching highest year & month
+  // 2. Second loop → keep only items matching lowest year & month
   return data.filter((item) => {
     const d = new Date(item.date);
     const isSameYearMonth =
-      d.getFullYear() === highYear && d.getMonth() === highMonth;
+      d.getFullYear() === lowYear && d.getMonth() === lowMonth;
 
     if (!isSameYearMonth) return false;
 
@@ -36,4 +36,4 @@ function fastKeepHighMonth(data) {
   });
 }
 
-export default fastKeepHighMonth;
+export default fastKeepLowMonth;

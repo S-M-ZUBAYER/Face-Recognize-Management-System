@@ -1,0 +1,254 @@
+import { useState, useEffect } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import toast from "react-hot-toast";
+import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { parseNormalData } from "@/lib/parseNormalData";
+import {
+  createGlobalSalaryRules,
+  updateGlobalSalaryRules,
+} from "../../../../utils/updateCreateGlobal";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
+
+export const WeekendForm = () => {
+  const [selectedDays, setSelectedDays] = useState([]);
+  const selectedRule = useGlobalStore.getState().selectedRule();
+  const { updateSelectedRule } = useGlobalStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const daysOfWeek = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  // Load existing weekend days from selectedRule
+  useEffect(() => {
+    if (selectedRule?.salaryRules?.rules) {
+      try {
+        const parsedRules =
+          typeof selectedRule.salaryRules.rules === "string"
+            ? JSON.parse(selectedRule.salaryRules.rules)
+            : selectedRule.salaryRules.rules || [];
+
+        const ruleTwo = parsedRules.find(
+          (rule) => rule.ruleId === 2 || rule.ruleId === "2",
+        );
+
+        if (ruleTwo && ruleTwo.param1) {
+          // Parse the comma-separated string of days
+          const daysString =
+            typeof ruleTwo.param1 === "string"
+              ? ruleTwo.param1
+              : String(ruleTwo.param1);
+          const existingDays = daysString
+            .split(",")
+            .map((day) => day.trim())
+            .filter((day) => day);
+
+          setSelectedDays(existingDays);
+        }
+      } catch (error) {
+        console.error("Error parsing weekend days:", error);
+      }
+    }
+  }, [selectedRule]);
+
+  const handleDayChange = (day, checked) => {
+    if (checked) {
+      // Check if already reached maximum of 5 days
+      if (selectedDays.length >= 5) {
+        toast.error("Maximum 5 weekend days allowed");
+        return;
+      }
+      setSelectedDays((prev) => [...prev, day]);
+    } else {
+      setSelectedDays((prev) => prev.filter((d) => d !== day));
+    }
+  };
+
+  // Save weekend configuration
+  const handleSave = async () => {
+    // if (!selectedEmployee?.employeeId) {
+    //   toast.error("No employee selected");
+    //   return;
+    // }
+    setIsSaving(true);
+    try {
+      const salaryRules = selectedRule.salaryRules;
+      const existingRules = salaryRules.rules || [];
+      const empId = parseFloat(999);
+
+      // Parse existing rules - preserve ALL existing rules
+
+      // Find or create rule with ruleId = 2
+      let ruleThree = existingRules.find(
+        (rule) => rule.ruleId === 2 || rule.ruleId === "2",
+      );
+
+      if (!ruleThree) {
+        // Create new rule with ruleId = 2 if it doesn't exist
+        ruleThree = {
+          id: Math.floor(10 + Math.random() * 90), // number
+          empId: empId, // string
+          ruleId: "2", // string
+          ruleStatus: 1, // number
+          param1: selectedDays.join(","), // string of comma-separated days
+          param2: "",
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+      } else {
+        // Update ONLY the ruleThree object - preserve all other properties
+        ((ruleThree.empId = empId), // string
+          (ruleThree.param1 = selectedDays.join(",")));
+        // Keep all other properties as they are
+      }
+
+      const isEmptyObject = (obj) =>
+        obj && typeof obj === "object" && Object.keys(obj).length === 0;
+
+      const hasExistingRule = selectedRule && !isEmptyObject(selectedRule);
+
+      const baseSalaryRules = hasExistingRule ? salaryRules : { rules: [] };
+      // Generate final JSON using your helper
+      const updatedJSON = finalJsonForUpdate(baseSalaryRules, {
+        empId: empId,
+        rules: {
+          filter: (r) => r.ruleId === 2,
+          newValue: ruleThree, // update ruleId=0 object
+        },
+      });
+
+      const payload = {
+        salaryRules: JSON.stringify(updatedJSON),
+      };
+
+      if (hasExistingRule) {
+        await updateGlobalSalaryRules(payload);
+      } else {
+        await createGlobalSalaryRules(payload);
+      }
+      // Update Zustand store
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
+      toast.success("Weekend days updated successfully!");
+    } catch (error) {
+      console.error("Error saving weekend days:", error);
+      toast.error("Failed to update weekend days.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRule?.salaryRules) {
+      toast.error("No salary rules to delete from.");
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const salaryRules = selectedRule.salaryRules;
+      const updatedJSON = finalJsonForUpdate(salaryRules, {
+        deleteRuleId: 2,
+      });
+
+      await updateGlobalSalaryRules({
+        salaryRules: JSON.stringify(updatedJSON),
+      });
+      updateSelectedRule({ salaryRules: parseNormalData(updatedJSON) });
+      toast.success("Shift rules deleted successfully!");
+    } catch (error) {
+      console.error("❌ Error deleting shift rules:", error);
+      toast.error("Failed to delete shift rules.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold ">Weekend Days</label>
+        {/* Show selected days count */}
+        <div className="my-2 text-xs text-gray-500">
+          {selectedDays.length}/5 days selected
+        </div>
+        <div className="space-y-3">
+          {daysOfWeek.map((day) => (
+            <label key={day} className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={selectedDays.includes(day)}
+                onCheckedChange={(checked) => handleDayChange(day, checked)}
+                disabled={
+                  !selectedDays.includes(day) && selectedDays.length >= 5
+                }
+                className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
+              />
+              <span
+                className={`text-sm ${
+                  !selectedDays.includes(day) && selectedDays.length >= 5
+                    ? "text-gray-400"
+                    : ""
+                }`}
+              >
+                {day}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Optional: Show selected days for debugging */}
+      <div className="text-sm text-gray-600">
+        Selected days: {selectedDays.join(", ") || "None"}
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-2">Details</h3>
+        <ul className="text-sm text-gray-700 space-y-2">
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span>
+              Select weekends,click the day to choose it as a weekend.When it
+              shows as checked,it means the day is selected,and there will be no
+              attendance required on that weekend. The selection will be
+              automatically saved.
+            </span>
+          </li>
+          <li className="flex items-start">
+            <span className="font-semibold mr-2">•</span>
+            <span className="text-red-500">
+              Maximum 5 weekend days allowed. You can select up to 5 days.
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <div className=" flex items-center w-full justify-between mt-4 gap-4">
+        {/* Delete */}
+
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="w-[50%]  bg-red-500 text-white py-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
+        </button>
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className=" w-[50%] py-3 bg-[#004368] text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+};

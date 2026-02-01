@@ -19,6 +19,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useImageUpload } from "@/hook/useImageUpload";
+import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export default function DocumentProofs() {
   const [missedPunchDate, setMissedPunchDate] = useState();
@@ -38,6 +40,7 @@ export default function DocumentProofs() {
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { uploadImage, uploading } = useImageUpload();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Load existing documents
   useEffect(() => {
@@ -124,7 +127,9 @@ export default function DocumentProofs() {
       const newMissedPunch = {
         id: Math.floor(10 + Math.random() * 90),
         empId: Number(empId),
-        date: missedPunchDate.toISOString().split("T")[0],
+        date:
+          new Date(missedPunchDate).toLocaleDateString("en-CA") +
+          "T00:00:00.000",
         CutSalary: missedPunchCutSalary,
         image_path: imagePath,
       };
@@ -144,13 +149,18 @@ export default function DocumentProofs() {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log(payload);
+      // console.log(payload);
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       setMissedPunchDocuments(updatedMissedPunchDocuments);
       resetMissedPunchForm();
@@ -209,7 +219,8 @@ export default function DocumentProofs() {
       const newLatePunch = {
         id: Math.floor(10 + Math.random() * 90),
         empId: Number(empId),
-        date: latePunchDate.toISOString(),
+        date:
+          new Date(latePunchDate).toLocaleDateString("en-CA") + "T00:00:00.000",
         startTime: startTime || null,
         endTime: endTime || null,
         CutSalary: latePunchCutSalary,
@@ -229,13 +240,23 @@ export default function DocumentProofs() {
       });
 
       const payload = { salaryRules: JSON.stringify(updatedJSON) };
-      console.log(payload);
+      // console.log(
+      //   payload,
+      //   latePunchDate,
+      //   new Date(latePunchDate).toLocaleDateString("en-CA") + "T00:00:00.000"
+      // );
 
       await updateEmployee({
         mac: selectedEmployee?.deviceMAC || "",
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       setLatePunchDocuments(updatedLatePunchDocuments);
       resetLatePunchForm();
@@ -276,6 +297,12 @@ export default function DocumentProofs() {
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       if (isMissedPunch) {
         setMissedPunchDocuments(updatedDocuments);

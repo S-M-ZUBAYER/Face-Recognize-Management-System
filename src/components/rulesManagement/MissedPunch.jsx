@@ -3,12 +3,16 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const MissedPunch = () => {
   const [costPerMissedPunch, setCostPerMissedPunch] = useState("");
   const [missAcceptableTime, setMissAcceptableTime] = useState("");
+  const { setGlobalRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
   // Save missed punch configuration
@@ -87,8 +91,16 @@ export const MissedPunch = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(22);
       toast.success("Missed punch settings updated successfully!");
     } catch (error) {
       console.error("Error saving missed punch settings:", error);

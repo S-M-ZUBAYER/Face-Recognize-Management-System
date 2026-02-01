@@ -3,9 +3,12 @@ import { useAttendance } from "./useAttendance";
 import { useMemo } from "react";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { realAbsentCount } from "@/lib/realAbsentCount";
+import { useGlobalStore } from "@/zustand/useGlobalStore";
+import getExpectedCheckInTime from "@/lib/getExpectedCheckInTime";
 
 export const useEmployeeData = () => {
   const { selectedDate } = useAttendanceStore();
+  const rules = useGlobalStore.getState().globalRules;
 
   const { employees } = useEmployeeStore();
   const Employees = employees();
@@ -42,47 +45,45 @@ export const useEmployeeData = () => {
   });
 
   const totalLate = useMemo(() => {
-    return attendanceData.filter((att) => {
+    return attendanceData.reduce((count, att) => {
       const employee = attendedEmployees.find(
         (e) => e.employeeId === att.empId
       );
-      if (!employee || !att.checkIn) return false;
+      if (!employee || !att.checkIn) return count;
 
+      let actualCheckIn;
       try {
-        const checkInArray = JSON.parse(att.checkIn);
-        const actualCheckIn = checkInArray?.[0];
-
-        const ruleObj = employee.salaryRules.rules.find(
-          (item) => item.ruleId === 0
-        );
-
-        // if (employee.employeeId === "70709913") {
-        //   console.log(employee);
-        //   console.log(ruleObj);
-        // }
-
-        let expectedTime = ruleObj.param1?.[0]?.start || ruleObj.param1;
-
-        if (ruleObj.param3 === "special") {
-          const thatDateExpectedTime = employee.salaryRules?.timeTables?.find(
-            (item) => item.date === selectedDate
-          );
-          expectedTime = thatDateExpectedTime?.param1?.[0]?.start;
-
-          // if (employee.employeeId === "70709913") {
-          //   console.log(thatDateExpectedTime, expectedTime);
-          // }
-        }
-        // if (actualCheckIn > expectedTime) {
-        //   console.log(employee, actualCheckIn, expectedTime);
-        // }
-
-        return actualCheckIn && expectedTime && actualCheckIn > expectedTime;
+        actualCheckIn = JSON.parse(att.checkIn)?.[0];
       } catch {
-        return false;
+        return count;
       }
-    }).length;
-  }, [attendanceData, attendedEmployees, selectedDate]);
+
+      const { expectedTime, latenessGraceMin } = getExpectedCheckInTime({
+        employee,
+        selectedDate,
+        rules,
+      });
+
+      if (!actualCheckIn || !expectedTime) return count;
+
+      const toMinutes = (time) => {
+        const [h, m] = time.split(":").map(Number);
+        return h * 60 + m;
+      };
+
+      // if (latenessGraceMin > 0) {
+      //   console.log(employee);
+      // }
+      const actualMin = toMinutes(actualCheckIn);
+      const expectedMin = toMinutes(expectedTime) + latenessGraceMin;
+
+      if (actualMin > expectedMin) {
+        return count + 1;
+      }
+
+      return count;
+    }, 0);
+  }, [attendanceData, attendedEmployees, selectedDate, rules]);
 
   return {
     totalEmployees: Employees.length,

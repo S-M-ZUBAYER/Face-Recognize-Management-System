@@ -8,6 +8,7 @@ const AttendanceFilters = memo(() => {
   const totalCount = useAttendanceStore((state) => state.totalCount);
   const presentCount = useAttendanceStore((state) => state.presentCount);
   const absentCount = useAttendanceStore((state) => state.absentCount);
+  const lateCount = useAttendanceStore((state) => state.lateCount);
   const isFilterLoading = useAttendanceStore((state) => state.isFilterLoading);
   const setActiveFilter = useAttendanceStore((state) => state.setActiveFilter);
 
@@ -18,9 +19,10 @@ const AttendanceFilters = memo(() => {
       { key: "all", label: "All Records", count: totalCount },
       { key: "present", label: "Present", count: presentCount },
       { key: "absent", label: "Absent", count: absentCount },
+      { key: "late", label: "Late", count: lateCount },
       { key: "overtime", label: "Overtime", count: null },
     ],
-    [totalCount, presentCount, absentCount]
+    [totalCount, presentCount, absentCount, lateCount],
   );
 
   // Memoize click handler
@@ -30,7 +32,7 @@ const AttendanceFilters = memo(() => {
         setActiveFilter(filterKey);
       }
     },
-    [activeFilter, isFilterLoading, setActiveFilter]
+    [activeFilter, isFilterLoading, setActiveFilter],
   );
 
   // console.log("AttendanceFilters re-rendered", {
@@ -46,13 +48,13 @@ const AttendanceFilters = memo(() => {
       <p className="text-[#1F1F1F] text-[1vw] font-[600] font-poppins-regular">
         Choose Search Type
       </p>
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         {filters.map((filter) => (
           <button
             key={filter.key}
             onClick={() => handleFilterClick(filter.key)}
             disabled={isFilterLoading}
-            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-4 md:py-2 whitespace-nowrap ${
+            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-3 md:py-2 whitespace-nowrap ${
               activeFilter === filter.key
                 ? "bg-[#004368] text-[#E6ECF0]"
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0]"
@@ -73,8 +75,8 @@ const AttendanceFilters = memo(() => {
             <span
               className={
                 isFilterLoading && activeFilter === filter.key
-                  ? "opacity-0"
-                  : "opacity-100"
+                  ? "opacity-0 text-[0.7vw] "
+                  : "opacity-100 text-[0.7vw] "
               }
             >
               {filter.label}

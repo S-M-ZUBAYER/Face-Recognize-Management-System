@@ -4,14 +4,20 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const FlexibleWork = () => {
   const [lateMinutes, setLateMinutes] = useState("");
   const [leaveLateMinutes, setLeaveLateMinutes] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save flexible work configuration
   const handleSave = async () => {
@@ -82,7 +88,6 @@ export const FlexibleWork = () => {
           },
         });
 
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -90,9 +95,17 @@ export const FlexibleWork = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+
+      setRulesIds(5);
       toast.success("Flexible work settings updated successfully!");
     } catch (error) {
       console.error("Error saving flexible work settings:", error);

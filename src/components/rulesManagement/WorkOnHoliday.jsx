@@ -5,12 +5,13 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -56,6 +57,8 @@ export const WorkOnHoliday = () => {
         const existingRules = salaryRules.rules || [];
         const empId = selectedEmployee.employeeId.toString();
 
+        const existGeneralDays = selectedEmployee.salaryRules.generalDays || [];
+
         // Format dates for storage
         const generalDaysArray = specialDates.map((date) =>
           formatDateForStorage(date)
@@ -93,20 +96,25 @@ export const WorkOnHoliday = () => {
             filter: (r) => r.ruleId === 3 || r.ruleId === "3",
             newValue: ruleFour, // update ruleId=3 object
           },
-          generalDays: generalDaysArray, // update generalDays with selected dates
+          generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
         });
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
-        return updateEmployee({
+        updateEmployee({
           mac: selectedEmployee?.deviceMAC || "",
           id: selectedEmployee?.employeeId,
           payload,
         });
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
 
-      setRulesIds(3);
+      setGlobalRulesIds(3);
 
       toast.success("Work on holiday days updated successfully!");
     } catch (error) {

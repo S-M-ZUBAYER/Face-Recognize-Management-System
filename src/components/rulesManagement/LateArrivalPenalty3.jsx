@@ -3,11 +3,14 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const LateArrivalPenalty3 = () => {
   const [hourlyRate, setHourlyRate] = useState("");
+  const { setGlobalRulesIds } = useUserStore();
 
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -73,9 +76,17 @@ export const LateArrivalPenalty3 = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(18);
       toast.success("Hourly late penalty rate updated successfully!");
     } catch (error) {
       console.error("Error saving hourly late penalty rate:", error);

@@ -1,187 +1,168 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useRef, useState, useEffect, useCallback, memo } from "react";
 
-function EmployeeFilterTabs({ filters, activeFilter, onFilterChange }) {
-  const containerRef = useRef(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
-  const checkScrollTimeoutRef = useRef(null);
+// Constants
+const SCROLL_MULTIPLIER = 2;
+const SKELETON_ITEMS = [1, 2, 3, 4];
 
-  // Improved scroll checking with debouncing
-  const checkScroll = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
+// Custom Hooks
+const useDragScroll = (containerRef) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
-    // Clear any pending timeout
-    if (checkScrollTimeoutRef.current) {
-      clearTimeout(checkScrollTimeoutRef.current);
-    }
-
-    // Use RAF for better performance
-    checkScrollTimeoutRef.current = setTimeout(() => {
-      const { scrollLeft, clientWidth, scrollWidth } = container;
-
-      // Add small threshold to prevent flickering
-      const threshold = 1;
-
-      setShowLeft(scrollLeft > threshold);
-      setShowRight(scrollLeft + clientWidth < scrollWidth - threshold);
-    }, 10);
-  }, []);
-
-  // Force recheck when filters change
-  useEffect(() => {
-    const forceCheck = () => {
-      // Use RAF to ensure DOM is updated
-      requestAnimationFrame(() => {
-        checkScroll();
-      });
-    };
-
-    forceCheck();
-  }, [filters, checkScroll]);
-
-  // Setup scroll and resize listeners
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Initial check
-    checkScroll();
-
-    // Event listeners
-    container.addEventListener("scroll", checkScroll, { passive: true });
-    window.addEventListener("resize", checkScroll);
-
-    // Observer for content changes
-    const resizeObserver = new ResizeObserver(() => {
-      checkScroll();
-    });
-    resizeObserver.observe(container);
-
-    return () => {
-      if (checkScrollTimeoutRef.current) {
-        clearTimeout(checkScrollTimeoutRef.current);
-      }
-      container.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-      resizeObserver.disconnect();
-    };
-  }, [checkScroll]);
-
-  const scrollByAmount = useCallback(
-    (amount) => {
+  const handleDragStart = useCallback(
+    (e) => {
       const container = containerRef.current;
       if (!container) return;
 
-      container.scrollBy({
-        left: amount,
-        behavior: "smooth",
-      });
+      const clientX = e.type === "mousedown" ? e.clientX : e.touches[0].clientX;
 
-      // Force recheck after scroll completes
-      setTimeout(checkScroll, 150);
+      setIsDragging(true);
+      setStartX(clientX - container.offsetLeft);
+      setScrollLeft(container.scrollLeft);
+
+      container.style.cursor = "grabbing";
+      container.style.userSelect = "none";
     },
-    [checkScroll]
+    [containerRef],
   );
 
-  const scrollToStart = useCallback(() => {
+  const handleDragMove = useCallback(
+    (e) => {
+      if (!isDragging) return;
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      const clientX = e.type === "mousemove" ? e.clientX : e.touches[0].clientX;
+      const x = clientX - container.offsetLeft;
+      const walk = (x - startX) * SCROLL_MULTIPLIER;
+
+      container.scrollLeft = scrollLeft - walk;
+    },
+    [isDragging, startX, scrollLeft, containerRef],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    const container = containerRef.current;
+    if (container) {
+      container.style.cursor = "grab";
+      container.style.userSelect = "auto";
+    }
+  }, [containerRef]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    container.scrollTo({
-      left: 0,
-      behavior: "smooth",
+    const mouseDownHandler = (e) => {
+      e.preventDefault();
+      handleDragStart(e);
+    };
+
+    container.addEventListener("mousedown", mouseDownHandler);
+    container.addEventListener("touchstart", handleDragStart, {
+      passive: true,
     });
-  }, []);
 
-  const scrollToEnd = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    return () => {
+      container.removeEventListener("mousedown", mouseDownHandler);
+      container.removeEventListener("touchstart", handleDragStart);
+    };
+  }, [handleDragStart, containerRef]);
 
-    container.scrollTo({
-      left: container.scrollWidth,
-      behavior: "smooth",
-    });
-  }, []);
+  useEffect(() => {
+    if (!isDragging) return;
 
-  // Loading state
-  if (!filters || filters.length === 0) {
-    return (
-      <div className="relative w-[78vw]">
-        <div className="flex items-center">
-          <div className="flex gap-2 px-8">
-            {/* Loading skeleton */}
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="px-6 py-3 rounded-full bg-gray-200 animate-pulse"
-                style={{ width: `${80 + i * 20}px`, height: "44px" }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    document.addEventListener("mousemove", handleDragMove);
+    document.addEventListener("mouseup", handleDragEnd);
+    document.addEventListener("touchmove", handleDragMove, { passive: true });
+    document.addEventListener("touchend", handleDragEnd);
+
+    return () => {
+      document.removeEventListener("mousemove", handleDragMove);
+      document.removeEventListener("mouseup", handleDragEnd);
+      document.removeEventListener("touchmove", handleDragMove);
+      document.removeEventListener("touchend", handleDragEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
+  return { isDragging };
+};
+
+// Memoized Components
+const SkeletonLoader = memo(() => (
+  <div className="relative w-[78vw]">
+    <div className="flex gap-2 px-4">
+      {SKELETON_ITEMS.map((i) => (
+        <div
+          key={i}
+          className="px-6 py-3 rounded-full bg-gray-200 animate-pulse"
+          style={{ width: `${80 + i * 20}px`, height: "44px" }}
+        />
+      ))}
+    </div>
+  </div>
+));
+SkeletonLoader.displayName = "SkeletonLoader";
+
+const FilterButton = memo(({ filter, isActive, onClick }) => (
+  <button
+    className={`px-4 py-3 rounded-full border font-[550] text-[0.7vw] whitespace-nowrap flex-shrink-0 transition-all duration-200 ${
+      isActive
+        ? "bg-[#004368] text-[#E6ECF0] border-[#004368] scale-105 shadow-md"
+        : "bg-white text-[#B0C5D0] border-[#B0C5D0] hover:bg-gray-50"
+    }`}
+    onClick={onClick}
+    role="tab"
+    aria-selected={isActive}
+    aria-label={`Filter by ${filter}`}
+  >
+    {filter}
+  </button>
+));
+FilterButton.displayName = "FilterButton";
+
+// Main Component
+const EmployeeFilterTabs = ({ filters, activeFilter, onFilterChange }) => {
+  const containerRef = useRef(null);
+  const { isDragging } = useDragScroll(containerRef);
+
+  const handleFilterClick = useCallback(
+    (filter) => {
+      if (!isDragging) {
+        onFilterChange(filter);
+      }
+    },
+    [isDragging, onFilterChange],
+  );
+
+  if (!filters?.length) {
+    return <SkeletonLoader />;
   }
 
   return (
-    <div className="relative w-[78vw]">
-      <div className="flex items-center">
-        {/* Left Button */}
-        {showLeft && (
-          <button
-            className="absolute left-0 h-[2vw] w-[2vw] px-2 bg-[#004368] shadow-md text-[#EAEAEA] rounded-full z-20"
-            onClick={() => scrollByAmount(-200)}
-            onDoubleClick={scrollToStart}
-            aria-label="Scroll left"
-            title="Click to scroll left, double-click to go to start"
-          >
-            <ChevronLeft size={24} />
-          </button>
-        )}
-
-        {/* Scrollable Filters */}
+    <div className="relative w-[78vw] parent-hover">
+      <div className="relative">
         <div
           ref={containerRef}
-          className="flex gap-2 overflow-x-auto scrollbar-hide px-8"
-          style={{ scrollBehavior: "smooth" }}
-          role="tablist"
-          aria-label="Filter options"
+          className={`flex gap-3 overflow-x-auto px-4 py-2 cursor-grab scroll-parent
+    ${isDragging ? "cursor-grabbing" : ""}
+  `}
         >
           {filters.map((filter, index) => (
-            <button
+            <FilterButton
               key={`${filter}-${index}`}
-              className={`px-6 py-3 rounded-full border border-[#B0C5D0] font-[550] text-[16px] whitespace-nowrap flex-shrink-0 transition-colors duration-200 ${
-                activeFilter === filter
-                  ? "bg-[#004368] text-[#E6ECF0]"
-                  : "bg-white text-[#B0C5D0] hover:bg-gray-50"
-              }`}
-              onClick={() => onFilterChange(filter)}
-              role="tab"
-              aria-selected={activeFilter === filter}
-              aria-label={`Filter by ${filter}`}
-            >
-              {filter}
-            </button>
+              filter={filter}
+              isActive={activeFilter === filter}
+              onClick={() => handleFilterClick(filter)}
+            />
           ))}
         </div>
-
-        {/* Right Button */}
-        {showRight && (
-          <button
-            className="absolute right-0 z-20 h-[2vw] w-[2vw] px-2 bg-[#004368] shadow-md text-[#EAEAEA] rounded-full"
-            onClick={() => scrollByAmount(200)}
-            onDoubleClick={scrollToEnd}
-            aria-label="Scroll right"
-            title="Click to scroll right, double-click to go to end"
-          >
-            <ChevronRight size={24} />
-          </button>
-        )}
       </div>
     </div>
   );
-}
+};
 
-export default EmployeeFilterTabs;
+export default memo(EmployeeFilterTabs);

@@ -11,14 +11,15 @@ import { TimeRangePicker } from "@/components/TimePicker";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WorkShiftTimeForm = () => {
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const [shiftType, setShiftType] = useState("normal");
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDateForConfig, setSelectedDateForConfig] = useState(null);
-  const { setRulesIds } = useUserStore();
+  const { setGlobalRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -287,45 +288,45 @@ export const WorkShiftTimeForm = () => {
   // ===== Save handler =====
   const handleSave = async () => {
     try {
-      if (shiftType === "normal") {
-        if (workingTimes.length === 0) {
-          toast.error("Please add at least one working time before saving!");
-          return;
-        }
-        if (overtimes.length === 0) {
-          toast.error("Please add at least one overtime before saving!");
-          return;
-        }
-      }
+      // if (shiftType === "normal") {
+      //   if (workingTimes.length === 0) {
+      //     toast.error("Please add at least one working time before saving!");
+      //     return;
+      //   }
+      //   if (overtimes.length === 0) {
+      //     toast.error("Please add at least one overtime before saving!");
+      //     return;
+      //   }
+      // }
 
-      if (shiftType === "special") {
-        if (specialDates.length === 0) {
-          toast.error("Please select at least one special date!");
-          return;
-        }
+      // if (shiftType === "special") {
+      //   if (specialDates.length === 0) {
+      //     toast.error("Please select at least one special date!");
+      //     return;
+      //   }
 
-        // Check for each selected date
-        for (const date of specialDates) {
-          const dateStr = date;
-          const config = dateConfigs[dateStr];
-          if (!config || config.workingTimes.length === 0) {
-            toast.error(
-              `Please add at least one working time for ${formatDateForDisplay(
-                date
-              )}!`
-            );
-            return;
-          }
-          if (!config || config.overtimes.length === 0) {
-            toast.error(
-              `Please add at least one overtime for ${formatDateForDisplay(
-                date
-              )}!`
-            );
-            return;
-          }
-        }
-      }
+      //   // Check for each selected date
+      //   for (const date of specialDates) {
+      //     const dateStr = date;
+      //     const config = dateConfigs[dateStr];
+      //     if (!config || config.workingTimes.length === 0) {
+      //       toast.error(
+      //         `Please add at least one working time for ${formatDateForDisplay(
+      //           date
+      //         )}!`
+      //       );
+      //       return;
+      //     }
+      //     if (!config || config.overtimes.length === 0) {
+      //       toast.error(
+      //         `Please add at least one overtime for ${formatDateForDisplay(
+      //           date
+      //         )}!`
+      //       );
+      //       return;
+      //     }
+      //   }
+      // }
 
       // Check if any employees are selected
       if (Employees.length === 0) {
@@ -431,10 +432,12 @@ export const WorkShiftTimeForm = () => {
           id: employeeId,
           payload,
         });
-
+        storeEmployeeUpdate(emp.employeeId, emp.deviceMAC || "", {
+          salaryRules: parseNormalData(updatedJSON),
+        });
         toast.success(`Shift configuration saved for employee ${employeeId}!`);
       }
-      setRulesIds(0);
+      setGlobalRulesIds(0);
     } catch (error) {
       console.error("❌ Error saving shift rules:", error);
       toast.error("Failed to save shift configuration.");

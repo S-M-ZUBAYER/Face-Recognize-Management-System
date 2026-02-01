@@ -51,12 +51,14 @@ function EmployeeTable({ employees = [] }) {
         .toLowerCase();
       const designation = (emp?.designation || "").toLowerCase();
       const department = (emp?.department || "").toLowerCase();
+      const deviceMac = (emp?.deviceMAC || "").toLowerCase();
 
       return (
         name.includes(query) ||
         employeeId.includes(query) ||
         designation.includes(query) ||
-        department.includes(query)
+        department.includes(query) ||
+        deviceMac.includes(query)
       );
     });
   }, [employees, searchQuery]);
@@ -64,7 +66,7 @@ function EmployeeTable({ employees = [] }) {
   // Selection logic - using the same pattern as AttendanceTable
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
-    [selectedEmployees]
+    [selectedEmployees],
   );
 
   const isAllSelected = useMemo(() => {
@@ -88,13 +90,13 @@ function EmployeeTable({ employees = [] }) {
     if (isAllSelected) {
       const filteredIds = new Set(
         filteredEmployees.map(
-          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
-        )
+          (emp) => emp.companyEmployeeId || emp.employeeId || emp.id,
+        ),
       );
       setSelectedEmployees((prev) => prev.filter((id) => !filteredIds.has(id)));
     } else {
       const filteredIds = filteredEmployees.map(
-        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id
+        (emp) => emp.companyEmployeeId || emp.employeeId || emp.id,
       );
       setSelectedEmployees((prev) => [...new Set([...prev, ...filteredIds])]);
     }
@@ -102,7 +104,7 @@ function EmployeeTable({ employees = [] }) {
 
   const toggleSelectEmployee = useCallback((id) => {
     setSelectedEmployees((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
     );
   }, []);
 
@@ -129,7 +131,7 @@ function EmployeeTable({ employees = [] }) {
         handleSearch();
       }
     },
-    [handleSearch]
+    [handleSearch],
   );
 
   const handleViewEmployee = useCallback((emp) => {
@@ -173,11 +175,11 @@ function EmployeeTable({ employees = [] }) {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search by Employee ID, Name or Department..."
+            placeholder="Search by Date, Id, Mac, Name or Department..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-72 border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+            className="w-[16vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
             disabled={isSearching}
           />
           <button
@@ -194,7 +196,7 @@ function EmployeeTable({ employees = [] }) {
           {searchQuery && (
             <button
               onClick={handleReset}
-              className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm hover:bg-gray-500 transition-colors"
+              className="px-4 py-2 bg-[#004368] text-white rounded-md text-sm hover:bg-[#004368] transition-colors"
             >
               Reset
             </button>

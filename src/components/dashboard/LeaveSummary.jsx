@@ -1,16 +1,17 @@
 import React from "react";
-import { useLeaveData } from "@/hook/useLeaveData";
+import useLeaveStore from "@/zustand/useLeaveStore";
+import { useAttendanceStore } from "@/zustand/useAttendanceStore";
+import { getLeaveCategoryArray } from "@/utils/leaveServices/LeaveDataService";
 
 function LeaveSummary() {
-  const { leaveCategoryArray, isLoading } = useLeaveData();
+  const leaves = useLeaveStore((state) => state.leaves);
+  const { selectedDate } = useAttendanceStore();
+  const [leaveCategoryArray, setLeaveCategoryArray] = React.useState([]);
 
-  if (isLoading) {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow text-center">
-        <p className="text-gray-500">Loading leave summary...</p>
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    const leaveCategoryArray = getLeaveCategoryArray(leaves, selectedDate);
+    setLeaveCategoryArray(leaveCategoryArray);
+  }, [leaves, selectedDate]);
 
   if (!leaveCategoryArray || leaveCategoryArray.length === 0) {
     return (

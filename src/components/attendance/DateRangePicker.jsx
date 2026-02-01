@@ -31,7 +31,7 @@ const DateRangePicker = ({
   // Memoize today's date string - this will be our max date
   const todayStr = useMemo(
     () => formatDateForStore(new Date()),
-    [formatDateForStore]
+    [formatDateForStore],
   );
 
   // Memoize months array
@@ -50,7 +50,7 @@ const DateRangePicker = ({
       "November",
       "December",
     ],
-    []
+    [],
   );
 
   // Memoize days in current month with all their properties
@@ -138,19 +138,19 @@ const DateRangePicker = ({
         setIsOpen(false);
       }
     },
-    [selectingStart, startDate, setDateRange, endDate]
+    [selectingStart, startDate, setDateRange, endDate],
   );
 
   const handlePrevMonth = useCallback(() => {
     setCurrentMonth(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1),
     );
   }, []);
 
   const handleNextMonth = useCallback(() => {
     const nextMonth = new Date(
       currentMonth.getFullYear(),
-      currentMonth.getMonth() + 1
+      currentMonth.getMonth() + 1,
     );
     const today = new Date();
 
@@ -202,7 +202,7 @@ const DateRangePicker = ({
       { label: "Last 30 days", days: 30 },
       { label: "This month", days: "month" },
     ],
-    []
+    [],
   );
 
   const handleQuickSelect = useCallback(
@@ -232,7 +232,7 @@ const DateRangePicker = ({
       setSelectingStart(true);
       setIsOpen(false);
     },
-    [formatDateForStore, setDateRange, todayStr]
+    [formatDateForStore, setDateRange, todayStr],
   );
 
   // Check if next month navigation should be disabled
@@ -240,7 +240,7 @@ const DateRangePicker = ({
     const today = new Date();
     const nextMonth = new Date(
       currentMonth.getFullYear(),
-      currentMonth.getMonth() + 1
+      currentMonth.getMonth() + 1,
     );
 
     return (
@@ -256,22 +256,26 @@ const DateRangePicker = ({
         Choose Date
       </p>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center  ">
           <PopoverTrigger
             asChild
             style={{
               backgroundColor: "transparent",
               border: "1px solid #B0C5D0",
+              whiteSpace: "nowrap",
+              borderRadius: "8px",
+              padding: "8px 12px",
+              width: "fit-content",
             }}
           >
             <Button
               variant="outline"
               className={cn(
-                "min-w-64 justify-start text-left font-normal",
-                !getFormattedRange() && "text-muted-foreground"
+                "w-[8vw] justify-start text-left font-normal ",
+                !getFormattedRange() && "text-muted-foreground",
               )}
             >
-              <Calendar className="mr-2 h-4 w-4" />
+              <Calendar className=" h-4 w-4 text-gray-500 size-4" />
               <span className="flex-1">{displayText}</span>
             </Button>
           </PopoverTrigger>
@@ -302,7 +306,7 @@ const DateRangePicker = ({
                 disabled={isNextMonthDisabled}
                 className={cn(
                   "h-8 w-8 p-0",
-                  isNextMonthDisabled && "opacity-50 cursor-not-allowed"
+                  isNextMonthDisabled && "opacity-50 cursor-not-allowed",
                 )}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -315,8 +319,8 @@ const DateRangePicker = ({
               {!startDate && !endDate
                 ? "Click a date to select (single day or start of range)"
                 : selectingStart
-                ? "Click a date to set new range"
-                : "Click another date to complete range, or same date for single day"}
+                  ? "Click a date to set new range"
+                  : "Click another date to complete range, or same date for single day"}
             </div>
 
             {/* Days of week */}
@@ -357,7 +361,7 @@ const DateRangePicker = ({
                         !dayData.isInRange &&
                         "bg-accent font-semibold",
                       dayData.isDisabled &&
-                        "text-muted-foreground opacity-30 cursor-not-allowed"
+                        "text-muted-foreground opacity-30 cursor-not-allowed",
                     )}
                   >
                     {dayData.day}

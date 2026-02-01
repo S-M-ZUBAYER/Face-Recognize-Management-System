@@ -3,12 +3,16 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WeekendOvertime = () => {
   // const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
   const [weekendWorkingTimePercent, setWeekendWorkingTimePercent] =
     useState("");
-  const { employees } = useEmployeeStore();
+  const { setGlobalRulesIds } = useUserStore();
+
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -93,9 +97,17 @@ export const WeekendOvertime = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+
+      setGlobalRulesIds(8);
       toast.success("Weekend overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving weekend overtime settings:", error);

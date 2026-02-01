@@ -7,6 +7,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
@@ -15,6 +16,8 @@ export const HolidayForm = () => {
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
   const { setRulesIds } = useUserStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // 🟦 Handle selection — keep dates in local time, normalized
   const handleCalendarSelect = (dates) => {
@@ -57,6 +60,8 @@ export const HolidayForm = () => {
           ? salaryRules.rules
           : [];
 
+        const alreadyExistHoliday = selectedEmployee.salaryRules.holidays || [];
+
         // Find or create ruleId "1"
         let ruleOne = existingRules.find(
           (r) => r.ruleId === "1" || r.ruleId === 1
@@ -79,13 +84,14 @@ export const HolidayForm = () => {
         }
 
         const formattedHolidays = specialDates.map(formatDateForStorage);
+        const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
 
         // console.log(formattedHolidays);
 
         // 🧩 Build final JSON
         const updatedJSON = finalJsonForUpdate(salaryRules, {
           empId: empId,
-          holidays: formattedHolidays, // raw array, helper stringifies
+          holidays: finalHoliday, // raw array, helper stringifies
           rules: {
             filter: (r) => r.ruleId === 1 || r.ruleId === "1",
             newValue: ruleOne,
@@ -98,17 +104,20 @@ export const HolidayForm = () => {
         // });
 
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-
-        return updateEmployee({
+        updateEmployee({
           mac: selectedEmployee.deviceMAC || "",
           id: selectedEmployee.employeeId,
           payload,
         });
-        // return console.log(payload);
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);

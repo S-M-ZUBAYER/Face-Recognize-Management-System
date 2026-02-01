@@ -4,14 +4,20 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LateArrivalPenalty6 = () => {
   const [dayShiftPenalty, setDayShiftPenalty] = useState("");
   const [nightShiftPenalty, setNightShiftPenalty] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save shift penalty configuration
   const handleSave = async () => {
@@ -85,7 +91,6 @@ export const LateArrivalPenalty6 = () => {
           },
         });
 
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -93,9 +98,17 @@ export const LateArrivalPenalty6 = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+      setRulesIds(21);
       toast.success("Shift penalty settings updated successfully!");
     } catch (error) {
       console.error("Error saving shift penalty settings:", error);

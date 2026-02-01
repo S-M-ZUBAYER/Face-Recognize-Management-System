@@ -30,10 +30,16 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
     return [6, 7, 8, 9].includes(ruleId);
   };
 
-  // Check if rule ID is in exclusive group (18-23)
-  const isExclusiveRule = (ruleId) => {
-    return ruleId > 16 && ruleId < 23;
+  // Check if rule ID is in dependency group (8, 9, 23)
+  const isOvertimeDependencyRule = (ruleId) => {
+    return [8, 9].includes(ruleId);
   };
+
+  // Check if rule ID is in exclusive group (18-22)
+  const EXCLUSIVE_RULE_RANGE = { min: 17, max: 21 };
+
+  const isExclusiveRule = (ruleId) =>
+    ruleId >= EXCLUSIVE_RULE_RANGE.min && ruleId <= EXCLUSIVE_RULE_RANGE.max;
 
   // Get selected exclusive rules (18-23)
   const getSelectedExclusiveRules = () => {
@@ -44,7 +50,7 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
     // Condition 0: Rule 1 is mandatory for all other rules
     if (rule.id !== 0 && !hasRuleId(existingRuleIds, 0)) {
       openDialog(
-        `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`
+        `Rule 1 is mandatory. Please select Rule 1 first before selecting any other rule.`,
       );
       return;
     }
@@ -55,7 +61,19 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
         openDialog(
           `Rule ${
             rule.id + 1
-          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`
+          } requires Rule 24 to be selected first. Please add Rule 24 before selecting this rule.`,
+        );
+        return;
+      }
+    }
+
+    // Condition 1: Rules 8, 9, 23 require rule 7 to be set
+    if (isOvertimeDependencyRule(rule.id)) {
+      if (!hasRuleId(existingRuleIds, 7)) {
+        openDialog(
+          `Rule ${
+            rule.id + 1
+          } requires Rule 8 to be selected first. Please add Rule 8 before selecting this rule.`,
         );
         return;
       }
@@ -70,10 +88,10 @@ const RulesSidebar = ({ rules, selectedRule, onRuleSelect }) => {
       ) {
         openDialog(
           `You can only select one rule from the group (18-22). You already have Rule ${
-            selectedExclusive[0]
+            selectedExclusive[0] + 1
           } selected. Please deselect it first if you want to select Rule ${
             rule.id + 1
-          }.`
+          }.`,
         );
         return;
       }

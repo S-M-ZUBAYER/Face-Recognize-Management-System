@@ -4,11 +4,16 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const LateArrivalFine4 = () => {
   const [latenessTime, setLatenessTime] = useState("");
   const [fixedPenalty, setFixedPenalty] = useState("");
+  const { setRulesIds } = useUserStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
@@ -76,11 +81,6 @@ export const LateArrivalFine4 = () => {
           },
         });
 
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -88,10 +88,19 @@ export const LateArrivalFine4 = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+        updateEmployeeSalaryRules(
+          selectedEmployee.employeeId,
+          parseNormalData(updatedJSON)
+        );
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
-
+      setRulesIds(19);
       toast.success("Late arrival fine settings updated successfully!");
     } catch (error) {
       console.error("Error saving late arrival fine settings:", error);

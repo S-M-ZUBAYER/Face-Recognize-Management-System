@@ -3,6 +3,8 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const WeekendOvertime = () => {
   // const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
@@ -10,6 +12,7 @@ export const WeekendOvertime = () => {
     useState("");
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Load existing weekend overtime values from selectedEmployee
   useEffect(() => {
@@ -127,10 +130,11 @@ export const WeekendOvertime = () => {
         payload,
       });
 
-      // console.log("Weekend overtime settings updated successfully:", {
-      //   weekendOvertimePercent,
-      //   weekendWorkingTimePercent,
-      // });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Weekend overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving weekend overtime settings:", error);
@@ -158,6 +162,12 @@ export const WeekendOvertime = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);

@@ -5,13 +5,17 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { useUserStore } from "@/zustand/useUserStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const SelectOvertime = () => {
   const [allowOvertime, setAllowOvertime] = useState("No");
   const [multiplier, setMultiplier] = useState("1");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
-  const { employees } = useEmployeeStore();
+  const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
+
+  const { setGlobalRulesIds } = useUserStore();
 
   // Save overtime configuration
   const handleSave = async () => {
@@ -81,9 +85,15 @@ export const SelectOvertime = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
       await Promise.all(updatePromises);
-
+      setGlobalRulesIds(23);
       toast.success("Overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving overtime settings:", error);

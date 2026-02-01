@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { Download } from "lucide-react";
 import image from "@/constants/image";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,6 +9,7 @@ export function ShowQrCodeModal({ deviceMAC, employeeId }) {
   const [macDevice, setMacDevice] = useState(deviceMAC);
   const [Id, setId] = useState(employeeId);
   const input = `employeeId-${employeeId} ; macId-${macDevice} ; time-${new Date().toISOString()}`;
+  const qrRef = useRef(null);
   function shiftLetters(input) {
     return input
       .split("")
@@ -32,6 +34,22 @@ export function ShowQrCodeModal({ deviceMAC, employeeId }) {
 
   const qrValue = shiftLetters(input);
 
+  const handleDownload = useCallback(() => {
+    const canvas = qrRef.current?.querySelector("canvas");
+    if (!canvas) return;
+
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `qr-code-employee-${employeeId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+  }, [employeeId]);
+
   useEffect(() => {
     setMacDevice(deviceMAC);
     setId(employeeId);
@@ -49,7 +67,7 @@ export function ShowQrCodeModal({ deviceMAC, employeeId }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-transparent backdrop-blur-sm bg-opacity-50"
+            className="fixed inset-0 z-50 flex items-center justify-center  overflow-y-auto overflow-x-hidden bg-transparent backdrop-blur-sm bg-opacity-50"
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -79,13 +97,24 @@ export function ShowQrCodeModal({ deviceMAC, employeeId }) {
                     />
                   </svg>
                 </div>
-                <div className="flex flex-col items-center space-y-2">
+                <div
+                  className="flex flex-col items-center justify-center space-y-2"
+                  ref={qrRef}
+                >
                   <QRCodeCanvas
                     value={qrValue}
                     size={200}
                     level="H"
                     includeMargin={true}
                   />
+                </div>
+                <div className="absolute bottom-3 right-3 text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white">
+                  <button
+                    onClick={handleDownload}
+                    className="rounded-lg transition-colors duration-200 font-medium"
+                  >
+                    <Download size={18} />
+                  </button>
                 </div>
               </div>
             </motion.div>

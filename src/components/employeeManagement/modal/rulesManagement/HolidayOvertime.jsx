@@ -4,15 +4,19 @@ import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import { useUserStore } from "@/zustand/useUserStore";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 export const HolidayOvertime = () => {
   // const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
   const [holidayWorkingTimePercent, setHolidayWorkingTimePercent] =
     useState("");
+  const { setRulesIds } = useUserStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save holiday overtime configuration
   const handleSave = async () => {
@@ -88,7 +92,6 @@ export const HolidayOvertime = () => {
             newValue: ruleNine, // update ruleId=9 object
           },
         });
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
         const payload = { salaryRules: JSON.stringify(updatedJSON) };
 
         await updateEmployee({
@@ -96,9 +99,18 @@ export const HolidayOvertime = () => {
           id: selectedEmployee?.employeeId,
           payload,
         });
+
+        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+        storeEmployeeUpdate(
+          selectedEmployee.employeeId,
+          selectedEmployee.deviceMAC || "",
+          { salaryRules: parseNormalData(updatedJSON) }
+        );
       });
 
       await Promise.all(updatePromises);
+      setRulesIds(9);
+
       toast.success("Holiday overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving holiday overtime settings:", error);

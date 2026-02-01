@@ -9,6 +9,8 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 const OVERTIME_OPTIONS = [
   {
@@ -44,15 +46,16 @@ function SemiMonthlyForm() {
   const { selectedEmployees, updateEmployeeSalaryInfo } =
     useSelectedEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Calculate other salary total
   const otherSalaryTotal = useMemo(
     () =>
       additionalSalaries.reduce(
         (total, salary) => total + (parseFloat(salary.amount) || 0),
-        0
+        0,
       ),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   const otherSalaryCheckTotal = useMemo(() => {
@@ -102,7 +105,7 @@ function SemiMonthlyForm() {
         readOnly: true,
       },
     ],
-    [formData.basic, otherSalaryTotal]
+    [formData.basic, otherSalaryTotal],
   );
 
   // Handle form input changes
@@ -144,8 +147,8 @@ function SemiMonthlyForm() {
   const updateSalarySection = useCallback((id, field, value) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, [field]: value } : salary
-      )
+        salary.id === id ? { ...salary, [field]: value } : salary,
+      ),
     );
   }, []);
 
@@ -153,8 +156,8 @@ function SemiMonthlyForm() {
   const toggleSalaryCheckbox = useCallback((id, checked) => {
     setAdditionalSalaries((prev) =>
       prev.map((salary) =>
-        salary.id === id ? { ...salary, isChecked: checked } : salary
-      )
+        salary.id === id ? { ...salary, isChecked: checked } : salary,
+      ),
     );
   }, []);
 
@@ -168,7 +171,7 @@ function SemiMonthlyForm() {
           type: salary.type.trim(),
           amount: parseFloat(salary.amount) || 0,
         })),
-    [additionalSalaries]
+    [additionalSalaries],
   );
 
   // Save handler - following the same pattern
@@ -182,57 +185,68 @@ function SemiMonthlyForm() {
 
     try {
       const updatePromises = selectedEmployees.map(async (employee) => {
-        const payPeriodJSON = convertJsonForPayPeriod(
-          employee?.salaryInfo || {},
-          {
-            employeeId: employee?.employeeId || 0,
-            hourlyRate: 26, // Default for semi-monthly
-            isSelectedFixedHourlyRate: formData.selectedOvertimeOption
-              ? formData.selectedOvertimeOption === "fixed-input"
-              : employee?.salaryInfo?.isSelectedFixedHourlyRate,
-            name: formData.workingHours || employee?.salaryInfo?.name,
-            otherSalary:
-              otherSalaryArray.length > 0
-                ? otherSalaryArray
-                : employee?.salaryInfo?.otherSalary,
-            overtimeFixed:
-              formData.selectedOvertimeOption === "fixed-input"
-                ? formData.overtimeRate
-                : employee?.salaryInfo?.overtimeFixed,
-            overtimeSalary:
-              formData.selectedOvertimeOption === "auto-calc"
-                ? parseFloat(formData.overtimeRate) || 0
-                : employee?.salaryInfo?.overtimeSalary,
-            payPeriod: "semiMonthly",
-            salary: formData.basic || employee?.salaryInfo?.salary,
-            selectedOvertimeOption:
-              formData.selectedOvertimeOption === "auto-calc"
-                ? 0
-                : formData.selectedOvertimeOption === "fixed-input"
-                ? 1
-                : employee?.salaryInfo?.selectedOvertimeOption,
-            shift: employee?.salaryInfo?.shift || "Morning",
-            startDay: formData.selectedDate
-              ? parseInt(formData.selectedDate)
-              : employee?.salaryInfo?.startDay || 1,
-            startWeek: employee?.salaryInfo?.startWeek || null,
-            status: employee?.salaryInfo?.status || null,
-          }
-        );
-        const parsed = JSON.parse(payPeriodJSON);
-        parsed.otherSalary = JSON.parse(parsed.otherSalary);
-        updateEmployeeSalaryInfo(employee.employeeId, parsed);
+        try {
+          const payPeriodJSON = convertJsonForPayPeriod(
+            employee?.salaryInfo || {},
+            {
+              employeeId: employee?.employeeId || 0,
+              hourlyRate: 26, // Default for semi-monthly
+              isSelectedFixedHourlyRate:
+                employee?.salaryInfo?.isSelectedFixedHourlyRate || false,
+              name: formData.workingHours || employee?.salaryInfo?.name,
+              otherSalary:
+                otherSalaryArray.length > 0
+                  ? otherSalaryArray
+                  : employee?.salaryInfo?.otherSalary,
+              overtimeFixed:
+                formData.selectedOvertimeOption === "fixed-input"
+                  ? formData.overtimeRate
+                  : employee?.salaryInfo?.overtimeFixed,
+              overtimeSalary:
+                formData.selectedOvertimeOption === "auto-calc"
+                  ? parseFloat(formData.overtimeRate) || 0
+                  : employee?.salaryInfo?.overtimeSalary,
+              payPeriod: "semiMonthly",
+              salary: formData.basic || employee?.salaryInfo?.salary,
+              selectedOvertimeOption:
+                formData.selectedOvertimeOption === "auto-calc"
+                  ? 0
+                  : formData.selectedOvertimeOption === "fixed-input"
+                    ? 1
+                    : employee?.salaryInfo?.selectedOvertimeOption,
+              shift: employee?.salaryInfo?.shift || "Morning",
+              startDay: formData.selectedDate
+                ? parseInt(formData.selectedDate)
+                : employee?.salaryInfo?.startDay || 1,
+              startWeek: employee?.salaryInfo?.startWeek || null,
+              status: employee?.salaryInfo?.status || null,
+            },
+          );
 
-        return updateEmployee({
-          mac: employee?.deviceMAC || "",
-          id: employee?.employeeId,
-          payload: { payPeriod: payPeriodJSON },
-        });
+          updateEmployee({
+            mac: employee?.deviceMAC || "",
+            id: employee?.employeeId,
+            payload: { payPeriod: payPeriodJSON },
+          });
+
+          const parsed = JSON.parse(payPeriodJSON);
+          parsed.otherSalary = JSON.parse(parsed.otherSalary);
+          updateEmployeeSalaryInfo(employee.employeeId, parsed);
+
+          storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+            salaryInfo: parseNormalData(payPeriodJSON),
+          });
+
+          return { success: true, employeeId: employee.employeeId };
+        } catch (error) {
+          console.error(error);
+          return { success: false, employeeId: employee.employeeId };
+        }
       });
 
       await Promise.all(updatePromises);
       toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`
+        `Successfully updated ${selectedEmployees.length} employee(s)`,
       );
     } catch (error) {
       console.error("Update error:", error);
@@ -264,7 +278,7 @@ function SemiMonthlyForm() {
               }
               onChange={(newValue) => handleInputChange("basic", newValue)}
             />
-          )
+          ),
         )}
 
         {/* Additional Salary Sections */}
@@ -290,7 +304,7 @@ function SemiMonthlyForm() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 flex items-center bg-[#E6ECF0] px-12 py-4"
+            className="mt-2 flex items-center bg-white hover:bg-[#E6ECF0] px-12 py-4"
             onClick={addSalarySection}
           >
             <Plus className="w-4 h-4 text-[#004368] mr-2" />
@@ -436,10 +450,15 @@ const AdditionalSalaryRow = ({
       <div className="flex gap-2">
         <Input
           value={salary.type}
-          onChange={(e) => onTypeChange?.(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value.replace(/[0-9]/g, "");
+            onTypeChange?.(value);
+          }}
           className="w-40"
           placeholder="Salary Type"
+          type="text"
         />
+
         <Input
           value={salary.amount}
           onChange={(e) => onAmountChange?.(e.target.value)}

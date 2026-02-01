@@ -3,11 +3,14 @@ import { useEditEmployeeStore } from "@/zustand/useEditEmployeeStore";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import toast from "react-hot-toast";
 import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
 
 export const AbsenceForm = () => {
   const [penaltyDays, setPenaltyDays] = useState("");
   const { selectedEmployee } = useEditEmployeeStore();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
+  const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Load existing penalty days value from selectedEmployee
   useEffect(() => {
@@ -95,6 +98,11 @@ export const AbsenceForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
 
       toast.success("Penalty days updated successfully!");
     } catch (error) {
@@ -124,6 +132,11 @@ export const AbsenceForm = () => {
         id: selectedEmployee?.employeeId,
         payload,
       });
+      storeEmployeeUpdate(
+        selectedEmployee.employeeId,
+        selectedEmployee.deviceMAC || "",
+        { salaryRules: parseNormalData(updatedJSON) }
+      );
       toast.success("Shift rules deleted successfully!");
     } catch (error) {
       console.error("❌ Error deleting shift rules:", error);
