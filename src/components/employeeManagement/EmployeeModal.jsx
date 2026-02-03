@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import image from "@/constants/image";
 import {
   Accordion,
   AccordionContent,
@@ -12,10 +11,10 @@ import { Checkbox } from "../ui/checkbox";
 import OvertimeModal from "./OvertimeModal";
 import toast from "react-hot-toast";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
-import MoveDeviceModal from "./MoveDeviceModal";
+import MoveEmployeeModal from "./MoveEmployeeModal";
 
-function EmployeeModal({ employee }) {
-  const [isOpen, setIsOpen] = useState(false);
+function EmployeeModal({ employee, isOpen, setIsOpen }) {
+  // const [isOpen, setIsOpen] = useState(false);
   const [showOvertime, setShowOvertime] = useState(false);
   const [showMove, setShowMove] = useState(false);
 
@@ -174,9 +173,6 @@ function EmployeeModal({ employee }) {
   return (
     <>
       {/* Trigger Button */}
-      <button onClick={() => setIsOpen(true)}>
-        <img src={image.settingIcon} alt="settings" />
-      </button>
 
       {/* Employee Modal */}
       <AnimatePresence>
@@ -339,7 +335,7 @@ function EmployeeModal({ employee }) {
         {...employee}
       />
 
-      <MoveDeviceModal
+      <MoveEmployeeModal
         isOpen={showMove}
         onClose={() => {
           setShowMove(false);

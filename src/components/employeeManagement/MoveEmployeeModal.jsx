@@ -12,22 +12,31 @@ import {
 import { Button } from "@/components/ui/button";
 import { useDeviceMACs } from "@/hook/useDeviceMACs";
 import {
+  createEmployee,
   deleteEmployee,
   fetchEmployeeDetails,
 } from "@/utils/employeeServices/EmployeeServices";
-import { createEmployee } from "@/utils/employeeServices/EmployeeServices";
+import { getApiUrl } from "@/config/config";
+import { imageUrlToBase64 } from "@/lib/imageUrlToBase64";
+import toast from "react-hot-toast";
+import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import { parseNormalData } from "@/lib/parseNormalData";
+import parseAddress from "@/lib/parseAddress";
 
-const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
+const MoveEmployeeModal = ({ isOpen, onClose, emp }) => {
   const { deviceMACs } = useDeviceMACs();
-  const [selectedDevice, setSelectedDevice] = useState("");
-  //   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-  const [employees, setEmployees] = useState([]);
+
+  const [employee, setEmployee] = useState(null);
+  const [selectedDevice, setSelectedDevice] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log(deviceMACs);
+  const { updateEmployee } = useEmployeeStore();
 
+  /* ---------------------------------- */
+  /* Load employee details */
+  /* ---------------------------------- */
   useEffect(() => {
-    if (!emp?.employeeId || !emp?.deviceMAC) return;
+    if (!isOpen || !emp?.employeeId || !emp?.deviceMAC) return;
 
     const loadEmployee = async () => {
       try {
@@ -35,47 +44,95 @@ const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
           employeeId: emp.employeeId,
           mac: emp.deviceMAC,
         });
-        setEmployees(data);
+        setEmployee(data);
       } catch (err) {
         console.error("Failed to fetch employee details", err);
       }
     };
 
     loadEmployee();
-  }, [emp?.employeeId, emp?.deviceMAC]);
+  }, [isOpen, emp?.employeeId, emp?.deviceMAC]);
 
-  //   console.log(employees);
+  /* ---------------------------------- */
+  /* Submit handler */
+  /* ---------------------------------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!employee || !selectedDevice) return;
 
     setIsLoading(true);
-    console.log(selectedDevice);
-    const transformed = selectedDevice.map((d) => [d.deviceMAC, d.deviceName]);
-    const finalString = JSON.stringify(transformed);
 
-    const payload = {
-      ...employees,
-      deviceMAC: selectedDevice ? selectedDevice.deviceMAC : "",
-      listOfDevices: finalString,
-    };
-    console.log(payload);
     try {
-      //  await createEmployee()
-      //  await deleteEmployee(employees.mac,employees.employeeId)
-      //   onClose();
+      // backend expects: [[mac, name]]
+      const listOfDevices = JSON.stringify([
+        [selectedDevice.deviceMAC, selectedDevice.deviceName],
+      ]);
+
+      const links = getApiUrl(`/media/${employee.imageFile}`);
+      // console.log(links);
+      // const links =
+      //   "http://192.168.1.180:8787/media/123/9477dec8-22c5-4f0e-ab5e-4944b688ea98.jpg";
+      const base64 = await imageUrlToBase64(links);
+
+      const payload = {
+        ...structuredClone(employee),
+        deviceMAC: selectedDevice.deviceMAC,
+        deviceName: selectedDevice.deviceName,
+        imageFile: base64,
+        listOfDevices,
+      };
+      // console.log(payload);
+      const response = await createEmployee(payload);
+      console.log(response);
+      await deleteEmployee({
+        mac: employee.deviceMAC,
+        id: employee.employeeId,
+      });
+
+      const updatePayload = {
+        name: employee.name,
+        employeeId: employee.employeeId,
+        companyEmployeeId: employee.email?.split("|")[1],
+        department: employee.department,
+        email: employee.email?.split("|")[0],
+        image: getApiUrl(`/media/${employee.imageFile}`),
+        designation: employee.designation,
+        deviceMAC: selectedDevice.deviceMAC,
+        address: parseAddress(employee.address),
+        contactNumber: employee.contactNumber,
+        joiningDate: employee.startDate,
+        salaryRules: parseNormalData(employee.salaryRules),
+        salaryInfo: JSON.parse(employee.payPeriod || "{}"),
+      };
+
+      updateEmployee(employee.employeeId, employee.deviceMAC, updatePayload);
+      toast.success("Move Employee successfully done");
+      // onClose();
     } catch (error) {
       console.error("Error moving device:", error);
+      toast.error("Move Employee error");
     } finally {
       setIsLoading(false);
     }
   };
 
+  /* ---------------------------------- */
+  /* Close handler */
+  /* ---------------------------------- */
   const handleClose = () => {
-    setSelectedDevice("");
+    setSelectedDevice(null);
+    setEmployee(null);
     onClose();
   };
 
   if (!isOpen) return null;
+
+  /* ---------------------------------- */
+  /* Filter out current device */
+  /* ---------------------------------- */
+  const availableDevices = deviceMACs?.filter(
+    (d) => d.deviceMAC !== emp?.deviceMAC,
+  );
 
   return (
     <AnimatePresence>
@@ -118,13 +175,14 @@ const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
                 <label className="text-sm font-medium text-gray-700">
                   Select Device
                 </label>
+
                 <Select
-                  value={selectedDevice ? selectedDevice.deviceMAC : ""}
+                  value={selectedDevice?.deviceMAC ?? ""}
                   onValueChange={(value) => {
-                    const device = deviceMACs.find(
+                    const device = availableDevices.find(
                       (d) => d.deviceMAC === value,
                     );
-                    setSelectedDevice(device);
+                    setSelectedDevice(device || null);
                   }}
                 >
                   <SelectTrigger className="w-full">
@@ -132,7 +190,7 @@ const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {deviceMACs?.map((device) => (
+                    {availableDevices?.map((device) => (
                       <SelectItem
                         key={device.deviceMAC}
                         value={device.deviceMAC}
@@ -144,8 +202,8 @@ const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
                 </Select>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 ">
+              {/* Actions */}
+              <div className="flex gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -154,10 +212,11 @@ const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
                 >
                   Cancel
                 </Button>
+
                 <Button
                   type="submit"
                   disabled={!selectedDevice || isLoading}
-                  className="flex-1"
+                  className="flex-1 bg-[#004368] hover:bg-[#004368]"
                 >
                   {isLoading ? "Moving..." : "Move Device"}
                 </Button>
@@ -170,4 +229,4 @@ const MoveDeviceModal = ({ isOpen, onClose, emp }) => {
   );
 };
 
-export default MoveDeviceModal;
+export default MoveEmployeeModal;

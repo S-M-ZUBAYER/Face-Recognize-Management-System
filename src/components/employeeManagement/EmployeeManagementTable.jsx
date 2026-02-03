@@ -6,9 +6,12 @@ import { useOverTimeData } from "@/hook/useOverTimeData";
 import { useNavigate } from "react-router-dom";
 import SetModal from "./modal/SetModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import image from "@/constants/image";
 
 const EmployeeManagementTable = ({ employees = [] }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -343,8 +346,13 @@ const EmployeeManagementTable = ({ employees = [] }) => {
                         </svg>
                       </div>
                     </td>
-                    <td className="p-2">
-                      <EmployeeModal employee={emp} />
+                    <td
+                      className="p-2"
+                      onClick={() => setSelectedEmployee(emp)}
+                    >
+                      <button onClick={() => setIsOpen(true)}>
+                        <img src={image.settingIcon} alt="settings" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -353,7 +361,13 @@ const EmployeeManagementTable = ({ employees = [] }) => {
           </tbody>
         </table>
       </div>
-
+      {selectedEmployee && (
+        <EmployeeModal
+          employee={selectedEmployee}
+          isOpen={isOpen}
+          setIsOpen={setIsOpen}
+        />
+      )}
       {/* Results Info and Export */}
       {employees.length > 0 && (
         <div className="flex justify-between items-center mt-4">
