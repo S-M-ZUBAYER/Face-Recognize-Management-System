@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import LeaveApplicationsList from "@/components/leaveApproval/LeaveApplicationsList";
 import LeaveApplicationDetails from "@/components/leaveApproval/LeaveApplicationDetails";
+import ExportLeaveToExcel from "@/components/leaveApproval/ExportLeaveToExcel";
 import { Search, X, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import useLeaveStore from "@/zustand/useLeaveStore";
+import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
 
 const LeaveApprovalPage = () => {
   const [selectedId, setSelectedId] = useState(null);
@@ -22,14 +24,16 @@ const LeaveApprovalPage = () => {
     to: null,
   });
 
+  useEffect(() => {
+    fetchLeavesData();
+  }, []);
+
   const leaves = useLeaveStore((state) => state.leaves);
 
   // Safe date range setter to handle undefined values
   const handleDateRangeChange = useCallback((range) => {
     setDateRange(range || { from: null, to: null });
   }, []);
-
-  // console.log(leaves);
 
   useEffect(() => {
     setFilteredLeaves(leaves);
@@ -134,34 +138,6 @@ const LeaveApprovalPage = () => {
   // Check if any filters are active
   const hasActiveFilters = searchQuery || dateRange?.from;
 
-  // Loading state
-  // if (isLoading) {
-  //   return (
-  //     <div className="p-6">
-  //       <FancyLoader />
-  //     </div>
-  //   );
-  // }
-
-  // // Error state
-  // if (error) {
-  //   return (
-  //     <div className="p-6">
-  //       <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
-  //         Leave approval
-  //       </p>
-  //       <div className="flex flex-col items-center justify-center h-[75vh] rounded-lg bg-red-50 border border-red-100">
-  //         <p className="text-red-600 font-medium mb-2">
-  //           Failed to load applications
-  //         </p>
-  //         <p className="text-gray-500 text-sm">
-  //           {error.message || "Please try again later"}
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   // Empty state
   if (!leaves.length) {
     return (
@@ -190,6 +166,12 @@ const LeaveApprovalPage = () => {
         </p>
 
         <div className="flex items-center gap-3">
+          {/* Excel Export Button */}
+          <ExportLeaveToExcel
+            leaves={filteredLeaves}
+            isFiltered={hasActiveFilters}
+          />
+
           {/* Date Range Filter */}
           <Popover>
             <PopoverTrigger asChild>
