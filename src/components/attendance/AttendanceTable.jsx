@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 // import { useEmployees } from "@/hook/useEmployees";
 // import { useOverTimeData } from "@/hook/useOverTimeData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
+import { useSelectedDeviceMACStore } from "@/zustand/useSelectedDeviceMACStore";
 
 // Memoized components
 const MemoizedAttendanceExport = memo(AttendanceExport);
@@ -25,7 +26,7 @@ const SearchBox = memo(
       <div className="flex items-center gap-2">
         <input
           type="text"
-          placeholder="Search by Date, Id, Mac, Name or Department..."
+          placeholder="Search by Date, Id, Name or Department..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -61,6 +62,8 @@ const AttendanceTable = ({ employees = [] }) => {
   const isFilterLoading = useAttendanceStore((state) => state.isFilterLoading);
   const activeFilter = useAttendanceStore((state) => state.activeFilter);
   const isRefreshing = useAttendanceStore((state) => state.isRefreshing);
+  const { selectedDeviceMAC } = useSelectedDeviceMACStore();
+  // console.log(selectedDeviceMAC, activeFilter);
 
   // IMPORTANT: Make sure this function exists in your store
   // const refreshAttendanceData = useAttendanceStore(
@@ -97,6 +100,8 @@ const AttendanceTable = ({ employees = [] }) => {
     }
   }, [activeFilter, startDate, endDate, searchQuery]);
 
+  useEffect;
+
   // Search handlers
   const handleSearch = useCallback(() => {
     if (searchInput.trim()) {
@@ -110,28 +115,41 @@ const AttendanceTable = ({ employees = [] }) => {
   }, []);
 
   // Filtered data
+  // Add this useMemo after your existing filteredData (around line 120)
+  const deviceFilteredData = useMemo(() => {
+    // If "all" is selected, return all employees
+    if (selectedDeviceMAC === "all") {
+      return employees;
+    }
+
+    // Otherwise filter by device MAC
+    return employees.filter((emp) => emp.deviceMAC === selectedDeviceMAC);
+  }, [employees, selectedDeviceMAC]);
+
+  // Then update your searchQuery filter to use deviceFilteredData instead of employees
   const filteredData = useMemo(() => {
-    if (!searchQuery) return employees;
+    if (!searchQuery) return deviceFilteredData; // Changed from employees
 
     const query = searchQuery.toLowerCase();
-    return employees.filter((emp) => {
+    return deviceFilteredData.filter((emp) => {
+      // Changed from employees
       const date = (emp?.punch?.date || "").toLowerCase();
       const name = (emp?.name || "").split("<")[0].toLowerCase();
       const empId = (emp?.companyEmployeeId || emp?.employeeId || emp?.id || "")
         .toString()
         .toLowerCase();
       const department = (emp?.department || "").toLowerCase();
-      const deviceMac = (emp?.deviceMAC || "").toLowerCase();
+      // const deviceMac = (emp?.deviceMAC || "").toLowerCase();
 
       return (
         date.includes(query) ||
         name.includes(query) ||
         empId.includes(query) ||
-        department.includes(query) ||
-        deviceMac.includes(query)
+        department.includes(query)
+        // deviceMac.includes(query)
       );
     });
-  }, [employees, searchQuery]);
+  }, [deviceFilteredData, searchQuery]); // Updated dependency
 
   // Max punch count
   const maxPunchCount = useMemo(() => {

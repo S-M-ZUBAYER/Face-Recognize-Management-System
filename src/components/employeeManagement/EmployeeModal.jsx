@@ -270,13 +270,36 @@ function EmployeeModal({ employee, isOpen, setIsOpen }) {
                   ))}
                 </Accordion>
               </div>
-              <div
-                onClick={() => {
-                  setShowMove(true);
-                  setIsOpen(false);
-                }}
-              >
-                <p>Move Employee to Another Device</p>
+              <div className="mt-4">
+                <div
+                  onClick={() => {
+                    setShowMove(true);
+                    setIsOpen(false);
+                  }}
+                  className="
+      flex items-center justify-between
+      w-full
+      rounded-md
+      border
+      border-gray-200
+      px-4 py-3
+      text-sm font-medium
+      text-[#004368]
+      cursor-pointer
+      transition
+      hover:bg-gray-50
+      hover:border-gray-300
+      focus:outline-none
+      focus:ring-2 focus:ring-[#004368]/30
+    "
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span>Move Employee to Another Device</span>
+
+                  {/* optional arrow for affordance */}
+                  <span className="text-gray-400 text-xs">→</span>
+                </div>
               </div>
 
               {/* Preview of selected values */}
@@ -339,7 +362,7 @@ function EmployeeModal({ employee, isOpen, setIsOpen }) {
         isOpen={showMove}
         onClose={() => {
           setShowMove(false);
-          setIsOpen(true);
+          // setIsOpen(true);
         }}
         emp={employee}
       />

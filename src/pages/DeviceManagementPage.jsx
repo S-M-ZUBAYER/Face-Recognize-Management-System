@@ -6,11 +6,12 @@ import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 
 function DeviceManagementPage() {
   const { employeeCounts } = useEmployeeStore();
-  const { deviceMACs } = useDeviceMACs();
+  const { deviceMACs, refetch } = useDeviceMACs();
   // console.log("DeviceManagementPage Re-render:", {
   //   employeeCounts,
   //   deviceMACs,
   // });
+  console.log(deviceMACs);
   const merged = deviceMACs.map((dev) => {
     const found = employeeCounts.find((c) => c.deviceMAC === dev.deviceMAC);
     return {
@@ -31,8 +32,10 @@ function DeviceManagementPage() {
               <DeviceCard
                 key={index}
                 deviceName={device.deviceName}
+                deviceDescription={device.deviceDescription}
                 MacAddress={device.deviceMAC}
                 EmployeeCount={device.count || 0}
+                refetch={refetch}
               />
             ))
           ) : (

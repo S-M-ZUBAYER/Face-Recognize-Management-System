@@ -1,7 +1,6 @@
 import React, { memo, useState, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
-import { useUserData } from "@/hook/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
 import localforage from "localforage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +23,7 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { base64ToImage } from "@/lib/base64Toimage";
+import { useUserStore } from "@/zustand/useUserStore";
 
 // Constants
 const LINKS = [
@@ -352,7 +352,7 @@ const Sidebar = () => {
   const [pendingRoute, setPendingRoute] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
-  const { user, loading, error } = useUserData();
+  const { user } = useUserStore();
   const queryClient = useQueryClient();
 
   // Memoized values
@@ -467,8 +467,8 @@ const Sidebar = () => {
         >
           <UserAvatar
             user={user}
-            loading={loading}
-            error={error}
+            // loading={loading}
+            // error={error}
             imageUrl={imageUrl}
           />
 

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useUserData } from "./useUserData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 import { useEffect } from "react";
+import { useUserStore } from "@/zustand/useUserStore";
 
 const BASE_URL = "https://grozziieget.zjweiting.com:8033/tht/attendance";
 
@@ -35,7 +35,7 @@ async function fetchPaymentInfo(email) {
 }
 
 export function usePaymentInfo() {
-  const { user } = useUserData();
+  const { user } = useUserStore();
   const { setPaymentStatus } = useSubscriptionStore();
 
   const query = useQuery({

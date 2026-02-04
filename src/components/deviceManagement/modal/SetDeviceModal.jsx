@@ -143,9 +143,9 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
                       <Forward className="w-5 h-5 text-green-600" />
                     </div>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">Move</p>
+                      <p className="font-semibold text-gray-900">Copy</p>
                       <p className="text-xs text-gray-500">
-                        Move to Another Device
+                        Copy to Another Device
                       </p>
                     </div>
                   </div>
@@ -153,11 +153,11 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
               </div>
 
               {/* Footer */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              {/* <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center">
                   Changes PayPeriod & Rules to selected device
                 </p>
-              </div>
+              </div> */}
             </motion.div>
           </motion.div>
         )}

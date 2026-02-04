@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -20,34 +21,37 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { useDeviceMACs } from "@/hook/useDeviceMACs";
-import {
-  createEmployee,
-  // deleteEmployee,
-  // updateEmployee,
-} from "@/utils/employeeServices/EmployeeServices";
+import { createEmployee } from "@/utils/employeeServices/EmployeeServices";
 import { getApiUrl } from "@/config/config";
 import { imageUrlToBase64 } from "@/lib/imageUrlToBase64";
 import { useGlobalStore } from "@/zustand/useGlobalStore";
 import { fetchEmployeeUseIngMac } from "@/utils/allServices/getEmployeeService";
 import { fetchAttendanceUseIngMac } from "@/utils/allServices/getAttendanceService";
 import { updateAttendanceUseIngMac } from "@/utils/allServices/updateAttendanceService";
-// import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { getAllEmployeeData } from "@/utils/initializes/getAllEmployeeData";
+import { fetchPayPeriodUseIngMac } from "@/utils/payPeriod/getPayPeriodUsingMac";
+import { updatePayPeriod } from "@/utils/payPeriod/updatePayPeriod";
+import { updateSalaryRules } from "@/utils/salaryRules/updateSalaryRules";
+import { fetchSalaryRulesUseIngMac } from "@/utils/salaryRules/getSalaryRulesUsingMac";
+import toast from "react-hot-toast";
 
 const MoveDeviceModal = ({ isOpen, onClose }) => {
   const { deviceMACs } = useDeviceMACs();
   const { deviceMac } = useGlobalStore();
-  // const { updateEmployee } = useEmployeeStore();
+
   // Selection state
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [migrateEmployees, setMigrateEmployees] = useState(false);
   const [migrateAttendance, setMigrateAttendance] = useState(false);
+  const [migrateDeviceSetting, setMigrateDeviceSetting] = useState(false);
 
   // Data state
   const [employeeData, setEmployeeData] = useState([]);
   const [employeeCount, setEmployeeCount] = useState(0);
   const [attendanceData, setAttendanceData] = useState([]);
   const [attendanceCount, setAttendanceCount] = useState(0);
+  const [salaryRules, setSalaryRules] = useState(null);
+  const [payPeriod, setPayPeriod] = useState(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
   // Migration state
@@ -55,7 +59,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
   const [migrationProgress, setMigrationProgress] = useState({
     current: 0,
     total: 0,
-    type: "", // 'employee' or 'attendance'
+    type: "",
     currentItem: "",
   });
   const [migrationErrors, setMigrationErrors] = useState([]);
@@ -75,13 +79,20 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
   const fetchDataCounts = async () => {
     setIsLoadingCounts(true);
     try {
-      const [employeeRes, attendanceRes] = await Promise.all([
-        fetchEmployeeUseIngMac({ mac: deviceMac }),
-        fetchAttendanceUseIngMac({ mac: deviceMac }),
-      ]);
-      // console.log(employeeRes, attendanceRes);
+      const [employeeRes, attendanceRes, payPeriodRes, salaryRulesRes] =
+        await Promise.all([
+          fetchEmployeeUseIngMac({ mac: deviceMac }),
+          fetchAttendanceUseIngMac({ mac: deviceMac }),
+          fetchPayPeriodUseIngMac({ mac: deviceMac }),
+          fetchSalaryRulesUseIngMac({ mac: deviceMac }),
+        ]);
+
+      // console.log(payPeriodRes, salaryRulesRes);
+
       setEmployeeData(employeeRes);
       setAttendanceData(attendanceRes);
+      setPayPeriod(payPeriodRes);
+      setSalaryRules(salaryRulesRes);
       setEmployeeCount(employeeRes?.length || 0);
       setAttendanceCount(attendanceRes?.length || 0);
     } catch (error) {
@@ -92,28 +103,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
       setIsLoadingCounts(false);
     }
   };
-
-  /* ---------------------------------- */
-  /* Helper: Parse address */
-  /* ---------------------------------- */
-  // const parseAddress = (address) => {
-  //   try {
-  //     return typeof address === "string" ? JSON.parse(address) : address;
-  //   } catch {
-  //     return address;
-  //   }
-  // };
-
-  // /* ---------------------------------- */
-  // /* Helper: Parse normal data */
-  // /* ---------------------------------- */
-  // const parseNormalData = (data) => {
-  //   try {
-  //     return typeof data === "string" ? JSON.parse(data) : data;
-  //   } catch {
-  //     return data;
-  //   }
-  // };
 
   /* ---------------------------------- */
   /* Migrate single employee */
@@ -127,16 +116,13 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
     });
 
     try {
-      // Prepare list of devices
       const listOfDevices = JSON.stringify([
         [selectedDevice.deviceMAC, selectedDevice.deviceName],
       ]);
 
-      // Convert image to base64
       const imageUrl = getApiUrl(`/media/${employee.imageFile}`);
       const base64Image = await imageUrlToBase64(imageUrl);
 
-      // Create employee on new device
       const createPayload = {
         ...structuredClone(employee),
         deviceMAC: selectedDevice.deviceMAC,
@@ -146,29 +132,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
       };
 
       await createEmployee(createPayload);
-
-      // Update employee metadata
-      // const updatePayload = {
-      //   name: employee.name,
-      //   employeeId: employee.employeeId,
-      //   companyEmployeeId: employee.email?.split("|")[1],
-      //   department: employee.department,
-      //   email: employee.email?.split("|")[0],
-      //   image: imageUrl,
-      //   designation: employee.designation,
-      //   deviceMAC: selectedDevice.deviceMAC,
-      //   address: parseAddress(employee.address),
-      //   contactNumber: employee.contactNumber,
-      //   joiningDate: employee.startDate,
-      //   salaryRules: parseNormalData(employee.salaryRules),
-      //   salaryInfo: JSON.parse(employee.payPeriod || "{}"),
-      // };
-
-      // await updateEmployee(
-      //   employee.employeeId,
-      //   selectedDevice.deviceMAC,
-      //   updatePayload,
-      // );
 
       return { success: true, employee: employee.name || employee.employeeId };
     } catch (error) {
@@ -197,7 +160,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
         ...attendance,
         macId: selectedDevice.deviceMAC,
       };
-      console.log(updatedAttendance);
       await updateAttendanceUseIngMac({ data: updatedAttendance });
       return { success: true };
     } catch (error) {
@@ -213,7 +175,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
     e.preventDefault();
 
     if (!selectedDevice) return;
-    if (!migrateEmployees && !migrateAttendance) {
+    if (!migrateEmployees && !migrateAttendance && !migrateDeviceSetting) {
       alert("Please select at least one option to migrate");
       return;
     }
@@ -224,10 +186,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
     try {
       // Migrate employees
       if (migrateEmployees && employeeCount > 0) {
-        // const { data: employeeData } = await fetchEmployeeUseIngMac({
-        //   mac: deviceMac,
-        // });
-
         const employeeResults = [];
         for (let i = 0; i < employeeData.length; i++) {
           const result = await migrateEmployee(
@@ -237,7 +195,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
           );
           employeeResults.push(result);
 
-          // Small delay to show progress
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
@@ -254,10 +211,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
 
       // Migrate attendance
       if (migrateAttendance && attendanceCount > 0) {
-        // const { data: attendanceData } = await fetchAttendanceUseIngMac({
-        //   mac: deviceMac,
-        // });
-
         const attendanceResults = [];
         for (let i = 0; i < attendanceData.length; i++) {
           const result = await migrateAttendanceRecord(
@@ -267,7 +220,6 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
           );
           attendanceResults.push(result);
 
-          // Small delay to show progress
           await new Promise((resolve) => setTimeout(resolve, 50));
         }
 
@@ -282,7 +234,27 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
         }
       }
 
-      // Show completion for a moment before closing
+      // Migrate device settings
+      if (migrateDeviceSetting && payPeriod && salaryRules) {
+        try {
+          await updatePayPeriod({
+            mac: selectedDevice.deviceMAC,
+            payload: payPeriod,
+          });
+          await updateSalaryRules({
+            mac: selectedDevice.deviceMAC,
+            payload: salaryRules,
+          });
+          toast.success("Devices Setting Migration Success");
+        } catch (error) {
+          console.error("Error migrating device settings:", error);
+          setMigrationErrors((prev) => [
+            ...prev,
+            `Device Settings: ${error.message}`,
+          ]);
+        }
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (migrationErrors.length === 0) {
@@ -305,11 +277,12 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
   /* Close handler */
   /* ---------------------------------- */
   const handleClose = () => {
-    if (isMigrating) return; // Prevent closing during migration
+    if (isMigrating) return;
 
     setSelectedDevice(null);
     setMigrateEmployees(false);
     setMigrateAttendance(false);
+    setMigrateDeviceSetting(false);
     setMigrationProgress({ current: 0, total: 0, type: "", currentItem: "" });
     setMigrationErrors([]);
     onClose();
@@ -317,14 +290,8 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  /* ---------------------------------- */
-  /* Filter out current device */
-  /* ---------------------------------- */
   const availableDevices = deviceMACs?.filter((d) => d.deviceMAC !== deviceMac);
 
-  /* ---------------------------------- */
-  /* Calculate progress percentage */
-  /* ---------------------------------- */
   const progressPercentage =
     migrationProgress.total > 0
       ? (migrationProgress.current / migrationProgress.total) * 100
@@ -355,7 +322,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
             <div className="bg-gradient-to-r from-[#004368] to-[#005580] px-6 py-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-white">
-                  Move to Another Device
+                  Copy to Another Device
                 </h2>
                 <button
                   onClick={handleClose}
@@ -370,9 +337,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
             {/* Content */}
             <div className="p-6">
               {!isMigrating ? (
-                /* ---------------------------------- */
                 /* Configuration Form */
-                /* ---------------------------------- */
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Device Selection */}
                   <div className="space-y-2">
@@ -418,7 +383,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
                         onCheckedChange={(checked) => {
                           setMigrateEmployees(checked);
                           if (!checked) {
-                            setMigrateAttendance(false); // Auto-uncheck attendance if employees unchecked
+                            setMigrateAttendance(false);
                           }
                         }}
                         disabled={isLoadingCounts || employeeCount === 0}
@@ -455,7 +420,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
                           isLoadingCounts ||
                           attendanceCount === 0 ||
                           !migrateEmployees
-                        } // Disabled if employees NOT selected
+                        }
                         className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
                       />
                       <div className="flex-1">
@@ -483,6 +448,36 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
                         )}
                       </div>
                     </div>
+
+                    {/* Device Setting Migration Option */}
+                    <div className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Checkbox
+                        id="device-setting"
+                        checked={migrateDeviceSetting}
+                        onCheckedChange={setMigrateDeviceSetting}
+                        disabled={isLoadingCounts}
+                        className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
+                      />
+                      <div className="flex-1">
+                        <label
+                          htmlFor="device-setting"
+                          className="flex items-center gap-2 text-sm font-medium text-gray-900 cursor-pointer"
+                        >
+                          <Settings className="w-4 h-4 text-[#004368]" />
+                          Device Settings
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {isLoadingCounts ? (
+                            <span className="flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Loading...
+                            </span>
+                          ) : (
+                            "Pay period and salary rules will be migrated"
+                          )}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Actions */}
@@ -501,7 +496,9 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
                       disabled={
                         !selectedDevice ||
                         isLoadingCounts ||
-                        (!migrateEmployees && !migrateAttendance)
+                        (!migrateEmployees &&
+                          !migrateAttendance &&
+                          !migrateDeviceSetting)
                       }
                       className="flex-1 bg-[#004368] hover:bg-[#005580]"
                     >
@@ -510,9 +507,7 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
                   </div>
                 </form>
               ) : (
-                /* ---------------------------------- */
                 /* Migration Progress View */
-                /* ---------------------------------- */
                 <div className="space-y-6">
                   {/* Progress Header */}
                   <div className="text-center">
@@ -528,22 +523,25 @@ const MoveDeviceModal = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 capitalize">
-                        {migrationProgress.type === "employee"
-                          ? "Migrating Employees"
-                          : "Migrating Attendance"}
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        {migrationProgress.current} / {migrationProgress.total}
-                      </span>
+                  {migrationProgress.type && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 capitalize">
+                          {migrationProgress.type === "employee"
+                            ? "Migrating Employees"
+                            : "Migrating Attendance"}
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {migrationProgress.current} /{" "}
+                          {migrationProgress.total}
+                        </span>
+                      </div>
+                      <Progress value={progressPercentage} className="h-2" />
+                      <p className="text-xs text-gray-500 text-center">
+                        Current: {migrationProgress.currentItem}
+                      </p>
                     </div>
-                    <Progress value={progressPercentage} className="h-2" />
-                    <p className="text-xs text-gray-500 text-center">
-                      Current: {migrationProgress.currentItem}
-                    </p>
-                  </div>
+                  )}
 
                   {/* Completion Status */}
                   {migrationProgress.current === migrationProgress.total &&

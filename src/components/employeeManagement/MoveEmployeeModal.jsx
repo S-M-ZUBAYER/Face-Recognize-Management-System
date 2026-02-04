@@ -107,7 +107,7 @@ const MoveEmployeeModal = ({ isOpen, onClose, emp }) => {
 
       updateEmployee(employee.employeeId, employee.deviceMAC, updatePayload);
       toast.success("Move Employee successfully done");
-      // onClose();
+      onClose();
     } catch (error) {
       console.error("Error moving device:", error);
       toast.error("Move Employee error");
