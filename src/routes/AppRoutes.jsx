@@ -45,17 +45,17 @@ const AppLayout = () => {
 
   if (isLoading) {
     return (
-      <div className="w-screen h-[100vh] flex justify-center items-center relative z-500 bg-white">
+      <div className="w-screen h-screen flex justify-center items-center relative z-500 bg-white">
         <Riple color="#004368" size="large" text="" textColor="" />
       </div>
     );
   }
   return (
-    <div className="flex h-[100vh] w-[100vw] font-poppins-regular ">
+    <div className="flex flex-col md:flex-row h-screen w-screen font-poppins-regular bg-white">
       <Sidebar />
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <Navbar />
-        <main className="p-6 overflow-y-auto custom-scrollbar">
+        <main className="p-3 sm:p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1">
           <Outlet />
         </main>
       </div>

@@ -447,7 +447,7 @@ const Sidebar = () => {
       <motion.div variants={ANIMATION_VARIANTS.userSection} className="pl-4">
         <motion.div
           className={cn(
-            "flex items-center gap-2 justify-between cursor-pointer p-2 rounded-lg transition-colors",
+            "flex items-center gap-2 justify-between cursor-pointer p-2 lg:mt-2.5 mt-0 lg:p-0 rounded-lg transition-colors",
             isLoggingOut && "opacity-50 pointer-events-none",
           )}
           onClick={handleLogout}

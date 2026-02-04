@@ -30,7 +30,7 @@ const SearchBox = memo(
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="w-[16vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
+          className="w-[12vw] border rounded-md px-3 py-2 text-sm focus:outline-none border-[#004368]"
         />
         <button
           onClick={handleSearch}

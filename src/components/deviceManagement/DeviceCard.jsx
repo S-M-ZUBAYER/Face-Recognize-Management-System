@@ -22,7 +22,7 @@ const DeviceCard = memo(
     EmployeeCount = 0,
     refetch,
   }) => {
-    console.log(deviceDescription);
+    // console.log(deviceDescription);
     const [isOpen, setIsOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(deviceDescription || "");
@@ -235,7 +235,7 @@ const DeviceCard = memo(
                     // Display Mode
                     <div className="flex items-center justify-end gap-2">
                       <p
-                        className={`text-[#464646] font-poppins-regular font-[400] text-[12px] break-words value-text text-right flex-1 ${!editable && "pr-[1.7vw]"}`}
+                        className="text-[#464646] font-poppins-regular font-[400] text-[12px] break-words value-text text-right flex-1"
                         title={value}
                       >
                         {key === "employeeCount"
@@ -245,7 +245,7 @@ const DeviceCard = memo(
                       {editable && !isEditing && (
                         <button
                           onClick={handleEditClick}
-                          className="p-1.5 text-[#004368] hover:bg-[#004368]/10 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                          className="p-1.5 text-[#004368] hover:bg-[#004368]/10 rounded-md transition-all duration-200 flex-shrink-0"
                           title="Edit device name"
                         >
                           <Edit2 className="w-3.5 h-3.5" />

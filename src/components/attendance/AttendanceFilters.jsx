@@ -8,7 +8,7 @@ import { Button } from "../ui/button";
 
 const AttendanceFilters = memo(() => {
   const { deviceMACs } = useDeviceMACs();
-  console.log(deviceMACs);
+  // console.log(deviceMACs);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { selectedDeviceMAC, setSelectedDeviceMAC } =
     useSelectedDeviceMACStore();

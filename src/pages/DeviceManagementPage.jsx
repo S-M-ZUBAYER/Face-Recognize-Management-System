@@ -11,7 +11,7 @@ function DeviceManagementPage() {
   //   employeeCounts,
   //   deviceMACs,
   // });
-  console.log(deviceMACs);
+  // console.log(deviceMACs);
   const merged = deviceMACs.map((dev) => {
     const found = employeeCounts.find((c) => c.deviceMAC === dev.deviceMAC);
     return {

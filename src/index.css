@@ -381,3 +381,13 @@ input:-webkit-autofill {
   transition: opacity 0.3s ease;
   pointer-events: none;
 }
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: #e6ecf0; /* your global background */
+}
