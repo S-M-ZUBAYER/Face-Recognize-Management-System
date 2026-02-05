@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 // import { useOverTimeData } from "@/hook/useOverTimeData";
 import useSubscriptionStore from "@/zustand/useSubscriptionStore";
 import { useSelectedDeviceMACStore } from "@/zustand/useSelectedDeviceMACStore";
+import useResponsiveStore from "@/zustand/useResponsiveStore";
 
 // Memoized components
 const MemoizedAttendanceExport = memo(AttendanceExport);
@@ -63,6 +64,7 @@ const AttendanceTable = ({ employees = [] }) => {
   const activeFilter = useAttendanceStore((state) => state.activeFilter);
   const isRefreshing = useAttendanceStore((state) => state.isRefreshing);
   const { selectedDeviceMAC } = useSelectedDeviceMACStore();
+  const { isSmallLaptop } = useResponsiveStore();
   // console.log(selectedDeviceMAC, activeFilter);
 
   // IMPORTANT: Make sure this function exists in your store
@@ -506,9 +508,17 @@ const AttendanceTable = ({ employees = [] }) => {
   }, []);
 
   return (
-    <div className="h-[80vh] w-[77vw]">
+    <div className={`h-[80vh] ${isSmallLaptop ? "w-[92vw]" : "w-[77vw]"} `}>
       {/* Top Controls */}
-      <div className="flex justify-between items-end mb-2.5 bg-[#E6ECF0] px-4 py-6 rounded-2xl">
+      <div
+        className={`mb-2.5 bg-[#E6ECF0] px-4 py-6 rounded-2xl 
+    ${
+      isSmallLaptop
+        ? "flex flex-col space-y-2.5 justify-center items-center"
+        : "flex justify-between items-end"
+    }
+  `}
+      >
         <MemoizedAttendanceFilters />
         <MemoizedDateRangePicker />
         <SearchBox

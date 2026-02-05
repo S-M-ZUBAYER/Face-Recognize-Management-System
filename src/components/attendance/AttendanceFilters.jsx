@@ -5,6 +5,7 @@ import { useDeviceMACs } from "@/hook/useDeviceMACs";
 import { ChevronDown } from "lucide-react";
 import { useSelectedDeviceMACStore } from "@/zustand/useSelectedDeviceMACStore";
 import { Button } from "../ui/button";
+import useResponsiveStore from "@/zustand/useResponsiveStore";
 
 const AttendanceFilters = memo(() => {
   const { deviceMACs } = useDeviceMACs();
@@ -12,6 +13,7 @@ const AttendanceFilters = memo(() => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { selectedDeviceMAC, setSelectedDeviceMAC } =
     useSelectedDeviceMACStore();
+  const { isSmallLaptop } = useResponsiveStore();
 
   const activeFilter = useAttendanceStore((state) => state.activeFilter);
   const totalCount = useAttendanceStore((state) => state.totalCount);
@@ -66,7 +68,9 @@ const AttendanceFilters = memo(() => {
 
   return (
     <div className="flex flex-col gap-3.5">
-      <p className="text-[#1F1F1F] text-[1vw] font-[600] font-poppins-regular">
+      <p
+        className={`text-[#1F1F1F] ${isSmallLaptop ? "text-[1.5vw]" : "text-[1vw]"} font-[600] font-poppins-regular`}
+      >
         Choose Search Type
       </p>
 
@@ -96,8 +100,8 @@ const AttendanceFilters = memo(() => {
             <span
               className={
                 isFilterLoading && activeFilter === filter.key
-                  ? "opacity-0 text-[0.6vw]"
-                  : "opacity-100 text-[0.6vw]"
+                  ? `opacity-0 ${isSmallLaptop ? "text-[1.1vw]" : "text-[0.6vw]"}`
+                  : `opacity-100 ${isSmallLaptop ? "text-[1.1vw]" : "text-[0.6vw]"}`
               }
             >
               {filter.label}
@@ -118,7 +122,11 @@ const AttendanceFilters = memo(() => {
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0] hover:bg-[#004368] hover:text-[#E6ECF0]"
             }`}
           >
-            <span className="text-[0.6vw]">{selectedDeviceName}</span>
+            <span
+              className={` ${isSmallLaptop ? "text-[1.1vw]" : "text-[0.6vw]"}`}
+            >
+              {selectedDeviceName}
+            </span>
             <ChevronDown
               className={`w-3.5 h-3.5 transition-transform ${
                 isDropdownOpen ? "rotate-180" : ""

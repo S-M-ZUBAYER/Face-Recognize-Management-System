@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import useLeaveStore from "@/zustand/useLeaveStore";
 import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
+import FancyLoader from "@/components/FancyLoader";
 
 const LeaveApprovalPage = () => {
   const [selectedId, setSelectedId] = useState(null);
@@ -24,8 +25,21 @@ const LeaveApprovalPage = () => {
     to: null,
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    fetchLeavesData();
+    const loadData = async () => {
+      setIsLoading(true); // start loading
+      try {
+        await fetchLeavesData(); // fetch data
+      } catch (error) {
+        console.error("Failed to fetch leaves:", error);
+      } finally {
+        setIsLoading(false); // stop loading
+      }
+    };
+
+    loadData();
   }, []);
 
   const leaves = useLeaveStore((state) => state.leaves);
@@ -137,6 +151,10 @@ const LeaveApprovalPage = () => {
 
   // Check if any filters are active
   const hasActiveFilters = searchQuery || dateRange?.from;
+
+  if (isLoading) {
+    return <FancyLoader />;
+  }
 
   // Empty state
   if (!leaves.length) {

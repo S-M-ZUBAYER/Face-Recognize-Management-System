@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
+import useResponsiveStore from "@/zustand/useResponsiveStore";
 
 const DateRangePicker = ({
   minDate = null,
@@ -17,6 +18,7 @@ const DateRangePicker = ({
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectingStart, setSelectingStart] = useState(true);
+  const { isSmallLaptop } = useResponsiveStore();
 
   const { startDate, endDate, setDateRange } = useDateRangeStore();
 
@@ -252,7 +254,9 @@ const DateRangePicker = ({
 
   return (
     <div className={cn("relative inline-block ", className)}>
-      <p className="text-[#1F1F1F] text-[1vw]  font-[600] font-poppins-regular pb-3.5">
+      <p
+        className={`text-[#1F1F1F] ${isSmallLaptop ? "text-[1.3vw] pb-1.5" : "text-[1vw] pb-3.5"}  font-[600] font-poppins-regular `}
+      >
         Choose Date
       </p>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
