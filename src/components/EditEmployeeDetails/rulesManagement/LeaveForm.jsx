@@ -482,10 +482,10 @@ export const LeaveForm = () => {
               endTime: null,
             };
 
-            console.log(
-              `Creating object for ${leaveName}, date ${dateStr}:`,
-              timeRange,
-            );
+            // console.log(
+            //   `Creating object for ${leaveName}, date ${dateStr}:`,
+            //   timeRange,
+            // );
 
             const correctDateStr = formatDateForStorage(date);
 

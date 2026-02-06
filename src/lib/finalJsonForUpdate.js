@@ -73,31 +73,76 @@ function generateEmployeeDataJSON(input) {
       input.timeTables.map((tt) => JSON.stringify(normalizeTimeTable(tt))),
     ),
     m_leaves: safeStringify(
-      input.m_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.m_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     mar_leaves: safeStringify(
-      input.mar_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.mar_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     p_leaves: safeStringify(
-      input.p_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.p_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     s_leaves: safeStringify(
-      input.s_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.s_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     c_leaves: safeStringify(
-      input.c_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.c_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     e_leaves: safeStringify(
-      input.e_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.e_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     w_leaves: safeStringify(
-      input.w_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.w_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     r_leaves: safeStringify(
-      input.r_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.r_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
     o_leaves: safeStringify(
-      input.o_leaves?.map((l) => JSON.stringify(l)) ?? [],
+      input.o_leaves?.map((l) =>
+        JSON.stringify({
+          ...l,
+          date: typeof l.date === "string" ? l.date : JSON.stringify(l.date),
+        }),
+      ) ?? [],
     ),
   };
 }

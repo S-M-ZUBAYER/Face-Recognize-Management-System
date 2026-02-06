@@ -376,7 +376,7 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
-  const { user, clearAll } = useUserStore();
+  const { user } = useUserStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -441,8 +441,10 @@ const Sidebar = () => {
       // Batch storage operations
       localStorage.removeItem("hideWarningModalRules");
       localStorage.removeItem("hideWarningModalPayPeriod");
-      // localStorage.removeItem("user");
-      // localStorage.removeItem("deviceMACs");
+      localStorage.removeItem("user");
+      localStorage.removeItem("deviceMACs");
+      localStorage.removeItem("lastLoginAt");
+      localStorage.removeItem("lastActivityAt");
 
       await Promise.all([
         new Promise((resolve) => setTimeout(resolve, 300)),
@@ -450,13 +452,13 @@ const Sidebar = () => {
         localforage.removeItem("reactQuery"),
       ]);
 
-      clearAll(); // clear zustand + storage FIRST
+      // clearAll(); // clear zustand + storage FIRST
       navigate("/Face_Attendance_Management_System/signin", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
       setIsLoggingOut(false);
     }
-  }, [isLoggingOut, queryClient, clearAll, navigate]);
+  }, [isLoggingOut, queryClient, navigate]);
 
   // Memoized navigation items
   const navItems = useMemo(

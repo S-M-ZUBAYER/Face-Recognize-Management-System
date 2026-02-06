@@ -138,6 +138,8 @@ export default function Signin() {
         // Update Zustand store
         setUser(signInData.data);
         setDeviceMACs(deviceMACs);
+        const now = Date.now();
+        localStorage.setItem("lastActivityAt", now.toString());
 
         toast.success("Login successful");
         navigate("/Face_Attendance_Management_System", { replace: true });

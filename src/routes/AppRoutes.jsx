@@ -1,4 +1,4 @@
-import { Route, Routes, Outlet } from "react-router-dom";
+import { Route, Routes, Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import Animated404 from "../components/404";
@@ -22,14 +22,24 @@ import { useEffect, useState } from "react";
 import { getAllEmployeeData } from "@/utils/initializes/getAllEmployeeData";
 import { Riple } from "react-loading-indicators";
 import { fetchUserData } from "@/utils/allServices/fetchUserData";
+import { checkSessionExpiry, updateActivity } from "@/lib/Session";
 // import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
 
 const AppLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchEmployees = async () => {
       setIsLoading(true);
       try {
+        const isExpired = checkSessionExpiry();
+        if (isExpired) {
+          navigate("/Face_Attendance_Management_System/signin", {
+            replace: true,
+          });
+          return;
+        }
+        updateActivity();
         await getAllEmployeeData();
         await fetchUserData();
         // await fetchLeavesData();z
