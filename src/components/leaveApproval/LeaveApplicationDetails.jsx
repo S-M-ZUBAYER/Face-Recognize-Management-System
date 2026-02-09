@@ -1109,6 +1109,102 @@ const LeaveApplicationDetails = ({ data }) => {
 
     return null;
   };
+  // Add this new function after renderDescription and before renderTimeInputs
+
+  const renderTimeDisplay = () => {
+    if (isEditing) return null;
+
+    if (
+      isHourlyLeave &&
+      (data.description?.fromTime || data.description?.toTime)
+    ) {
+      return (
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-50/30 to-white p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            HOURLY LEAVE TIME
+          </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">From</p>
+              <p className="text-sm font-bold text-gray-800">
+                {normalizeTime(data.description?.fromTime) || "N/A"}
+              </p>
+            </div>
+            <span className="text-gray-400">→</span>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">To</p>
+              <p className="text-sm font-bold text-gray-800">
+                {normalizeTime(data.description?.toTime) || "N/A"}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (
+      isExtendedLeave &&
+      (data.description?.fStartHour ||
+        data.description?.fEndHour ||
+        data.description?.lStartHour ||
+        data.description?.lEndHour)
+    ) {
+      return (
+        <div className="space-y-4">
+          {(data.description?.fStartHour || data.description?.fEndHour) && (
+            <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-green-50/30 to-white p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                FIRST DAY TIME
+              </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">From</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.fStartHour) || "N/A"}
+                  </p>
+                </div>
+                <span className="text-gray-400">→</span>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">To</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.fEndHour) || "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(data.description?.lStartHour || data.description?.lEndHour) && (
+            <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-purple-50/30 to-white p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                LAST DAY TIME
+              </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">From</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.lStartHour) || "N/A"}
+                  </p>
+                </div>
+                <span className="text-gray-400">→</span>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">To</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.lEndHour) || "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
@@ -1120,6 +1216,7 @@ const LeaveApplicationDetails = ({ data }) => {
             {renderBasicInfo()}
             {renderDescription()}
             {renderLeaveDetails()}
+            {renderTimeDisplay()} {/* ✅ Add this line */}
             {renderTimeInputs()}
             {renderDateRange()}
             {renderDocument()}

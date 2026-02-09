@@ -176,11 +176,13 @@ export const getAllEmployeeData = async () => {
         salaryRules: parsedSalaryRules,
       };
     });
-
+    const today = new Date().toISOString().split("T")[0];
     const employeeCounts = deviceMACs.map((mac) => ({
       deviceMAC: mac.deviceMAC,
       count: processedEmployees.filter(
-        (item) => item.deviceMAC === mac.deviceMAC,
+        (item) =>
+          item.deviceMAC === mac.deviceMAC &&
+          (item.address?.type !== "resigned" || item.address?.r_date >= today),
       ).length,
     }));
 
