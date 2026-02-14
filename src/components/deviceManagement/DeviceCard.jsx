@@ -10,8 +10,8 @@ import { fetchUserData } from "@/utils/allServices/fetchUserData";
 // Constants
 const INFO_ITEMS_LABELS = {
   deviceName: "Device Name",
-  MacAddress: "MAC Address",
-  EmployeeCount: "Employee",
+  EmployeeCount: "Active Employee",
+  resignedEmployee: "Resigned Employee",
 };
 
 const DeviceCard = memo(
@@ -20,6 +20,7 @@ const DeviceCard = memo(
     deviceDescription,
     MacAddress,
     EmployeeCount = 0,
+    resignedCount = 0,
     refetch,
   }) => {
     // console.log(deviceDescription);
@@ -40,6 +41,12 @@ const DeviceCard = memo(
         label: INFO_ITEMS_LABELS.EmployeeCount,
         value: EmployeeCount?.toString() || "0",
         key: "employeeCount",
+        editable: false,
+      },
+      {
+        label: INFO_ITEMS_LABELS.resignedEmployee,
+        value: resignedCount?.toString() || "0",
+        key: "resignedCount",
         editable: false,
       },
     ];
@@ -238,8 +245,8 @@ const DeviceCard = memo(
                         className="text-[#464646] font-poppins-regular font-[400] text-[12px] break-words value-text text-right flex-1"
                         title={value}
                       >
-                        {key === "employeeCount"
-                          ? `${value} employee${parseInt(value) !== 1 ? "s" : ""}`
+                        {key === "employeeCount" || key === "resignedCount"
+                          ? `${value} employee${Number(value) !== 1 ? "s" : ""}`
                           : value}
                       </p>
                       {editable && !isEditing && (

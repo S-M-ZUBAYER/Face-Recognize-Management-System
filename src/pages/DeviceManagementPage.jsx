@@ -19,9 +19,11 @@ function DeviceManagementPage() {
     return {
       ...dev,
       count: found ? found.count : 0,
+      resignCount: found ? found.resignCount : 0,
     };
   });
 
+  console.log(merged);
   return (
     <>
       <div>
@@ -39,6 +41,7 @@ function DeviceManagementPage() {
                 deviceDescription={device.deviceDescription}
                 MacAddress={device.deviceMAC}
                 EmployeeCount={device.count || 0}
+                resignedCount={device.resignCount || 0}
                 refetch={refetch}
               />
             ))

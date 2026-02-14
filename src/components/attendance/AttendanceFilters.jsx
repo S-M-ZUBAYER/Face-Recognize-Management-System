@@ -142,16 +142,16 @@ const AttendanceFilters = memo(() => {
               />
 
               <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
-                <button
+                <Button
                   onClick={() => handleDeviceSelect("all")}
                   className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b ${
                     selectedDeviceMAC === "all"
                       ? "bg-[#004368] text-white hover:bg-[#004368]"
-                      : "text-gray-700"
+                      : "text-gray-700 bg-white"
                   }`}
                 >
                   All Devices
-                </button>
+                </Button>
 
                 {deviceMACs?.map((device) => (
                   <Button
