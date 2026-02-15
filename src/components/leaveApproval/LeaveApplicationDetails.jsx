@@ -328,6 +328,7 @@ const LeaveApplicationDetails = ({ data }) => {
       await updateLeaveData(updatedData);
       const parseUpdateData = parseNormalData(updatedData);
       updateLeave({
+        Id: updatedData.id,
         employeeId: updatedData.employeeId,
         deviceMAC: updatedData.deviceMAC,
         updatedLeave: {
@@ -388,6 +389,7 @@ const LeaveApplicationDetails = ({ data }) => {
       await updateLeaveData(leavePayload);
       const parseUpdateData = parseNormalData(leavePayload);
       updateLeave({
+        Id: leavePayload.id,
         employeeId: leavePayload.employeeId,
         deviceMAC: leavePayload.deviceMAC,
         updatedLeave: {
