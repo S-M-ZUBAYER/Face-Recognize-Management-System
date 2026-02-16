@@ -401,7 +401,7 @@ const Sidebar = () => {
   useEffect(() => {
     const handleResize = () => {
       // Adjust these breakpoints as needed
-      if (window.innerWidth < 1280) {
+      if (window.innerWidth < 1800) {
         // For smaller laptop screens
         setIsCollapsed(true);
         setIsSmallLaptop(true);

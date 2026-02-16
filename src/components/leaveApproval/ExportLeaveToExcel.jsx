@@ -187,7 +187,7 @@ const ExportLeaveToExcel = ({ leaves }) => {
 
         const row = worksheet.addRow([
           index + 1,
-          leave.employeeId || "N/A",
+          leave.companyEmployeeId || "N/A",
           leave.employeeName || "N/A",
           leave.leaveCategory || "N/A",
           getLeaveTypeDisplay(leave.leaveType),

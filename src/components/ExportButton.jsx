@@ -13,7 +13,7 @@ function ExportButton({ selectedEmployeeData }) {
     const headers = [
       "Name",
       "Employee ID",
-      "Company Employee ID",
+      // "Company Employee ID",
       "Department",
       "Email",
       "Designation",
@@ -39,7 +39,7 @@ function ExportButton({ selectedEmployeeData }) {
     const exportData = selectedEmployeeData.map((emp) => {
       const basicInfo = [
         emp.name ? emp.name.split("<")[0] : "",
-        emp.employeeId || "",
+        // emp.employeeId || "",
         emp.companyEmployeeId || "",
         emp.department || "",
         emp.email || "",

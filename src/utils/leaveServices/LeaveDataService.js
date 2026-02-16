@@ -44,6 +44,7 @@ export const fetchLeavesData = async () => {
         description,
         employeeImage: matchingEmployee?.image || null,
         employeeName: matchingEmployee?.name || leave.employeeName,
+        companyEmployeeId: matchingEmployee?.companyEmployeeId || "",
       };
     });
 
