@@ -6,6 +6,8 @@ import ErrorModal from "./components/ErrorModal";
 import SubscriptionModal from "./components/SubscriptionModal";
 import SubscriptionRequiredModal from "./components/SubscriptionRequiredModal";
 import WarningModal from "./components/WarningModal";
+import UpdateProgressModal from "./components/UpdateProgressModal";
+import FileViewerModal from "./components/FileViewerModal";
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
       <SubscriptionModal />
       <SubscriptionRequiredModal />
       <WarningModal />
+      <UpdateProgressModal />
+      <FileViewerModal />
     </BrowserRouter>
   );
 }

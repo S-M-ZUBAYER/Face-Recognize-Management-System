@@ -6,6 +6,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const WeekendOvertime = () => {
   // const [weekendOvertimePercent, setWeekendOvertimePercent] = useState("");
@@ -13,6 +14,9 @@ export const WeekendOvertime = () => {
     useState("");
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
+
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
@@ -24,6 +28,11 @@ export const WeekendOvertime = () => {
       toast.error("Please select at least one employee!");
       return;
     }
+
+    updateProgressStore.startUpdate(
+      selectedEmployees,
+      "Weekend Working Time Settings",
+    );
     try {
       const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
@@ -48,73 +57,90 @@ export const WeekendOvertime = () => {
           parseFloat(weekendWorkingTimePercent) < 0
         ) {
           toast.error(
-            "Please enter a valid positive number for weekend working time percent"
+            "Please enter a valid positive number for weekend working time percent",
           );
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Find or create rule with ruleId = 8
-        let ruleEight = existingRules.find(
-          (rule) => rule.ruleId === 8 || rule.ruleId === "8"
-        );
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        if (!ruleEight) {
-          // Create new rule with ruleId = 8 if it doesn't exist
-          ruleEight = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "8", // string
-            ruleStatus: 1, // number
-            // param1: weekendOvertimePercent, // string containing weekend overtime percent value
-            param2: weekendWorkingTimePercent, // string containing weekend working time percent value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleEight object - preserve all other properties
-          ruleEight.empId = empId; // string
-          // ruleEight.param1 = weekendOvertimePercent; // update with new weekend overtime percent value
-          ruleEight.param2 = weekendWorkingTimePercent; // update with new weekend working time percent value
-          // Keep all other properties as they are
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 8
+          let ruleEight = existingRules.find(
+            (rule) => rule.ruleId === 8 || rule.ruleId === "8",
+          );
+
+          if (!ruleEight) {
+            // Create new rule with ruleId = 8 if it doesn't exist
+            ruleEight = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "8", // string
+              ruleStatus: 1, // number
+              // param1: weekendOvertimePercent, // string containing weekend overtime percent value
+              param2: weekendWorkingTimePercent, // string containing weekend working time percent value
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleEight object - preserve all other properties
+            ruleEight.empId = empId; // string
+            // ruleEight.param1 = weekendOvertimePercent; // update with new weekend overtime percent value
+            ruleEight.param2 = weekendWorkingTimePercent; // update with new weekend working time percent value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 8 || r.ruleId === "8",
+              newValue: ruleEight, // update ruleId=8 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          updateEmployeeSalaryRules(
+            selectedEmployee.employeeId,
+            parseNormalData(updatedJSON),
+          );
+
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 8 || r.ruleId === "8",
-            newValue: ruleEight, // update ruleId=8 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
       setRulesIds(8);
-      toast.success("Weekend overtime settings updated successfully!");
+      // toast.success("Weekend overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving weekend overtime settings:", error);
       toast.error("Failed to update weekend overtime settings.");

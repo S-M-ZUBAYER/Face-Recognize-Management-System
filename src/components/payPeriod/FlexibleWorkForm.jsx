@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 const SALARY_SECTION_TYPES = {
   BASED_HOUR: "based-hour",
@@ -24,6 +25,8 @@ function FlexibleWorkForm() {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const salarySections = useMemo(
     () => [
@@ -52,7 +55,7 @@ function FlexibleWorkForm() {
         readOnly: false,
       },
     ],
-    [formData.hourlySalary, formData.minimumMinutes]
+    [formData.hourlySalary, formData.minimumMinutes],
   );
 
   // Handle form input changes
@@ -66,9 +69,19 @@ function FlexibleWorkForm() {
       toast.error("No employees Have !");
       return;
     }
-
+    updateProgressStore.startUpdate(Employees, "Flexible Work Pay Period");
     try {
       const updatePromises = Employees.map(async (employee) => {
+        if (!employee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+
+        const employeeName = employee.name || employee.employeeId;
+
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
         try {
           const payPeriodJSON = convertJsonForPayPeriod(
             employee?.salaryInfo || {},
@@ -88,7 +101,7 @@ function FlexibleWorkForm() {
               startDay: employee?.salaryInfo?.startDay || 1,
               startWeek: null, // Not used for flexible work
               status: employee?.salaryInfo?.status || null,
-            }
+            },
           );
           updateEmployee({
             mac: employee?.deviceMAC || "",
@@ -99,15 +112,20 @@ function FlexibleWorkForm() {
             salaryInfo: parseNormalData(payPeriodJSON),
           });
 
-          return { success: true, employeeId: employee.employeeId };
+          updateProgressStore.updateProgress(employeeName, "success");
         } catch (error) {
-          console.error(error);
-          return { success: false, employeeId: employee.employeeId };
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
       });
 
       await Promise.all(updatePromises);
-      toast.success(`Successfully updated ${Employees.length} employee(s)`);
+      // toast.success(`Successfully updated ${Employees.length} employee(s)`);
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update employees");
@@ -147,7 +165,7 @@ function FlexibleWorkForm() {
                 }
               }}
             />
-          )
+          ),
         )}
       </div>
 

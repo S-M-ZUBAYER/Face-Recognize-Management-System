@@ -51,14 +51,14 @@ function EmployeeTable({ employees = [] }) {
         .toLowerCase();
       const designation = (emp?.designation || "").toLowerCase();
       const department = (emp?.department || "").toLowerCase();
-      const deviceMac = (emp?.deviceMAC || "").toLowerCase();
+      // const deviceMac = (emp?.deviceMAC || "").toLowerCase();
 
       return (
         name.includes(query) ||
         employeeId.includes(query) ||
         designation.includes(query) ||
-        department.includes(query) ||
-        deviceMac.includes(query)
+        department.includes(query)
+        // deviceMac.includes(query)
       );
     });
   }, [employees, searchQuery]);
@@ -175,7 +175,7 @@ function EmployeeTable({ employees = [] }) {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search by Date, Id, Mac, Name or Department..."
+            placeholder="Search by Date, Id, Name or Department..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}

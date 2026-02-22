@@ -12,6 +12,7 @@ import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const WorkShiftTimeForm = () => {
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
@@ -20,6 +21,8 @@ export const WorkShiftTimeForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
   const [selectedDateForConfig, setSelectedDateForConfig] = useState(null);
   const { setGlobalRulesIds } = useUserStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -136,13 +139,13 @@ export const WorkShiftTimeForm = () => {
 
   const updateWorkingTime = (id, field, value) => {
     setWorkingTimes((prev) =>
-      prev.map((wt) => (wt.id === id ? { ...wt, [field]: value } : wt))
+      prev.map((wt) => (wt.id === id ? { ...wt, [field]: value } : wt)),
     );
   };
 
   const updateOvertime = (id, field, value) => {
     setOvertimes((prev) =>
-      prev.map((ot) => (ot.id === id ? { ...ot, [field]: value } : ot))
+      prev.map((ot) => (ot.id === id ? { ...ot, [field]: value } : ot)),
     );
   };
 
@@ -153,7 +156,7 @@ export const WorkShiftTimeForm = () => {
     updateDateConfig(dateStr, {
       ...config,
       workingTimes: config.workingTimes.map((wt) =>
-        wt.id === id ? { ...wt, [field]: value } : wt
+        wt.id === id ? { ...wt, [field]: value } : wt,
       ),
     });
   };
@@ -165,7 +168,7 @@ export const WorkShiftTimeForm = () => {
     updateDateConfig(dateStr, {
       ...config,
       overtimes: config.overtimes.map((ot) =>
-        ot.id === id ? { ...ot, [field]: value } : ot
+        ot.id === id ? { ...ot, [field]: value } : ot,
       ),
     });
   };
@@ -334,6 +337,8 @@ export const WorkShiftTimeForm = () => {
         return;
       }
 
+      updateProgressStore.startUpdate(Employees, "Work on Holiday");
+
       // ✅ Continue with saving for selected employees
       for (const emp of Employees) {
         if (!emp?.employeeId) {
@@ -341,101 +346,121 @@ export const WorkShiftTimeForm = () => {
           continue;
         }
 
-        const employeeId = emp.employeeId.toString();
-        const salaryRules = emp.salaryRules || {};
-        const existingRules = Array.isArray(salaryRules.rules)
-          ? salaryRules.rules
-          : JSON.parse(salaryRules.rules || "[]");
+        const employeeName = emp.name || emp.employeeId;
 
-        const existingRuleZero = existingRules.find(
-          (r) => r.ruleId === 0 || r.ruleId === "0"
-        );
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        const workingTimesData = JSON.stringify(
-          workingTimes.map((wt) => ({ start: wt.startTime, end: wt.endTime }))
-        );
-        const overtimeData = JSON.stringify(
-          overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime }))
-        );
+        try {
+          const employeeId = emp.employeeId.toString();
+          const salaryRules = emp.salaryRules || {};
+          const existingRules = Array.isArray(salaryRules.rules)
+            ? salaryRules.rules
+            : JSON.parse(salaryRules.rules || "[]");
 
-        const normalizeParam = (v) =>
-          Array.isArray(v) ? JSON.stringify(v) : v ?? "";
+          const existingRuleZero = existingRules.find(
+            (r) => r.ruleId === 0 || r.ruleId === "0",
+          );
 
-        const ruleZero =
-          shiftType === "normal"
-            ? {
-                id: existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
-                empId: employeeId,
-                ruleId: "0",
-                ruleStatus: 1,
-                param1: normalizeParam(workingTimesData),
-                param2: normalizeParam(overtimeData),
-                param3: "normal",
-                param4: "",
-                param5: "",
-                param6: "",
-              }
-            : {
-                id: existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
-                empId: employeeId,
-                ruleId: "0",
-                ruleStatus: 1,
-                param1: "[]",
-                param2: "[]",
-                param3: "special",
-                param4: "",
-                param5: "",
-                param6: "",
-              };
-
-        const timeTablesObjects = specialDates.map((date, index) => {
-          const dateStr = date;
-          const config = dateConfigs[dateStr] || {
-            workingTimes: [],
-            overtimes: [],
-          };
-
-          return {
-            id: index + 1,
-            empId: employeeId,
-            ruleId: "0",
-            date: dateStr,
-            param1: config.workingTimes.map((wt) => ({
+          const workingTimesData = JSON.stringify(
+            workingTimes.map((wt) => ({
               start: wt.startTime,
               end: wt.endTime,
             })),
-            param2: config.overtimes.map((ot) => ({
-              start: ot.startTime,
-              end: ot.endTime,
-            })),
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        });
+          );
+          const overtimeData = JSON.stringify(
+            overtimes.map((ot) => ({ start: ot.startTime, end: ot.endTime })),
+          );
 
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: employeeId,
-          timeTables: timeTablesObjects,
-          rules: {
-            filter: (r) => r.ruleId === 0 || r.ruleId === "0",
-            newValue: ruleZero,
-          },
-        });
+          const normalizeParam = (v) =>
+            Array.isArray(v) ? JSON.stringify(v) : (v ?? "");
 
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+          const ruleZero =
+            shiftType === "normal"
+              ? {
+                  id:
+                    existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
+                  empId: employeeId,
+                  ruleId: "0",
+                  ruleStatus: 1,
+                  param1: normalizeParam(workingTimesData),
+                  param2: normalizeParam(overtimeData),
+                  param3: "normal",
+                  param4: "",
+                  param5: "",
+                  param6: "",
+                }
+              : {
+                  id:
+                    existingRuleZero?.id || Math.floor(10 + Math.random() * 90),
+                  empId: employeeId,
+                  ruleId: "0",
+                  ruleStatus: 1,
+                  param1: "[]",
+                  param2: "[]",
+                  param3: "special",
+                  param4: "",
+                  param5: "",
+                  param6: "",
+                };
 
-        // ✅ Use the mutation function instead of calling the hook directly
-        await updateEmployee({
-          mac: emp?.deviceMAC || "",
-          id: employeeId,
-          payload,
-        });
-        storeEmployeeUpdate(emp.employeeId, emp.deviceMAC || "", {
-          salaryRules: parseNormalData(updatedJSON),
-        });
-        toast.success(`Shift configuration saved for employee ${employeeId}!`);
+          const timeTablesObjects = specialDates.map((date, index) => {
+            const dateStr = date;
+            const config = dateConfigs[dateStr] || {
+              workingTimes: [],
+              overtimes: [],
+            };
+
+            return {
+              id: index + 1,
+              empId: employeeId,
+              ruleId: "0",
+              date: dateStr,
+              param1: config.workingTimes.map((wt) => ({
+                start: wt.startTime,
+                end: wt.endTime,
+              })),
+              param2: config.overtimes.map((ot) => ({
+                start: ot.startTime,
+                end: ot.endTime,
+              })),
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          });
+
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: employeeId,
+            timeTables: timeTablesObjects,
+            rules: {
+              filter: (r) => r.ruleId === 0 || r.ruleId === "0",
+              newValue: ruleZero,
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          // ✅ Use the mutation function instead of calling the hook directly
+          await updateEmployee({
+            mac: emp?.deviceMAC || "",
+            id: employeeId,
+            payload,
+          });
+          storeEmployeeUpdate(emp.employeeId, emp.deviceMAC || "", {
+            salaryRules: parseNormalData(updatedJSON),
+          });
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
+        }
       }
       setGlobalRulesIds(0);
     } catch (error) {
@@ -604,7 +629,7 @@ export const WorkShiftTimeForm = () => {
                   removeFn={() => {
                     if (workingTimes.length > 1) {
                       setWorkingTimes(
-                        workingTimes.filter((w) => w.id !== wt.id)
+                        workingTimes.filter((w) => w.id !== wt.id),
                       );
                     } else {
                       toast.error("At least one working time is required");

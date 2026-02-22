@@ -24,6 +24,7 @@ import {
   Save,
   X,
   Upload,
+  Eye,
 } from "lucide-react";
 
 // ShadCN Components
@@ -52,6 +53,8 @@ import checkLeaveDataChanges from "@/lib/checkLeaveDataChanges";
 import { sendNotificationToEmployee } from "@/utils/sendNotificationToEmployee";
 import useLeaveStore from "@/zustand/useLeaveStore";
 import { updateLeaveData } from "@/utils/leaveServices/LeaveDataService";
+import FileViewerModal from "../FileViewerModal";
+import useFileViewerStore from "@/zustand/fileViewerStore";
 
 // Constants
 const LEAVE_CATEGORIES = [
@@ -78,6 +81,8 @@ const LeaveApplicationDetails = ({ data }) => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { updateLeave } = useLeaveStore();
+
+  const openFileViewer = useFileViewerStore((state) => state.openFileViewer);
 
   // State
   const [isEditing, setIsEditing] = useState(false);
@@ -485,19 +490,39 @@ const LeaveApplicationDetails = ({ data }) => {
   const handleReject = () => handleUpdateLeave("rejected");
   const handleApprove = () => handleUpdateLeave("approved");
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!data?.documentUrl) {
       toast.error("No document available");
       return;
     }
 
     try {
+      // Fetch the file as a blob to handle all file types and CORS issues
+      const response = await fetch(data.documentUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch file");
+      }
+
+      const blob = await response.blob();
+
+      // Extract filename from URL or use a default
+      const urlParts = data.documentUrl.split("/");
+      const filename =
+        urlParts[urlParts.length - 1].split("?")[0] || "download";
+
+      // Create blob URL and download
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = data.documentUrl;
-      link.download = data.documentUrl.split("/").pop() || "document";
+      link.href = blobUrl;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
+
+      // Cleanup
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
       toast.success("Download started");
     } catch (error) {
       toast.error("Download failed");
@@ -977,7 +1002,6 @@ const LeaveApplicationDetails = ({ data }) => {
         </div>
       ) : (
         <div
-          onClick={data.documentUrl ? handleDownload : undefined}
           className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
             data.documentUrl
               ? "border-[#004368]/20 bg-gradient-to-br from-[#004368]/5 to-white hover:border-[#004368]/30 hover:shadow-lg hover:shadow-[#004368]/10 cursor-pointer active:scale-[0.98]"
@@ -1014,16 +1038,35 @@ const LeaveApplicationDetails = ({ data }) => {
                 </p>
                 <p className="text-xs text-gray-500 mt-1 truncate">
                   {data.documentUrl
-                    ? "Click to download"
+                    ? "Click to download or view"
                     : "No attachment available"}
                 </p>
               </div>
 
               {data.documentUrl && (
-                <div className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-                  <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#004368] to-[#003152] text-white text-sm font-medium group-hover:from-[#005580] group-hover:to-[#004368] transition-all">
-                    <Download className="w-4 h-4" />
-                    Download
+                <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2">
+                  <div
+                    className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0"
+                    onClick={() =>
+                      openFileViewer(
+                        data.documentUrl,
+                        data.documentUrl?.split("/").pop(),
+                      )
+                    }
+                  >
+                    <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-black text-sm font-medium border border-[#004368] transition-all cursor-pointer hover:bg-gray-50">
+                      <Eye className="w-4 h-4" />
+                      Preview
+                    </div>
+                  </div>
+                  <div
+                    className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0"
+                    onClick={data.documentUrl ? handleDownload : undefined}
+                  >
+                    <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#004368] to-[#003152] text-white text-sm font-medium group-hover:from-[#005580] group-hover:to-[#004368] transition-all">
+                      <Download className="w-4 h-4" />
+                      Download
+                    </div>
                   </div>
                 </div>
               )}

@@ -6,6 +6,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const SetTotalLeaveDays = () => {
   const [totalDays, setTotalDays] = useState("");
@@ -26,6 +27,8 @@ export const SetTotalLeaveDays = () => {
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
@@ -77,7 +80,7 @@ export const SetTotalLeaveDays = () => {
           // Adjust for rounding differences
           const distributedTotal = Object.values(updatedLeaves).reduce(
             (sum, days) => sum + (parseInt(days) || 0),
-            0
+            0,
           );
           if (distributedTotal !== newTotal) {
             // Find the largest category to adjust the difference
@@ -92,7 +95,7 @@ export const SetTotalLeaveDays = () => {
             });
             const adjustment = newTotal - distributedTotal;
             updatedLeaves[maxKey] = String(
-              (parseInt(updatedLeaves[maxKey]) || 0) + adjustment
+              (parseInt(updatedLeaves[maxKey]) || 0) + adjustment,
             );
           }
 
@@ -128,74 +131,93 @@ export const SetTotalLeaveDays = () => {
       return;
     }
 
+    updateProgressStore.startUpdate(selectedEmployees, "Leave Settings");
+
     try {
       const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Prepare leave days object with numbers
-        const leaveDaysObj = {};
-        Object.keys(leaveDays).forEach((key) => {
-          leaveDaysObj[key] = parseInt(leaveDays[key]) || 0;
-        });
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        // Find or create rule with ruleId = 24
-        let ruleTwentyFour = existingRules.find(
-          (rule) => rule.ruleId === 24 || rule.ruleId === "24"
-        );
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
 
-        if (!ruleTwentyFour) {
-          // Create new rule with ruleId = 24 if it doesn't exist
-          ruleTwentyFour = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "24", // string
-            ruleStatus: 1, // number
-            param1: String(finalTotalDays), // string containing total days value
-            param2: JSON.stringify(leaveDaysObj), // string containing leave days object
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleTwentyFour object - preserve all other properties
-          ruleTwentyFour.empId = empId; // string
-          ruleTwentyFour.param1 = String(finalTotalDays); // update with new total days value
-          ruleTwentyFour.param2 = JSON.stringify(leaveDaysObj); // update with new leave days object
-          // Keep all other properties as they are
+          // Prepare leave days object with numbers
+          const leaveDaysObj = {};
+          Object.keys(leaveDays).forEach((key) => {
+            leaveDaysObj[key] = parseInt(leaveDays[key]) || 0;
+          });
+
+          // Find or create rule with ruleId = 24
+          let ruleTwentyFour = existingRules.find(
+            (rule) => rule.ruleId === 24 || rule.ruleId === "24",
+          );
+
+          if (!ruleTwentyFour) {
+            // Create new rule with ruleId = 24 if it doesn't exist
+            ruleTwentyFour = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "24", // string
+              ruleStatus: 1, // number
+              param1: String(finalTotalDays), // string containing total days value
+              param2: JSON.stringify(leaveDaysObj), // string containing leave days object
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleTwentyFour object - preserve all other properties
+            ruleTwentyFour.empId = empId; // string
+            ruleTwentyFour.param1 = String(finalTotalDays); // update with new total days value
+            ruleTwentyFour.param2 = JSON.stringify(leaveDaysObj); // update with new leave days object
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 24 || r.ruleId === "24",
+              newValue: ruleTwentyFour, // update ruleId=24 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 24 || r.ruleId === "24",
-            newValue: ruleTwentyFour, // update ruleId=24 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
       setRulesIds(24);
-      toast.success("Leave settings updated successfully!");
+      // toast.success("Leave settings updated successfully!");
     } catch (error) {
       console.error("Error saving leave settings:", error);
       toast.error("Failed to update leave settings.");

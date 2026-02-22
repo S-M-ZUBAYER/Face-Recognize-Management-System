@@ -7,11 +7,15 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const WorkOnHoliday = () => {
   const [specialDates, setSpecialDates] = useState([]);
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
+
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
@@ -50,79 +54,103 @@ export const WorkOnHoliday = () => {
         toast.error("Please select at least one employee!");
         return;
       }
+
+      updateProgressStore.startUpdate(
+        selectedEmployees,
+        "Work on Holiday Settings",
+      );
       const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
 
-        // Format dates for storage
-        const generalDaysArray = specialDates.map((date) =>
-          formatDateForStorage(date)
-        );
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        const existGeneralDays = selectedEmployee.salaryRules.generalDays || [];
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        // Find or create rule with ruleId = 3
-        let ruleFour = existingRules.find(
-          (rule) => rule.ruleId === 3 || rule.ruleId === "3"
-        );
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
 
-        if (!ruleFour) {
-          // Create new rule with ruleId = 3 if it doesn't exist
-          ruleFour = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "3", // string
-            ruleStatus: 1, // number
-            param1: null,
-            param2: null,
-            param3: null,
-            param4: null,
-            param5: null,
-            param6: null,
-          };
-        } else {
-          // Update ONLY the ruleFour object - preserve all other properties
-          ruleFour.empId = empId; // string
-          // Keep all other properties as they are
+          // Format dates for storage
+          const generalDaysArray = specialDates.map((date) =>
+            formatDateForStorage(date),
+          );
+
+          const existGeneralDays =
+            selectedEmployee.salaryRules.generalDays || [];
+
+          // Find or create rule with ruleId = 3
+          let ruleFour = existingRules.find(
+            (rule) => rule.ruleId === 3 || rule.ruleId === "3",
+          );
+
+          if (!ruleFour) {
+            // Create new rule with ruleId = 3 if it doesn't exist
+            ruleFour = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "3", // string
+              ruleStatus: 1, // number
+              param1: null,
+              param2: null,
+              param3: null,
+              param4: null,
+              param5: null,
+              param6: null,
+            };
+          } else {
+            // Update ONLY the ruleFour object - preserve all other properties
+            ruleFour.empId = empId; // string
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 3 || r.ruleId === "3",
+              newValue: ruleFour, // update ruleId=3 object
+            },
+            generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+          updateEmployeeSalaryRules(
+            selectedEmployee.employeeId,
+            parseNormalData(updatedJSON),
+          );
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 3 || r.ruleId === "3",
-            newValue: ruleFour, // update ruleId=3 object
-          },
-          generalDays: [...generalDaysArray, ...existGeneralDays], // update generalDays with selected dates
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
       await Promise.all(updatePromises);
 
       setRulesIds(3);
 
-      toast.success("Work on holiday days updated successfully!");
+      // toast.success("Work on holiday days updated successfully!");
     } catch (error) {
       console.error("Error saving work on holiday days:", error);
       toast.error("Failed to update work on holiday days.");
