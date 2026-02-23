@@ -594,10 +594,11 @@ const LeaveApplicationDetails = ({ data }) => {
         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-emerald-100/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
         <p className="text-[1.2vh] font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
           <User className="w-3.5 h-3.5" />
-          APPLICANT
+          APPLICANT{" "}
         </p>
         <p className="text-base md:text-[1.4vh] font-bold text-gray-800 group-hover:text-gray-900 transition-colors truncate">
-          {data.employeeName.split("<")[0]}
+          {data.employeeName.split("<")[0]}{" "}
+          {data.companyEmployeeId ? `(${data.companyEmployeeId})` : ""}
         </p>
       </div>
     </div>

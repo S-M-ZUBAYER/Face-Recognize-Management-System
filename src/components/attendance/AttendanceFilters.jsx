@@ -77,11 +77,11 @@ const AttendanceFilters = memo(() => {
       <div className="flex gap-1">
         {/* Filter Buttons - Now independent of device filter */}
         {filters.map((filter) => (
-          <button
+          <Button
             key={filter.key}
             onClick={() => handleFilterClick(filter.key)}
             disabled={isFilterLoading}
-            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors relative md:px-3 md:py-2 whitespace-nowrap ${
+            className={` rounded-full text-sm font-medium transition-colors relative ${isSmallLaptop ? "px-5 py-1" : "px-1.5 py-0"} whitespace-nowrap ${
               activeFilter === filter.key // REMOVED: && !isDeviceFilterActive
                 ? "bg-[#004368] text-[#E6ECF0]"
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0]"
@@ -109,30 +109,33 @@ const AttendanceFilters = memo(() => {
                 <span className="ml-1">({filter.count})</span>
               )}
             </span>
-          </button>
+          </Button>
         ))}
 
         {/* Device Filter Dropdown - Independent of other filters */}
         <div className="relative">
-          <button
+          <Button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors md:px-3 md:py-3 whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-2 py-1 rounded-full text-sm font-medium transition-colors md:px-2 md:py-0 whitespace-nowrap flex items-center gap-1.5 ${
               isDeviceFilterActive
-                ? "bg-[#004368] text-[#E6ECF0]"
+                ? "bg-[#004368] text-[#E6ECF0] hover:bg-[#004368]"
                 : "bg-transparent text-[#B0C5D0] border border-[#B0C5D0] hover:bg-[#004368] hover:text-[#E6ECF0]"
             }`}
           >
-            <span
-              className={` ${isSmallLaptop ? "text-[1.1vw]" : "text-[0.6vw]"}`}
-            >
-              {selectedDeviceName}
+            <span>
+              {!isSmallLaptop
+                ? selectedDeviceName?.length > 11
+                  ? selectedDeviceName.slice(0, 8) + "..."
+                  : selectedDeviceName
+                : selectedDeviceName}
             </span>
+
             <ChevronDown
               className={`w-3.5 h-3.5 transition-transform ${
                 isDropdownOpen ? "rotate-180" : ""
               }`}
             />
-          </button>
+          </Button>
 
           {isDropdownOpen && (
             <>
@@ -144,7 +147,7 @@ const AttendanceFilters = memo(() => {
               <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
                 <Button
                   onClick={() => handleDeviceSelect("all")}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b ${
+                  className={`w-full text-left px-4 py-2.5 md:px-1 md:py-0 text-sm hover:bg-gray-50 transition-colors border-b ${
                     selectedDeviceMAC === "all"
                       ? "bg-[#004368] text-white hover:bg-[#004368]"
                       : "text-gray-700 bg-white"
