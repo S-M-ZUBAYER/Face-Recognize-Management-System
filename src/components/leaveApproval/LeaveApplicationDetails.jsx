@@ -53,8 +53,8 @@ import checkLeaveDataChanges from "@/lib/checkLeaveDataChanges";
 import { sendNotificationToEmployee } from "@/utils/sendNotificationToEmployee";
 import useLeaveStore from "@/zustand/useLeaveStore";
 import { updateLeaveData } from "@/utils/leaveServices/LeaveDataService";
-import FileViewerModal from "../FileViewerModal";
 import useFileViewerStore from "@/zustand/fileViewerStore";
+import useLeaveLoadingStore from "@/zustand/LeaveLoadingStore";
 
 // Constants
 const LEAVE_CATEGORIES = [
@@ -63,10 +63,10 @@ const LEAVE_CATEGORIES = [
   "Paternity Leave",
   "Sick Leave",
   "Casual Leave",
-  "Earned Leave",
+  "Earned leave",
   "Without Pay Leave",
   "Rest Leave",
-  "Other",
+  "Others",
 ];
 
 const LEAVE_TYPES = ["Hourly Leave", "Full Day Leave", "Extended Leave"];
@@ -81,6 +81,8 @@ const LeaveApplicationDetails = ({ data }) => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { updateLeave } = useLeaveStore();
+
+  const { setLoading } = useLeaveLoadingStore();
 
   const openFileViewer = useFileViewerStore((state) => state.openFileViewer);
 
@@ -301,16 +303,21 @@ const LeaveApplicationDetails = ({ data }) => {
 
   const handleSaveEdit = async () => {
     try {
+      setLoading(true, "Saving leave edits...", 10);
       let documentUrl = editedData.documentUrl;
 
       // Upload new document if exists
       if (documentFile) {
+        setLoading(true, "Uploading document...", 20);
         documentUrl = await uploadImage(documentFile);
         if (!documentUrl) {
+          setLoading(false);
           toast.error("Failed to upload document");
           return;
         }
       }
+
+      setLoading(true, "Preparing data...", 30);
       // Prepare data for API
       const updatedData = {
         id: editedData.id,
@@ -330,7 +337,10 @@ const LeaveApplicationDetails = ({ data }) => {
         status: editedData.status,
       };
 
+      setLoading(true, "Updating leave data...", 50);
       await updateLeaveData(updatedData);
+
+      setLoading(true, "Processing update...", 70);
       const parseUpdateData = parseNormalData(updatedData);
       updateLeave({
         Id: updatedData.id,
@@ -341,8 +351,11 @@ const LeaveApplicationDetails = ({ data }) => {
           employeeId: String(updatedData.employeeId),
         },
       });
+
+      setLoading(true, "Checking for changes...", 85);
       const response = checkLeaveDataChanges(data, editedData);
       if (response !== "No changes") {
+        setLoading(true, "Sending notification...", 95);
         await sendNotificationToEmployee({
           employeeId: data.employeeId,
           deviceMAC: data.deviceMAC,
@@ -350,12 +363,18 @@ const LeaveApplicationDetails = ({ data }) => {
           messageBody: `Your leave application has been updated. Changes: ${response}`,
         });
       }
-      toast.success("Leave application updated successfully");
+      setLoading(true, "Complete!", 100);
+
+      // Small delay to show 100% completion
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // toast.success("Leave application updated successfully");
       setIsEditing(false);
       setDocumentFile(null);
     } catch (error) {
       toast.error("Failed to update leave application");
       console.error("Update error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -364,9 +383,13 @@ const LeaveApplicationDetails = ({ data }) => {
     let employeeUpdated = false;
 
     try {
+      setLoading(true, `Processing ${status} request...`, 10);
+
       /* =====================================================
        * SECTION 1: UPDATE LEAVE STATUS
        * ===================================================== */
+
+      setLoading(true, "Validating data...", 15);
       if (!data || !user) {
         throw new Error("Invalid leave or user data");
       }
@@ -391,7 +414,10 @@ const LeaveApplicationDetails = ({ data }) => {
         documentUrl: editedData.documentUrl,
         status: `${status}_admin`,
       };
+
+      setLoading(true, "Updating leave status...", 40);
       await updateLeaveData(leavePayload);
+      setLoading(true, "Processing leave update...", 50);
       const parseUpdateData = parseNormalData(leavePayload);
       updateLeave({
         Id: leavePayload.id,
@@ -407,6 +433,8 @@ const LeaveApplicationDetails = ({ data }) => {
       /* =====================================================
        * SECTION 2: UPDATE EMPLOYEE SALARY RULES
        * ===================================================== */
+
+      setLoading(true, "Finding employee records...", 60);
       const employee = Employees.find(
         (emp) => emp.employeeId === data.employeeId,
       );
@@ -414,6 +442,8 @@ const LeaveApplicationDetails = ({ data }) => {
       if (!employee) {
         throw new Error("Employee not found");
       }
+
+      setLoading(true, "Processing salary rules...", 70);
 
       const empId = String(employee.employeeId);
       const salaryRules = employee.salaryRules || {};
@@ -438,10 +468,14 @@ const LeaveApplicationDetails = ({ data }) => {
       ruleTen.empId = empId;
 
       // Apply leave-based salary rules
+      setLoading(true, "Applying leave salary rules...", 75);
+
+      // Apply leave-based salary rules
       const leaveSalaryRules = leaveApprove({
         salaryRules,
         leave: data,
       });
+      setLoading(true, "Updating salary rules...", 80);
 
       const updatedSalaryRules = finalJsonForUpdate(salaryRules, {
         empId,
@@ -456,16 +490,19 @@ const LeaveApplicationDetails = ({ data }) => {
         salaryRules: JSON.stringify(updatedSalaryRules),
       };
 
+      setLoading(true, "Saving employee updates...", 85);
       await updateEmployee({
         mac: employee.deviceMAC || "",
         id: employee.employeeId,
         payload,
       });
 
+      setLoading(true, "Storing employee data...", 90);
       storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
         salaryRules: parseNormalData(updatedSalaryRules),
       });
 
+      setLoading(true, "Sending notification...", 95);
       await sendNotificationToEmployee({
         employeeId: data.employeeId,
         deviceMAC: data.deviceMAC,
@@ -474,6 +511,11 @@ const LeaveApplicationDetails = ({ data }) => {
       });
 
       employeeUpdated = true;
+
+      setLoading(true, "Complete!", 100);
+
+      // Small delay to show 100% completion
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       /* =====================================================
        * FINAL SUCCESS
@@ -484,6 +526,8 @@ const LeaveApplicationDetails = ({ data }) => {
     } catch (error) {
       console.error("Leave update process failed:", error);
       toast.error(`Leave ${status} failed`);
+    } finally {
+      setLoading(false);
     }
   };
 

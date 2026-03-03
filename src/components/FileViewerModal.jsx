@@ -1,5 +1,5 @@
 // components/FileViewerModal.jsx
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -9,6 +9,10 @@ import {
   Image,
   File as FilePdf,
   AlertCircle,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Move,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import useFileViewerStore from "@/zustand/fileViewerStore";
@@ -18,6 +22,24 @@ const FileViewerModal = () => {
     useFileViewerStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  console.log(fileUrl);
+  // Image transformation states
+  const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+
+  const imageRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Reset transformations when new image loads
+  useEffect(() => {
+    setScale(1);
+    setRotation(0);
+    setPosition({ x: 0, y: 0 });
+  }, [fileUrl]);
 
   const handleDownload = async () => {
     try {
@@ -35,6 +57,103 @@ const FileViewerModal = () => {
       console.error("Download error:", error);
       setError("Failed to download file");
     }
+  };
+
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setScale((prev) => Math.min(prev + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setScale((prev) => Math.max(prev - 0.25, 0.5));
+  };
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleReset = () => {
+    setScale(1);
+    setRotation(0);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Mouse wheel zoom
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY * -0.01;
+    const newScale = Math.min(Math.max(scale + delta, 0.5), 3);
+    setScale(newScale);
+  };
+
+  // Drag handlers - only when mouse left button is pressed
+  const handleMouseDown = (e) => {
+    // Only enable drag if left button is pressed (button 0) and zoomed in
+    if (e.button === 0 && scale > 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      });
+      // setStartPosition({ x: position.x, y: position.y });
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging && scale > 1) {
+      e.preventDefault();
+      const newX = e.clientX - dragStart.x;
+      const newY = e.clientY - dragStart.y;
+
+      setPosition({
+        x: newX,
+        y: newY,
+      });
+    }
+  };
+
+  const handleMouseUp = (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      setIsDragging(false);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false);
+    }
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e) => {
+    if (scale > 1 && e.touches.length === 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y,
+      });
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (isDragging && scale > 1 && e.touches.length === 1) {
+      e.preventDefault();
+      const newX = e.touches[0].clientX - dragStart.x;
+      const newY = e.touches[0].clientY - dragStart.y;
+
+      setPosition({
+        x: newX,
+        y: newY,
+      });
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   return (
@@ -84,6 +203,49 @@ const FileViewerModal = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Image controls - only show for images */}
+                {fileType === "image" && !error && (
+                  <>
+                    <Button
+                      onClick={handleZoomIn}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      title="Zoom In (Mouse wheel)"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={handleZoomOut}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      title="Zoom Out (Mouse wheel)"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={handleRotate}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      title="Rotate 90°"
+                    >
+                      <RotateCw className="w-4 h-4" />
+                    </Button>
+                    {scale !== 1 && (
+                      <Button
+                        onClick={handleReset}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                        title="Reset view"
+                      >
+                        <Move className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </>
+                )}
                 <Button
                   onClick={handleDownload}
                   variant="outline"
@@ -105,7 +267,17 @@ const FileViewerModal = () => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 bg-gray-100 p-4 overflow-auto">
+            <div
+              ref={containerRef}
+              className="flex-1 bg-gray-100 p-4 overflow-hidden select-none"
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+              onWheel={handleWheel}
+            >
               {error ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -116,22 +288,42 @@ const FileViewerModal = () => {
               ) : (
                 <>
                   {fileType === "image" && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                    <div
                       className="flex items-center justify-center h-full"
+                      style={{
+                        cursor:
+                          scale > 1
+                            ? isDragging
+                              ? "grabbing"
+                              : "grab"
+                            : "default",
+                      }}
+                      onMouseDown={handleMouseDown}
+                      onTouchStart={handleTouchStart}
                     >
-                      <img
+                      <motion.img
+                        ref={imageRef}
                         src={fileUrl}
                         alt={fileName}
                         className="max-w-full max-h-full object-contain rounded-lg"
+                        style={{
+                          scale: scale,
+                          rotate: rotation,
+                          x: position.x,
+                          y: position.y,
+                          transition: isDragging
+                            ? "none"
+                            : "transform 0.2s ease-out",
+                        }}
                         onLoad={() => setIsLoading(false)}
                         onError={() => {
                           setError("Failed to load image");
                           setIsLoading(false);
                         }}
+                        drag={false}
+                        whileTap={{ scale: scale }}
                       />
-                    </motion.div>
+                    </div>
                   )}
 
                   {fileType === "pdf" && (
@@ -171,6 +363,13 @@ const FileViewerModal = () => {
                 </>
               )}
             </div>
+
+            {/* Zoom indicator */}
+            {fileType === "image" && scale !== 1 && (
+              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm">
+                {Math.round(scale * 100)}%
+              </div>
+            )}
           </motion.div>
         </>
       )}
