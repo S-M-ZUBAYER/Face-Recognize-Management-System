@@ -24,6 +24,7 @@ import {
   Save,
   X,
   Upload,
+  Eye,
 } from "lucide-react";
 
 // ShadCN Components
@@ -52,6 +53,8 @@ import checkLeaveDataChanges from "@/lib/checkLeaveDataChanges";
 import { sendNotificationToEmployee } from "@/utils/sendNotificationToEmployee";
 import useLeaveStore from "@/zustand/useLeaveStore";
 import { updateLeaveData } from "@/utils/leaveServices/LeaveDataService";
+import useFileViewerStore from "@/zustand/fileViewerStore";
+import useLeaveLoadingStore from "@/zustand/LeaveLoadingStore";
 
 // Constants
 const LEAVE_CATEGORIES = [
@@ -60,10 +63,10 @@ const LEAVE_CATEGORIES = [
   "Paternity Leave",
   "Sick Leave",
   "Casual Leave",
-  "Earned Leave",
+  "Earned leave",
   "Without Pay Leave",
   "Rest Leave",
-  "Other",
+  "Others",
 ];
 
 const LEAVE_TYPES = ["Hourly Leave", "Full Day Leave", "Extended Leave"];
@@ -78,6 +81,10 @@ const LeaveApplicationDetails = ({ data }) => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
   const { updateLeave } = useLeaveStore();
+
+  const { setLoading } = useLeaveLoadingStore();
+
+  const openFileViewer = useFileViewerStore((state) => state.openFileViewer);
 
   // State
   const [isEditing, setIsEditing] = useState(false);
@@ -296,16 +303,21 @@ const LeaveApplicationDetails = ({ data }) => {
 
   const handleSaveEdit = async () => {
     try {
+      setLoading(true, "Saving leave edits...", 10);
       let documentUrl = editedData.documentUrl;
 
       // Upload new document if exists
       if (documentFile) {
+        setLoading(true, "Uploading document...", 20);
         documentUrl = await uploadImage(documentFile);
         if (!documentUrl) {
+          setLoading(false);
           toast.error("Failed to upload document");
           return;
         }
       }
+
+      setLoading(true, "Preparing data...", 30);
       // Prepare data for API
       const updatedData = {
         id: editedData.id,
@@ -325,9 +337,13 @@ const LeaveApplicationDetails = ({ data }) => {
         status: editedData.status,
       };
 
+      setLoading(true, "Updating leave data...", 50);
       await updateLeaveData(updatedData);
+
+      setLoading(true, "Processing update...", 70);
       const parseUpdateData = parseNormalData(updatedData);
       updateLeave({
+        Id: updatedData.id,
         employeeId: updatedData.employeeId,
         deviceMAC: updatedData.deviceMAC,
         updatedLeave: {
@@ -335,8 +351,11 @@ const LeaveApplicationDetails = ({ data }) => {
           employeeId: String(updatedData.employeeId),
         },
       });
+
+      setLoading(true, "Checking for changes...", 85);
       const response = checkLeaveDataChanges(data, editedData);
       if (response !== "No changes") {
+        setLoading(true, "Sending notification...", 95);
         await sendNotificationToEmployee({
           employeeId: data.employeeId,
           deviceMAC: data.deviceMAC,
@@ -344,12 +363,18 @@ const LeaveApplicationDetails = ({ data }) => {
           messageBody: `Your leave application has been updated. Changes: ${response}`,
         });
       }
-      toast.success("Leave application updated successfully");
+      setLoading(true, "Complete!", 100);
+
+      // Small delay to show 100% completion
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // toast.success("Leave application updated successfully");
       setIsEditing(false);
       setDocumentFile(null);
     } catch (error) {
       toast.error("Failed to update leave application");
       console.error("Update error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -358,9 +383,13 @@ const LeaveApplicationDetails = ({ data }) => {
     let employeeUpdated = false;
 
     try {
+      setLoading(true, `Processing ${status} request...`, 10);
+
       /* =====================================================
        * SECTION 1: UPDATE LEAVE STATUS
        * ===================================================== */
+
+      setLoading(true, "Validating data...", 15);
       if (!data || !user) {
         throw new Error("Invalid leave or user data");
       }
@@ -385,9 +414,13 @@ const LeaveApplicationDetails = ({ data }) => {
         documentUrl: editedData.documentUrl,
         status: `${status}_admin`,
       };
+
+      setLoading(true, "Updating leave status...", 40);
       await updateLeaveData(leavePayload);
+      setLoading(true, "Processing leave update...", 50);
       const parseUpdateData = parseNormalData(leavePayload);
       updateLeave({
+        Id: leavePayload.id,
         employeeId: leavePayload.employeeId,
         deviceMAC: leavePayload.deviceMAC,
         updatedLeave: {
@@ -400,6 +433,8 @@ const LeaveApplicationDetails = ({ data }) => {
       /* =====================================================
        * SECTION 2: UPDATE EMPLOYEE SALARY RULES
        * ===================================================== */
+
+      setLoading(true, "Finding employee records...", 60);
       const employee = Employees.find(
         (emp) => emp.employeeId === data.employeeId,
       );
@@ -407,6 +442,8 @@ const LeaveApplicationDetails = ({ data }) => {
       if (!employee) {
         throw new Error("Employee not found");
       }
+
+      setLoading(true, "Processing salary rules...", 70);
 
       const empId = String(employee.employeeId);
       const salaryRules = employee.salaryRules || {};
@@ -431,10 +468,14 @@ const LeaveApplicationDetails = ({ data }) => {
       ruleTen.empId = empId;
 
       // Apply leave-based salary rules
+      setLoading(true, "Applying leave salary rules...", 75);
+
+      // Apply leave-based salary rules
       const leaveSalaryRules = leaveApprove({
         salaryRules,
         leave: data,
       });
+      setLoading(true, "Updating salary rules...", 80);
 
       const updatedSalaryRules = finalJsonForUpdate(salaryRules, {
         empId,
@@ -449,16 +490,19 @@ const LeaveApplicationDetails = ({ data }) => {
         salaryRules: JSON.stringify(updatedSalaryRules),
       };
 
+      setLoading(true, "Saving employee updates...", 85);
       await updateEmployee({
         mac: employee.deviceMAC || "",
         id: employee.employeeId,
         payload,
       });
 
+      setLoading(true, "Storing employee data...", 90);
       storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
         salaryRules: parseNormalData(updatedSalaryRules),
       });
 
+      setLoading(true, "Sending notification...", 95);
       await sendNotificationToEmployee({
         employeeId: data.employeeId,
         deviceMAC: data.deviceMAC,
@@ -467,6 +511,11 @@ const LeaveApplicationDetails = ({ data }) => {
       });
 
       employeeUpdated = true;
+
+      setLoading(true, "Complete!", 100);
+
+      // Small delay to show 100% completion
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       /* =====================================================
        * FINAL SUCCESS
@@ -477,25 +526,47 @@ const LeaveApplicationDetails = ({ data }) => {
     } catch (error) {
       console.error("Leave update process failed:", error);
       toast.error(`Leave ${status} failed`);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReject = () => handleUpdateLeave("rejected");
   const handleApprove = () => handleUpdateLeave("approved");
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!data?.documentUrl) {
       toast.error("No document available");
       return;
     }
 
     try {
+      // Fetch the file as a blob to handle all file types and CORS issues
+      const response = await fetch(data.documentUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch file");
+      }
+
+      const blob = await response.blob();
+
+      // Extract filename from URL or use a default
+      const urlParts = data.documentUrl.split("/");
+      const filename =
+        urlParts[urlParts.length - 1].split("?")[0] || "download";
+
+      // Create blob URL and download
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = data.documentUrl;
-      link.download = data.documentUrl.split("/").pop() || "document";
+      link.href = blobUrl;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
+
+      // Cleanup
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
       toast.success("Download started");
     } catch (error) {
       toast.error("Download failed");
@@ -567,10 +638,11 @@ const LeaveApplicationDetails = ({ data }) => {
         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-emerald-100/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/2" />
         <p className="text-[1.2vh] font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
           <User className="w-3.5 h-3.5" />
-          APPLICANT
+          APPLICANT{" "}
         </p>
         <p className="text-base md:text-[1.4vh] font-bold text-gray-800 group-hover:text-gray-900 transition-colors truncate">
-          {data.employeeName.split("<")[0]}
+          {data.employeeName.split("<")[0]}{" "}
+          {data.companyEmployeeId ? `(${data.companyEmployeeId})` : ""}
         </p>
       </div>
     </div>
@@ -975,7 +1047,6 @@ const LeaveApplicationDetails = ({ data }) => {
         </div>
       ) : (
         <div
-          onClick={data.documentUrl ? handleDownload : undefined}
           className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
             data.documentUrl
               ? "border-[#004368]/20 bg-gradient-to-br from-[#004368]/5 to-white hover:border-[#004368]/30 hover:shadow-lg hover:shadow-[#004368]/10 cursor-pointer active:scale-[0.98]"
@@ -1012,16 +1083,35 @@ const LeaveApplicationDetails = ({ data }) => {
                 </p>
                 <p className="text-xs text-gray-500 mt-1 truncate">
                   {data.documentUrl
-                    ? "Click to download"
+                    ? "Click to download or view"
                     : "No attachment available"}
                 </p>
               </div>
 
               {data.documentUrl && (
-                <div className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-                  <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#004368] to-[#003152] text-white text-sm font-medium group-hover:from-[#005580] group-hover:to-[#004368] transition-all">
-                    <Download className="w-4 h-4" />
-                    Download
+                <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2">
+                  <div
+                    className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0"
+                    onClick={() =>
+                      openFileViewer(
+                        data.documentUrl,
+                        data.documentUrl?.split("/").pop(),
+                      )
+                    }
+                  >
+                    <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-black text-sm font-medium border border-[#004368] transition-all cursor-pointer hover:bg-gray-50">
+                      <Eye className="w-4 h-4" />
+                      Preview
+                    </div>
+                  </div>
+                  <div
+                    className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0"
+                    onClick={data.documentUrl ? handleDownload : undefined}
+                  >
+                    <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#004368] to-[#003152] text-white text-sm font-medium group-hover:from-[#005580] group-hover:to-[#004368] transition-all">
+                      <Download className="w-4 h-4" />
+                      Download
+                    </div>
                   </div>
                 </div>
               )}
@@ -1109,6 +1199,102 @@ const LeaveApplicationDetails = ({ data }) => {
 
     return null;
   };
+  // Add this new function after renderDescription and before renderTimeInputs
+
+  const renderTimeDisplay = () => {
+    if (isEditing) return null;
+
+    if (
+      isHourlyLeave &&
+      (data.description?.fromTime || data.description?.toTime)
+    ) {
+      return (
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-50/30 to-white p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            HOURLY LEAVE TIME
+          </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">From</p>
+              <p className="text-sm font-bold text-gray-800">
+                {normalizeTime(data.description?.fromTime) || "N/A"}
+              </p>
+            </div>
+            <span className="text-gray-400">→</span>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">To</p>
+              <p className="text-sm font-bold text-gray-800">
+                {normalizeTime(data.description?.toTime) || "N/A"}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (
+      isExtendedLeave &&
+      (data.description?.fStartHour ||
+        data.description?.fEndHour ||
+        data.description?.lStartHour ||
+        data.description?.lEndHour)
+    ) {
+      return (
+        <div className="space-y-4">
+          {(data.description?.fStartHour || data.description?.fEndHour) && (
+            <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-green-50/30 to-white p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                FIRST DAY TIME
+              </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">From</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.fStartHour) || "N/A"}
+                  </p>
+                </div>
+                <span className="text-gray-400">→</span>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">To</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.fEndHour) || "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(data.description?.lStartHour || data.description?.lEndHour) && (
+            <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-purple-50/30 to-white p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                LAST DAY TIME
+              </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">From</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.lStartHour) || "N/A"}
+                  </p>
+                </div>
+                <span className="text-gray-400">→</span>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">To</p>
+                  <p className="text-sm font-bold text-gray-800">
+                    {normalizeTime(data.description?.lEndHour) || "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
@@ -1120,6 +1306,7 @@ const LeaveApplicationDetails = ({ data }) => {
             {renderBasicInfo()}
             {renderDescription()}
             {renderLeaveDetails()}
+            {renderTimeDisplay()} {/* ✅ Add this line */}
             {renderTimeInputs()}
             {renderDateRange()}
             {renderDocument()}

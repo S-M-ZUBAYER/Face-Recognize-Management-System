@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -45,6 +46,8 @@ function MonthlyForm() {
   const Employees = employees();
   const [additionalSalaries, setAdditionalSalaries] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
@@ -183,8 +186,20 @@ function MonthlyForm() {
 
     const otherSalaryArray = getOtherSalaryArray();
 
+    updateProgressStore.startUpdate(Employees, "Monthly Pay Period");
+
     try {
       const updatePromises = Employees.map(async (employee) => {
+        if (!employee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+
+        const employeeName = employee.name || employee.employeeId;
+
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
         try {
           const payPeriodJSON = convertJsonForPayPeriod(
             employee?.salaryInfo || {},
@@ -233,16 +248,21 @@ function MonthlyForm() {
           storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
             salaryInfo: parseNormalData(payPeriodJSON),
           });
-          return { success: true, employeeId: employee.employeeId };
+          updateProgressStore.updateProgress(employeeName, "success");
         } catch (error) {
-          console.error(error);
-          return { success: false, employeeId: employee.employeeId };
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
       });
 
       await Promise.all(updatePromises);
 
-      toast.success(`Successfully updated ${Employees.length} employee(s)`);
+      // toast.success(`Successfully updated ${Employees.length} employee(s)`);
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update employees");

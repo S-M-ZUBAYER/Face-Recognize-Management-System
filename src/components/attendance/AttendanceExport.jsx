@@ -47,9 +47,15 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
     // =========================================================
     // 🔹 HEADER SECTION
     // =========================================================
-    const baseHeaders = ["Date", "Name", "ID", "Department", "Designation"];
+    const baseHeaders = [
+      "Date",
+      "Name",
+      "Employee ID",
+      "Department",
+      "Designation",
+    ];
     const punchHeaders = Array.from({ length: finalMaxPunchCount }, (_, i) =>
-      finalMaxPunchCount === 1 ? "Punch" : `Punch ${i + 1}`
+      finalMaxPunchCount === 1 ? "Punch" : `Punch ${i + 1}`,
     );
     const headers = [...baseHeaders, ...punchHeaders];
     const totalColumns = headers.length;
@@ -82,7 +88,7 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
       selectedRow.number,
       1,
       selectedRow.number,
-      totalColumns
+      totalColumns,
     );
     selectedRow.getCell(1).font = { bold: true, size: 14 };
     selectedRow.getCell(1).alignment = { horizontal: "left" };
@@ -90,9 +96,9 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
     // Row 3: Exported Date & Time
     const now = new Date();
     const DateTime = `${now.getFullYear()}-${String(
-      now.getMonth() + 1
+      now.getMonth() + 1,
     ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(
-      now.getHours()
+      now.getHours(),
     ).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
     const exportedRow = worksheet.addRow([`Export Date & Time: ${DateTime}`]);
@@ -100,7 +106,7 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
       exportedRow.number,
       1,
       exportedRow.number,
-      totalColumns
+      totalColumns,
     );
     exportedRow.getCell(1).font = { bold: true, size: 14 };
     exportedRow.getCell(1).alignment = { horizontal: "left" };
@@ -147,10 +153,10 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
       const formattedDate = dateObj
         ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(
             2,
-            "0"
+            "0",
           )}-${String(dateObj.getDate()).padStart(
             2,
-            "0"
+            "0",
           )} (${dateObj.toLocaleDateString("en-US", { weekday: "long" })})`
         : "";
 
@@ -196,7 +202,7 @@ function AttendanceExport({ selectedEmployeeData = [], maxPunchCount = 1 }) {
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(
       new Blob([buffer]),
-      `${startDate !== null ? format : formatted}_Attendance_Report.xlsx`
+      `${startDate !== null ? format : formatted}_Attendance_Report.xlsx`,
     );
   };
 

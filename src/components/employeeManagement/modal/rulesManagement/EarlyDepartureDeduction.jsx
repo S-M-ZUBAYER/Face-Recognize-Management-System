@@ -6,6 +6,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const EarlyDepartureDeduction = () => {
   const [penaltyAmount, setPenaltyAmount] = useState("");
@@ -14,6 +15,8 @@ export const EarlyDepartureDeduction = () => {
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
@@ -33,72 +36,94 @@ export const EarlyDepartureDeduction = () => {
       return;
     }
 
+    updateProgressStore.startUpdate(
+      selectedEmployees,
+      "Early Departure Penalty",
+    );
+
     try {
       const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Find or create rule with ruleId = 16
-        let ruleSixteen = existingRules.find(
-          (rule) => rule.ruleId === 16 || rule.ruleId === "16"
-        );
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        if (!ruleSixteen) {
-          // Create new rule with ruleId = 16 if it doesn't exist
-          ruleSixteen = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "16", // string
-            ruleStatus: 1, // number
-            param1: penaltyAmount, // string containing penalty amount value
-            param2: "",
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleSixteen object - preserve all other properties
-          ruleSixteen.empId = empId; // string
-          ruleSixteen.param1 = penaltyAmount; // update with new penalty amount value
-          // Keep all other properties as they are
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 16
+          let ruleSixteen = existingRules.find(
+            (rule) => rule.ruleId === 16 || rule.ruleId === "16",
+          );
+
+          if (!ruleSixteen) {
+            // Create new rule with ruleId = 16 if it doesn't exist
+            ruleSixteen = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "16", // string
+              ruleStatus: 1, // number
+              param1: penaltyAmount, // string containing penalty amount value
+              param2: "",
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleSixteen object - preserve all other properties
+            ruleSixteen.empId = empId; // string
+            ruleSixteen.param1 = penaltyAmount; // update with new penalty amount value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 16 || r.ruleId === "16",
+              newValue: ruleSixteen, // update ruleId=16 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 16 || r.ruleId === "16",
-            newValue: ruleSixteen, // update ruleId=16 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
 
       setRulesIds(16);
 
-      toast.success("Early departure penalty updated successfully!");
+      // toast.success("Early departure penalty updated successfully!");
     } catch (error) {
       console.error("Error saving early departure penalty:", error);
       toast.error("Failed to update early departure penalty.");

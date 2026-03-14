@@ -1,26 +1,45 @@
 import { useEffect, useState } from "react";
 import { useUserStore } from "@/zustand/useUserStore";
 import { Navigate, Outlet } from "react-router-dom";
+import { checkSessionExpiry } from "@/lib/Session";
+import { Riple } from "react-loading-indicators";
 
 const PrivateRoute = () => {
-  const { user, setUser } = useUserStore();
+  const { user, setUser, clearAll } = useUserStore();
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    if (!user) {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    const initAuth = () => {
+      const isExpired = checkSessionExpiry();
+
+      if (isExpired) {
+        localStorage.removeItem("hideWarningModalRules");
+        localStorage.removeItem("hideWarningModalPayPeriod");
+        localStorage.removeItem("user");
+        localStorage.removeItem("deviceMACs");
+        localStorage.removeItem("lastLoginAt");
+        localStorage.removeItem("lastActivityAt");
+        setLoading(false);
+        return;
       }
-    }
-    setLoading(false);
-  }, [user, setUser]);
+
+      if (!user) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      }
+
+      setLoading(false);
+    };
+
+    initAuth();
+  }, [user, setUser, clearAll]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Loading...</p>
+      <div className="w-screen h-screen flex justify-center items-center relative z-500 bg-white">
+        <Riple color="#004368" size="large" text="" textColor="" />
       </div>
     );
   }

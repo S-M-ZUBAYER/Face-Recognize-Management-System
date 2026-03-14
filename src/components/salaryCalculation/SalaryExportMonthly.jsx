@@ -3,9 +3,10 @@ import image from "@/constants/image";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useDateStore } from "@/zustand/useDateStore";
+import toast from "react-hot-toast";
 
 function SalaryExportMonthly({ selectedEmployeeData }) {
-  // console.log(selectedEmployeeData);
+  console.log(selectedEmployeeData);
   const { selectedMonth, selectedYear } = useDateStore();
   const getMonthInfo = (month, year) => {
     const months = [
@@ -44,6 +45,7 @@ function SalaryExportMonthly({ selectedEmployeeData }) {
       !Array.isArray(selectedEmployeeData) ||
       selectedEmployeeData.length === 0
     ) {
+      toast.error("Please select at least one employee.");
       console.warn("No employee data provided!");
       return;
     }

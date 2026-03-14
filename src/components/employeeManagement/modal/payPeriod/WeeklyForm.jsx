@@ -19,6 +19,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 const OVERTIME_OPTIONS = [
   {
@@ -65,6 +66,9 @@ function WeeklyForm() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const { selectedEmployees, updateEmployeeSalaryInfo } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
@@ -184,9 +188,19 @@ function WeeklyForm() {
 
     const otherSalaryArray = getOtherSalaryArray();
     const selectedWeekdayIndex = WEEKDAYS_ISO.indexOf(formData.selectedWeekday);
+    updateProgressStore.startUpdate(selectedEmployees, "Bi-Weekly Pay Period");
 
     try {
       const updatePromises = selectedEmployees.map(async (employee) => {
+        if (!employee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+
+        const employeeName = employee.name || employee.employeeId;
+
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
         try {
           const payPeriodJSON = convertJsonForPayPeriod(
             employee?.salaryInfo || {},
@@ -227,17 +241,22 @@ function WeeklyForm() {
             salaryInfo: parseNormalData(payPeriodJSON),
           });
 
-          return { success: true, employeeId: employee.employeeId };
+          updateProgressStore.updateProgress(employeeName, "success");
         } catch (error) {
-          console.error(error);
-          return { success: false, employeeId: employee.employeeId };
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
       });
 
       await Promise.all(updatePromises);
-      toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`,
-      );
+      // toast.success(
+      //   `Successfully updated ${selectedEmployees.length} employee(s)`,
+      // );
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update employees");

@@ -33,8 +33,12 @@ const SubscriptionModal = () => {
   const [quantity, setQuantity] = useState(1);
 
   const { data: packages = [] } = useSubscriptionData();
-  const { isSubscriptionModal, setIsSubscriptionModal, setPackage } =
-    useSubscriptionStore();
+  const {
+    isSubscriptionModal,
+    setIsSubscriptionModal,
+    setPackage,
+    setSubScriptionDaysRemaining,
+  } = useSubscriptionStore();
   const { data: paymentInfo } = usePaymentInfo();
 
   // Currency symbol mapping
@@ -83,6 +87,21 @@ const SubscriptionModal = () => {
       }
     }
   }, [paymentInfo, packages]);
+
+  useEffect(() => {
+    if (!paymentInfo) return;
+
+    const isActive = paymentInfo.paymentStatus === 1;
+    const days = isActive
+      ? getDaysUntilExpiry(paymentInfo.paymentExpireTime)
+      : 0;
+
+    setSubScriptionDaysRemaining(days);
+  }, [
+    paymentInfo?.paymentStatus,
+    paymentInfo?.paymentExpireTime,
+    setSubScriptionDaysRemaining,
+  ]);
 
   // Filter out FreeTrial and memoize packages
   const filteredPackages = useMemo(() => {
@@ -148,7 +167,6 @@ const SubscriptionModal = () => {
   const expiryDays = isActiveSubscription
     ? getDaysUntilExpiry(paymentInfo.paymentExpireTime)
     : 0;
-
   if (!isSubscriptionModal) return null;
 
   return (

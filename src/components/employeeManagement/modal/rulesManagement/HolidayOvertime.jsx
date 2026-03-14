@@ -6,6 +6,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const HolidayOvertime = () => {
   // const [holidayOvertimePercent, setHolidayOvertimePercent] = useState("");
@@ -16,6 +17,9 @@ export const HolidayOvertime = () => {
 
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
+
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save holiday overtime configuration
@@ -24,6 +28,11 @@ export const HolidayOvertime = () => {
       toast.error("Please select at least one employee!");
       return;
     }
+
+    updateProgressStore.startUpdate(
+      selectedEmployees,
+      "Holiday Working Time Settings",
+    );
 
     // if (
     //   !holidayOvertimePercent ||
@@ -42,7 +51,7 @@ export const HolidayOvertime = () => {
       parseFloat(holidayWorkingTimePercent) < 0
     ) {
       toast.error(
-        "Please enter a valid positive number for holiday working time percent"
+        "Please enter a valid positive number for holiday working time percent",
       );
       return;
     }
@@ -53,65 +62,82 @@ export const HolidayOvertime = () => {
           toast.error("No employee selected");
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 9
-        let ruleNine = existingRules.find(
-          (rule) => rule.ruleId === 9 || rule.ruleId === "9"
-        );
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        if (!ruleNine) {
-          // Create new rule with ruleId = 9 if it doesn't exist
-          ruleNine = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "9", // string
-            ruleStatus: 1, // number
-            // param1: holidayOvertimePercent, // string containing holiday overtime percent value
-            param2: holidayWorkingTimePercent, // string containing holiday working time percent value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleNine object - preserve all other properties
-          ruleNine.empId = empId; // string
-          // ruleNine.param1 = holidayOvertimePercent; // update with new holiday overtime percent value
-          ruleNine.param2 = holidayWorkingTimePercent; // update with new holiday working time percent value
-          // Keep all other properties as they are
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 9
+          let ruleNine = existingRules.find(
+            (rule) => rule.ruleId === 9 || rule.ruleId === "9",
+          );
+
+          if (!ruleNine) {
+            // Create new rule with ruleId = 9 if it doesn't exist
+            ruleNine = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "9", // string
+              ruleStatus: 1, // number
+              // param1: holidayOvertimePercent, // string containing holiday overtime percent value
+              param2: holidayWorkingTimePercent, // string containing holiday working time percent value
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleNine object - preserve all other properties
+            ruleNine.empId = empId; // string
+            // ruleNine.param1 = holidayOvertimePercent; // update with new holiday overtime percent value
+            ruleNine.param2 = holidayWorkingTimePercent; // update with new holiday working time percent value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 9 || r.ruleId === "9",
+              newValue: ruleNine, // update ruleId=9 object
+            },
+          });
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 9 || r.ruleId === "9",
-            newValue: ruleNine, // update ruleId=9 object
-          },
-        });
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
       setRulesIds(9);
 
-      toast.success("Holiday overtime settings updated successfully!");
+      // toast.success("Holiday overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving holiday overtime settings:", error);
       toast.error("Failed to update holiday overtime settings.");

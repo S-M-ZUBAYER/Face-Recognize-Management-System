@@ -6,6 +6,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useUserStore } from "@/zustand/useUserStore";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const OvertImeCount = () => {
   const [minOvertimeUnit, setMinOvertimeUnit] = useState("");
@@ -14,6 +15,8 @@ export const OvertImeCount = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
@@ -29,68 +32,90 @@ export const OvertImeCount = () => {
       parseInt(minOvertimeUnit) <= 0
     ) {
       toast.error(
-        "Please enter a valid positive number for minimum overtime unit"
+        "Please enter a valid positive number for minimum overtime unit",
       );
       return;
     }
 
+    updateProgressStore.startUpdate(
+      selectedEmployees,
+      "Minimum Overtime Unit Settings",
+    );
+
     try {
       const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Find or create rule with ruleId = 7
-        let ruleSeven = existingRules.find(
-          (rule) => rule.ruleId === 7 || rule.ruleId === "7"
-        );
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        if (!ruleSeven) {
-          ruleSeven = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "7", // string
-            ruleStatus: 1, // number
-            param1: minOvertimeUnit,
-            param2: "",
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          ruleSeven.empId = empId;
-          ruleSeven.param1 = minOvertimeUnit;
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 7
+          let ruleSeven = existingRules.find(
+            (rule) => rule.ruleId === 7 || rule.ruleId === "7",
+          );
+
+          if (!ruleSeven) {
+            ruleSeven = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "7", // string
+              ruleStatus: 1, // number
+              param1: minOvertimeUnit,
+              param2: "",
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            ruleSeven.empId = empId;
+            ruleSeven.param1 = minOvertimeUnit;
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 7 || r.ruleId === "7",
+              newValue: ruleSeven, // update ruleId=7 object
+            },
+          });
+
+          updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 7 || r.ruleId === "7",
-            newValue: ruleSeven, // update ruleId=7 object
-          },
-        });
-
-        updateEmployeeSalaryRules(empId, parseNormalData(updatedJSON));
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
       await Promise.all(updatePromises);
       setRulesIds(7);
-      toast.success("Minimum overtime unit updated successfully!");
+      // toast.success("Minimum overtime unit updated successfully!");
     } catch (error) {
       console.error("Error saving minimum overtime unit:", error);
       toast.error("Failed to update minimum overtime unit.");

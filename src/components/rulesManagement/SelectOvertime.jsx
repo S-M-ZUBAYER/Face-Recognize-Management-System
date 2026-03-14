@@ -7,6 +7,7 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const SelectOvertime = () => {
   const [allowOvertime, setAllowOvertime] = useState("No");
@@ -14,6 +15,8 @@ export const SelectOvertime = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { setGlobalRulesIds } = useUserStore();
 
@@ -28,73 +31,95 @@ export const SelectOvertime = () => {
       (!multiplier || isNaN(multiplier) || parseFloat(multiplier) <= 0)
     ) {
       toast.error(
-        "Please enter a valid positive number for overtime multiplier"
+        "Please enter a valid positive number for overtime multiplier",
       );
       return;
     }
 
+    updateProgressStore.startUpdate(Employees, "Overtime Settings");
+
     try {
       const updatePromises = Employees.map(async (selectedEmployee) => {
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
-
-        // Convert "Yes"/"No" to "true"/"false" strings for storage
-        const allowOvertimeValue = allowOvertime === "Yes" ? "true" : "false";
-
-        // Find or create rule with ruleId = 23
-        let ruleTwentyThree = existingRules.find(
-          (rule) => rule.ruleId === 23 || rule.ruleId === "23"
-        );
-
-        if (!ruleTwentyThree) {
-          // Create new rule with ruleId = 23 if it doesn't exist
-          ruleTwentyThree = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "23", // string
-            ruleStatus: 1, // number
-            param1: allowOvertimeValue, // string containing "true" or "false"
-            param2: allowOvertime === "Yes" ? multiplier : "", // string containing multiplier value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleTwentyThree object - preserve all other properties
-          ruleTwentyThree.empId = empId; // string
-          ruleTwentyThree.param1 = allowOvertimeValue; // update with new allow overtime value
-          ruleTwentyThree.param2 = allowOvertime === "Yes" ? multiplier : ""; // update with new multiplier value
-          // Keep all other properties as they are
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
         }
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 23 || r.ruleId === "23",
-            newValue: ruleTwentyThree, // update ruleId=23 object
-          },
-        });
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
 
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+          // Convert "Yes"/"No" to "true"/"false" strings for storage
+          const allowOvertimeValue = allowOvertime === "Yes" ? "true" : "false";
 
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
+          // Find or create rule with ruleId = 23
+          let ruleTwentyThree = existingRules.find(
+            (rule) => rule.ruleId === 23 || rule.ruleId === "23",
+          );
 
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+          if (!ruleTwentyThree) {
+            // Create new rule with ruleId = 23 if it doesn't exist
+            ruleTwentyThree = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "23", // string
+              ruleStatus: 1, // number
+              param1: allowOvertimeValue, // string containing "true" or "false"
+              param2: allowOvertime === "Yes" ? multiplier : "", // string containing multiplier value
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleTwentyThree object - preserve all other properties
+            ruleTwentyThree.empId = empId; // string
+            ruleTwentyThree.param1 = allowOvertimeValue; // update with new allow overtime value
+            ruleTwentyThree.param2 = allowOvertime === "Yes" ? multiplier : ""; // update with new multiplier value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 23 || r.ruleId === "23",
+              newValue: ruleTwentyThree, // update ruleId=23 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
+        }
       });
       await Promise.all(updatePromises);
       setGlobalRulesIds(23);
-      toast.success("Overtime settings updated successfully!");
+      // toast.success("Overtime settings updated successfully!");
     } catch (error) {
       console.error("Error saving overtime settings:", error);
       toast.error("Failed to update overtime settings.");

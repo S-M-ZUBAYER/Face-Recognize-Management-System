@@ -1,14 +1,24 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings, Calendar, BookOpen } from "lucide-react";
+import {
+  X,
+  Settings,
+  Calendar,
+  BookOpen,
+  MoveDiagonal,
+  Move3D,
+  Forward,
+} from "lucide-react";
 import PayPeriodModal from "./PayPeriodModal";
 import RulesModal from "./RulesModal";
 // import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
+import MoveDeviceModal from "./MoveDeviceModal";
 
 function SetDeviceModal({ isOpen, onClose, onOpen }) {
   const [showPayPeriod, setShowPayPeriod] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
   const { clearRulesIds } = useUserStore();
 
   // Handle closing modal
@@ -30,6 +40,11 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
   // Navigate to Rules
   const handleRules = () => {
     setShowRules(true);
+    onClose();
+  };
+
+  const handleMove = () => {
+    setShowMoveModal(true);
     onClose();
   };
 
@@ -115,14 +130,34 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
                     </div>
                   </div>
                 </motion.button>
+
+                {/* Move Button */}
+                <motion.button
+                  onClick={handleMove}
+                  whileHover={{ x: 4, backgroundColor: "#f0f9ff" }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-transparent hover:border-[#004368] hover:bg-blue-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 group-hover:bg-green-200 rounded-lg transition-colors">
+                      <Forward className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-gray-900">Copy</p>
+                      <p className="text-xs text-gray-500">
+                        Copy to Another Device
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
               </div>
 
               {/* Footer */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              {/* <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center">
                   Changes PayPeriod & Rules to selected device
                 </p>
-              </div>
+              </div> */}
             </motion.div>
           </motion.div>
         )}
@@ -150,6 +185,14 @@ function SetDeviceModal({ isOpen, onClose, onOpen }) {
         }}
         onConfirm={() => {
           setShowRules(false);
+          onOpen();
+        }}
+      />
+
+      <MoveDeviceModal
+        isOpen={showMoveModal}
+        onClose={() => {
+          setShowMoveModal(false);
           onOpen();
         }}
       />

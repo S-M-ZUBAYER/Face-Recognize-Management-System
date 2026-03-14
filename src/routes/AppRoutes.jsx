@@ -1,4 +1,4 @@
-import { Route, Routes, Outlet } from "react-router-dom";
+import { Route, Routes, Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import Animated404 from "../components/404";
@@ -21,16 +21,28 @@ import EmailVerification from "@/components/EmailVerification";
 import { useEffect, useState } from "react";
 import { getAllEmployeeData } from "@/utils/initializes/getAllEmployeeData";
 import { Riple } from "react-loading-indicators";
-import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
+import { fetchUserData } from "@/utils/allServices/fetchUserData";
+import { checkSessionExpiry, updateActivity } from "@/lib/Session";
+// import { fetchLeavesData } from "@/utils/leaveServices/LeaveDataService";
 
 const AppLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchEmployees = async () => {
       setIsLoading(true);
       try {
+        const isExpired = checkSessionExpiry();
+        if (isExpired) {
+          navigate("/Face_Attendance_Management_System/signin", {
+            replace: true,
+          });
+          return;
+        }
+        updateActivity();
         await getAllEmployeeData();
-        await fetchLeavesData();
+        await fetchUserData();
+        // await fetchLeavesData();z
       } catch (error) {
         console.error("employee Api error", error);
       } finally {
@@ -43,17 +55,17 @@ const AppLayout = () => {
 
   if (isLoading) {
     return (
-      <div className="w-screen h-[100vh] flex justify-center items-center relative z-500 bg-white">
+      <div className="w-screen h-screen flex justify-center items-center relative z-500 bg-white">
         <Riple color="#004368" size="large" text="" textColor="" />
       </div>
     );
   }
   return (
-    <div className="flex h-[100vh] w-[100vw] font-poppins-regular ">
+    <div className="flex flex-col md:flex-row h-screen w-screen font-poppins-regular bg-white">
       <Sidebar />
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <Navbar />
-        <main className="p-6 overflow-y-auto custom-scrollbar">
+        <main className="p-3 sm:p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1">
           <Outlet />
         </main>
       </div>

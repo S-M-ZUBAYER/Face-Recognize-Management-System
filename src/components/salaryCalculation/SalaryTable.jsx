@@ -96,8 +96,8 @@ function SalaryTable({ employees }) {
     return (
       emp.name?.toLowerCase().includes(query) ||
       emp.companyEmployeeId?.toLowerCase().includes(query) ||
-      emp.department?.toLowerCase().includes(query) ||
-      emp.deviceMAC?.toLowerCase().includes(query)
+      emp.department?.toLowerCase().includes(query)
+      // emp.deviceMAC?.toLowerCase().includes(query)
     );
   });
 
@@ -147,7 +147,7 @@ function SalaryTable({ employees }) {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search by Date, Id, Mac, Name or Department..."
+            placeholder="Search by Date, Id, Name or Department..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}

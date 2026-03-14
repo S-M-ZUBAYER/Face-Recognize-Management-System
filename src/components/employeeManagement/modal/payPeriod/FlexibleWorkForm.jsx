@@ -9,6 +9,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import convertJsonForPayPeriod from "@/lib/convertJsonForPayPeriod";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 const SALARY_SECTION_TYPES = {
   BASED_HOUR: "based-hour",
@@ -24,6 +25,9 @@ function FlexibleWorkForm() {
 
   const { selectedEmployees, updateEmployeeSalaryInfo } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
+
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
@@ -54,7 +58,7 @@ function FlexibleWorkForm() {
         readOnly: false,
       },
     ],
-    [formData.hourlySalary, formData.minimumMinutes]
+    [formData.hourlySalary, formData.minimumMinutes],
   );
 
   // Handle form input changes
@@ -69,8 +73,20 @@ function FlexibleWorkForm() {
       return;
     }
 
+    updateProgressStore.startUpdate(selectedEmployees, "Bi-Weekly Pay Period");
+
     try {
       const updatePromises = selectedEmployees.map(async (employee) => {
+        if (!employee?.employeeId) {
+          toast.error("No employee selected");
+          return;
+        }
+
+        const employeeName = employee.name || employee.employeeId;
+
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
         try {
           const payPeriodJSON = convertJsonForPayPeriod(
             employee?.salaryInfo || {},
@@ -90,7 +106,7 @@ function FlexibleWorkForm() {
               startDay: employee?.salaryInfo?.startDay || 1,
               startWeek: null, // Not used for flexible work
               status: employee?.salaryInfo?.status || null,
-            }
+            },
           );
           const parsed = JSON.parse(payPeriodJSON);
           parsed.otherSalary = JSON.parse(parsed.otherSalary);
@@ -106,17 +122,22 @@ function FlexibleWorkForm() {
             salaryInfo: parseNormalData(payPeriodJSON),
           });
 
-          return { success: true, employeeId: employee.employeeId };
+          updateProgressStore.updateProgress(employeeName, "success");
         } catch (error) {
-          console.error(error);
-          return { success: false, employeeId: employee.employeeId };
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
       });
 
       await Promise.all(updatePromises);
-      toast.success(
-        `Successfully updated ${selectedEmployees.length} employee(s)`
-      );
+      // toast.success(
+      //   `Successfully updated ${selectedEmployees.length} employee(s)`
+      // );
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update employees");
@@ -156,7 +177,7 @@ function FlexibleWorkForm() {
                 }
               }}
             />
-          )
+          ),
         )}
       </div>
 
