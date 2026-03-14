@@ -169,13 +169,19 @@ export const LeaveForm = () => {
     }
   }, [selectedEmployee]);
 
-  // Calculate total leave time used
+  // Calculate total leave time used (FILTERED BY CURRENT YEAR)
   const calculateTotalLeaveTimeUsed = () => {
     let totalMinutes = 0;
+    const currentYear = new Date().getFullYear(); // Get current year
 
     Object.values(leaveDetails).forEach((leave) => {
       if (leave.dates && Array.isArray(leave.dates)) {
         leave.dates.forEach((date) => {
+          // ✅ CHECK IF DATE IS IN CURRENT YEAR
+          if (date.getFullYear() !== currentYear) {
+            return; // Skip dates not in current year
+          }
+
           const dateStr = getDateString(date);
           const timeRange = leave.timeRanges?.[dateStr];
 
@@ -211,7 +217,6 @@ export const LeaveForm = () => {
 
     return { days, hours, minutes, totalMinutes };
   };
-
   // Calculate remaining leave
   const calculateRemainingLeave = () => {
     const used = calculateTotalLeaveTimeUsed();
@@ -477,10 +482,10 @@ export const LeaveForm = () => {
               endTime: null,
             };
 
-            console.log(
-              `Creating object for ${leaveName}, date ${dateStr}:`,
-              timeRange,
-            );
+            // console.log(
+            //   `Creating object for ${leaveName}, date ${dateStr}:`,
+            //   timeRange,
+            // );
 
             const correctDateStr = formatDateForStorage(date);
 

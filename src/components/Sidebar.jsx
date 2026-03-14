@@ -1,7 +1,6 @@
 import React, { memo, useState, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { NavLink, useLocation } from "react-router-dom";
-import { useUserData } from "@/hook/useUserData";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import localforage from "localforage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +23,8 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { base64ToImage } from "@/lib/base64Toimage";
+import { useUserStore } from "@/zustand/useUserStore";
+import useResponsiveStore from "@/zustand/useResponsiveStore";
 
 // Constants
 const LINKS = [
@@ -98,6 +99,27 @@ const ANIMATION_VARIANTS = {
       },
     },
   },
+  drawer: {
+    hidden: { x: -300, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 20,
+      },
+    },
+    exit: {
+      x: -300,
+      opacity: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 20,
+      },
+    },
+  },
   navItem: {
     hidden: { x: -20, opacity: 0 },
     visible: {
@@ -168,7 +190,7 @@ const NavItem = memo(({ link, isActive, isPending, onNavClick }) => {
         onClick={handleClick}
         onKeyDown={handleKeyPress}
         className={cn(
-          "flex items-center gap-3 p-2 pl-[2vw] py-2 text-sm font-medium transition-colors relative group whitespace-nowrap",
+          "flex items-center gap-3 p-2 pl-[2vw] py-2 text-sm font-medium transition-colors relative whitespace-nowrap",
           isActive || isPending
             ? "text-[#004368]"
             : "text-[#BDBDBD] hover:text-[#004368]",
@@ -285,7 +307,7 @@ UserAvatar.displayName = "UserAvatar";
 // Logo component to prevent SVG re-renders
 const Logo = memo(() => (
   <motion.div
-    className="py-10 w-full px-10"
+    className={`py-10 w-full px-[2vw]`}
     whileHover={INTERACTION_EFFECTS.hover}
     transition={{ type: "tween", duration: 0.15 }}
   >
@@ -351,9 +373,14 @@ Logo.displayName = "Logo";
 const Sidebar = () => {
   const [pendingRoute, setPendingRoute] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
-  const { user, loading, error } = useUserData();
+  const { user } = useUserStore();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const { setIsSmallLaptop } = useResponsiveStore();
 
   // Memoized values
   const imageUrl = useMemo(
@@ -370,9 +397,40 @@ const Sidebar = () => {
     }
   }, [location.pathname, pendingRoute]);
 
-  const handleNavClick = useCallback((path) => {
-    setPendingRoute(path);
+  // Add effect to handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      // Adjust these breakpoints as needed
+      if (window.innerWidth < 1800) {
+        // For smaller laptop screens
+        setIsCollapsed(true);
+        setIsSmallLaptop(true);
+      } else {
+        setIsCollapsed(false);
+        setIsSmallLaptop(false);
+        setDrawerOpen(false); // Close drawer when screen is large enough
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    // Add event listener
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const handleNavClick = useCallback(
+    (path) => {
+      setPendingRoute(path);
+      if (isCollapsed && drawerOpen) {
+        setDrawerOpen(false);
+      }
+    },
+    [isCollapsed, drawerOpen],
+  );
 
   const handleLogout = useCallback(async () => {
     if (isLoggingOut) return;
@@ -385,6 +443,8 @@ const Sidebar = () => {
       localStorage.removeItem("hideWarningModalPayPeriod");
       localStorage.removeItem("user");
       localStorage.removeItem("deviceMACs");
+      localStorage.removeItem("lastLoginAt");
+      localStorage.removeItem("lastActivityAt");
 
       await Promise.all([
         new Promise((resolve) => setTimeout(resolve, 300)),
@@ -392,12 +452,13 @@ const Sidebar = () => {
         localforage.removeItem("reactQuery"),
       ]);
 
-      window.location.href = "/Face_Attendance_Management_System/signin";
+      // clearAll(); // clear zustand + storage FIRST
+      navigate("/Face_Attendance_Management_System/signin", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
       setIsLoggingOut(false);
     }
-  }, [isLoggingOut, queryClient]);
+  }, [isLoggingOut, queryClient, navigate]);
 
   // Memoized navigation items
   const navItems = useMemo(
@@ -419,88 +480,257 @@ const Sidebar = () => {
     [location.pathname, pendingRoute, handleNavClick],
   );
 
-  return (
-    <motion.aside
-      initial="hidden"
-      animate="visible"
-      variants={ANIMATION_VARIANTS.sidebar}
-      className="w-80 h-screen border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0]"
-      style={{ willChange: "transform" }}
-    >
-      {/* Top Section */}
-      <div className="flex flex-col justify-center items-center">
-        <Logo />
+  // Toggle drawer function
+  const toggleDrawer = useCallback(() => {
+    setDrawerOpen(!drawerOpen);
+  }, [drawerOpen]);
 
-        <motion.nav
-          className="space-y-2 w-full"
-          role="navigation"
-          aria-label="Main navigation"
-          variants={{
-            visible: { transition: { staggerChildren: 0.1 } },
-          }}
-        >
-          {navItems}
-        </motion.nav>
-      </div>
+  // Close drawer when clicking outside (only for mobile)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isCollapsed &&
+        drawerOpen &&
+        !event.target.closest(".sidebar-drawer") &&
+        !event.target.closest(".toggle-button")
+      ) {
+        setDrawerOpen(false);
+      }
+    };
 
-      {/* User Section */}
-      <motion.div variants={ANIMATION_VARIANTS.userSection} className="pl-4">
-        <motion.div
-          className={cn(
-            "flex items-center gap-2 justify-between cursor-pointer p-2 rounded-lg transition-colors",
-            isLoggingOut && "opacity-50 pointer-events-none",
-          )}
-          onClick={handleLogout}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleLogout();
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label={isLoggingOut ? "Logging out..." : "Logout"}
-          disabled={isLoggingOut}
-          whileHover={!isLoggingOut && INTERACTION_EFFECTS.hover}
-          whileTap={!isLoggingOut && INTERACTION_EFFECTS.tap}
-          style={{ willChange: "transform" }}
-        >
-          <UserAvatar
-            user={user}
-            loading={loading}
-            error={error}
-            imageUrl={imageUrl}
-          />
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isCollapsed, drawerOpen]);
 
-          <div className="flex items-center gap-1">
-            <AnimatePresence>
-              {isLoggingOut && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  aria-label="Logging out"
-                >
+  // If screen is large (not collapsed), show normal sidebar
+  if (!isCollapsed) {
+    return (
+      <motion.aside
+        initial="hidden"
+        animate="visible"
+        variants={ANIMATION_VARIANTS.sidebar}
+        className="w-80 h-screen border-[#F0E6FF] border-r p-6 flex flex-col justify-between bg-[#E6ECF0]"
+        style={{ willChange: "transform" }}
+      >
+        {/* Top Section */}
+        <div className="flex flex-col justify-center items-center">
+          <Logo padding={10} />
+
+          <motion.nav
+            className="space-y-2 w-full"
+            role="navigation"
+            aria-label="Main navigation"
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } },
+            }}
+          >
+            {navItems}
+          </motion.nav>
+        </div>
+
+        {/* User Section */}
+        <motion.div variants={ANIMATION_VARIANTS.userSection} className="pl-4">
+          <motion.div
+            className={cn(
+              "flex items-center gap-2 justify-between cursor-pointer p-2 lg:mt-2.5 mt-0 lg:p-0 rounded-lg transition-colors",
+              isLoggingOut && "opacity-50 pointer-events-none",
+            )}
+            onClick={handleLogout}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleLogout();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={isLoggingOut ? "Logging out..." : "Logout"}
+            disabled={isLoggingOut}
+            whileHover={!isLoggingOut && INTERACTION_EFFECTS.hover}
+            whileTap={!isLoggingOut && INTERACTION_EFFECTS.tap}
+            style={{ willChange: "transform" }}
+          >
+            <UserAvatar user={user} imageUrl={imageUrl} />
+
+            <div className="flex items-center gap-1">
+              <AnimatePresence>
+                {isLoggingOut && (
                   <motion.div
-                    variants={LOADING_SPIN}
-                    animate="animate"
-                    className="h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <LogoutIcon
-              aria-hidden="true"
-              className={cn(
-                isLoggingOut
-                  ? "text-gray-400"
-                  : "text-[#004368] hover:text-red-600",
-              )}
-            />
-          </div>
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    aria-label="Logging out"
+                  >
+                    <motion.div
+                      variants={LOADING_SPIN}
+                      animate="animate"
+                      className="h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <LogoutIcon
+                aria-hidden="true"
+                className={cn(
+                  isLoggingOut
+                    ? "text-gray-400"
+                    : "text-[#004368] hover:text-red-600",
+                )}
+              />
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    </motion.aside>
+      </motion.aside>
+    );
+  }
+
+  // If screen is small (collapsed), show toggle button and drawer when opened
+  return (
+    <>
+      {/* Toggle Button - Only shown when collapsed */}
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        onClick={toggleDrawer}
+        className="toggle-button fixed left-4 top-4 z-50 w-10 h-10 bg-[#004368] text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-[#003049] transition-colors"
+        aria-label="Open sidebar"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </motion.button>
+
+      {/* Drawer Sidebar - Only shown when drawerOpen is true */}
+      {/* Drawer Sidebar - Only shown when drawerOpen is true */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black z-40"
+              onClick={() => setDrawerOpen(false)}
+            />
+
+            {/* Drawer */}
+            <motion.aside
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={ANIMATION_VARIANTS.drawer}
+              className="sidebar-drawer fixed left-0 top-0 h-screen w-80 border-[#F0E6FF] border-r p-6 bg-[#E6ECF0] z-50 flex flex-col"
+              style={{ willChange: "transform" }}
+            >
+              {/* Close button inside drawer */}
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="absolute top-4 right-4 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors z-10"
+                aria-label="Close sidebar"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-gray-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+
+              {/* Top Section with Scrollable Navigation */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="flex flex-col justify-center items-center">
+                  <Logo />
+
+                  <motion.nav
+                    className="space-y-2 w-full"
+                    role="navigation"
+                    aria-label="Main navigation"
+                    variants={{
+                      visible: { transition: { staggerChildren: 0.1 } },
+                    }}
+                  >
+                    {navItems}
+                  </motion.nav>
+                </div>
+              </div>
+
+              {/* User Section at Bottom */}
+              <motion.div
+                variants={ANIMATION_VARIANTS.userSection}
+                className="pt-4 border-t border-gray-200 mt-4 pl-3.5"
+              >
+                <motion.div
+                  className={cn(
+                    "flex items-center gap-2 justify-between cursor-pointer p-2 rounded-lg transition-colors",
+                    isLoggingOut && "opacity-50 pointer-events-none",
+                  )}
+                  onClick={handleLogout}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleLogout();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={isLoggingOut ? "Logging out..." : "Logout"}
+                  disabled={isLoggingOut}
+                  whileHover={!isLoggingOut && INTERACTION_EFFECTS.hover}
+                  whileTap={!isLoggingOut && INTERACTION_EFFECTS.tap}
+                  style={{ willChange: "transform" }}
+                >
+                  <UserAvatar user={user} imageUrl={imageUrl} />
+
+                  <div className="flex items-center gap-1 ">
+                    <AnimatePresence>
+                      {isLoggingOut && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          aria-label="Logging out"
+                        >
+                          <motion.div
+                            variants={LOADING_SPIN}
+                            animate="animate"
+                            className="h-3 w-3 border border-[#004368] border-t-transparent rounded-full"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <LogoutIcon
+                      aria-hidden="true"
+                      className={cn(
+                        isLoggingOut
+                          ? "text-gray-400"
+                          : "text-[#004368] hover:text-red-600",
+                      )}
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

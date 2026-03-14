@@ -5,11 +5,14 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const UseOverTimeLateness = () => {
   const [lateTime, setLateTime] = useState("");
   const [costOverTime, setCostOverTime] = useState("");
   const { setGlobalRulesIds } = useUserStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
@@ -31,67 +34,90 @@ export const UseOverTimeLateness = () => {
       return;
     }
 
+    updateProgressStore.startUpdate(Employees, "Overtime Lateness Settings");
+
     try {
       const updatePromises = Employees.map(async (selectedEmployee) => {
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
-
-        // Find or create rule with ruleId = 6
-        let ruleSix = existingRules.find(
-          (rule) => rule.ruleId === 6 || rule.ruleId === "6"
-        );
-
-        if (!ruleSix) {
-          // Create new rule with ruleId = 6 if it doesn't exist
-          ruleSix = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "6", // string
-            ruleStatus: 1, // number
-            param1: lateTime, // string containing late time value (minutes)
-            param2: costOverTime, // string containing cost over time value (minutes)
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleSix object - preserve all other properties
-          ruleSix.empId = empId; // string
-          ruleSix.param1 = lateTime; // update with new late time value
-          ruleSix.param2 = costOverTime; // update with new cost over time value
-          // Keep all other properties as they are
+        if (!selectedEmployee?.employeeId) {
+          toast.error("No employee selected");
+          return;
         }
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 6 || r.ruleId === "6",
-            newValue: ruleSix, // update ruleId=6 object
-          },
-        });
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
 
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
 
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
+          // Find or create rule with ruleId = 6
+          let ruleSix = existingRules.find(
+            (rule) => rule.ruleId === 6 || rule.ruleId === "6",
+          );
 
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
+          if (!ruleSix) {
+            // Create new rule with ruleId = 6 if it doesn't exist
+            ruleSix = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "6", // string
+              ruleStatus: 1, // number
+              param1: lateTime, // string containing late time value (minutes)
+              param2: costOverTime, // string containing cost over time value (minutes)
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleSix object - preserve all other properties
+            ruleSix.empId = empId; // string
+            ruleSix.param1 = lateTime; // update with new late time value
+            ruleSix.param2 = costOverTime; // update with new cost over time value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 6 || r.ruleId === "6",
+              newValue: ruleSix, // update ruleId=6 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
+        }
       });
 
       await Promise.all(updatePromises);
 
       setGlobalRulesIds(6);
-      toast.success("Overtime lateness settings updated successfully!");
+      // toast.success("Overtime lateness settings updated successfully!");
     } catch (error) {
       console.error("Error saving overtime lateness settings:", error);
       toast.error("Failed to update overtime lateness settings.");

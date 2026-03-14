@@ -8,6 +8,7 @@ import useSelectedEmployeeStore from "@/zustand/useSelectedEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const HolidayForm = () => {
   const [specialDates, setSpecialDates] = useState([]);
@@ -15,6 +16,9 @@ export const HolidayForm = () => {
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { selectedEmployees, updateEmployeeSalaryRules } =
     useSelectedEmployeeStore();
+
+  const updateProgressStore = useUpdateProgressStore();
+
   const { setRulesIds } = useUserStore();
 
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
@@ -28,7 +32,7 @@ export const HolidayForm = () => {
 
     // Store dates in "local noon" to prevent timezone shifts
     const normalized = dates.map(
-      (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12)
+      (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12),
     );
     setSpecialDates(normalized);
   };
@@ -49,82 +53,104 @@ export const HolidayForm = () => {
         toast.error("Please select at least one employee!");
         return;
       }
+
+      updateProgressStore.startUpdate(selectedEmployees, "Holiday Settings");
+
       const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
         }
-        const empId = selectedEmployee.employeeId.toString();
-        const salaryRules = selectedEmployee.salaryRules || {};
-        const existingRules = Array.isArray(salaryRules.rules)
-          ? salaryRules.rules
-          : [];
 
-        const alreadyExistHoliday = selectedEmployee.salaryRules.holidays || [];
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Find or create ruleId "1"
-        let ruleOne = existingRules.find(
-          (r) => r.ruleId === "1" || r.ruleId === 1
-        );
-        if (!ruleOne) {
-          ruleOne = {
-            id: Math.floor(10 + Math.random() * 90),
-            empId,
-            ruleId: "1",
-            ruleStatus: 1,
-            param1: null,
-            param2: null,
-            param3: null,
-            param4: null,
-            param5: null,
-            param6: null,
-          };
-        } else {
-          ruleOne.empId = empId.toString();
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
+        try {
+          const empId = selectedEmployee.employeeId.toString();
+          const salaryRules = selectedEmployee.salaryRules || {};
+          const existingRules = Array.isArray(salaryRules.rules)
+            ? salaryRules.rules
+            : [];
+
+          const alreadyExistHoliday =
+            selectedEmployee.salaryRules.holidays || [];
+
+          // Find or create ruleId "1"
+          let ruleOne = existingRules.find(
+            (r) => r.ruleId === "1" || r.ruleId === 1,
+          );
+          if (!ruleOne) {
+            ruleOne = {
+              id: Math.floor(10 + Math.random() * 90),
+              empId,
+              ruleId: "1",
+              ruleStatus: 1,
+              param1: null,
+              param2: null,
+              param3: null,
+              param4: null,
+              param5: null,
+              param6: null,
+            };
+          } else {
+            ruleOne.empId = empId.toString();
+          }
+
+          const formattedHolidays = specialDates.map(formatDateForStorage);
+          const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
+
+          // console.log(formattedHolidays);
+
+          // 🧩 Build final JSON
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            holidays: finalHoliday, // raw array, helper stringifies
+            rules: {
+              filter: (r) => r.ruleId === 1 || r.ruleId === "1",
+              newValue: ruleOne,
+            },
+          });
+
+          // console.log("rules:", {
+          //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
+          //   newValue: ruleOne,
+          // });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+          updateEmployee({
+            mac: selectedEmployee.deviceMAC || "",
+            id: selectedEmployee.employeeId,
+            payload,
+          });
+          updateEmployeeSalaryRules(
+            selectedEmployee.employeeId,
+            parseNormalData(updatedJSON),
+          );
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        const formattedHolidays = specialDates.map(formatDateForStorage);
-        const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
-
-        // console.log(formattedHolidays);
-
-        // 🧩 Build final JSON
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          holidays: finalHoliday, // raw array, helper stringifies
-          rules: {
-            filter: (r) => r.ruleId === 1 || r.ruleId === "1",
-            newValue: ruleOne,
-          },
-        });
-
-        // console.log("rules:", {
-        //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
-        //   newValue: ruleOne,
-        // });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-        updateEmployee({
-          mac: selectedEmployee.deviceMAC || "",
-          id: selectedEmployee.employeeId,
-          payload,
-        });
-        updateEmployeeSalaryRules(
-          selectedEmployee.employeeId,
-          parseNormalData(updatedJSON)
-        );
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
 
       setRulesIds(1);
 
-      toast.success("Holidays updated successfully!");
+      // toast.success("Holidays updated successfully!");
     } catch (error) {
       console.error("Error saving holidays:", error);
       toast.error("Failed to update holidays.");

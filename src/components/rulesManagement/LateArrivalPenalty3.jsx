@@ -5,10 +5,13 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const LateArrivalPenalty3 = () => {
   const [hourlyRate, setHourlyRate] = useState("");
   const { setGlobalRulesIds } = useUserStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
@@ -25,69 +28,89 @@ export const LateArrivalPenalty3 = () => {
       return;
     }
 
+    updateProgressStore.startUpdate(Employees, "Late Arrival Fine");
+
     try {
       const updatePromises = Employees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 18
-        let ruleEighteen = existingRules.find(
-          (rule) => rule.ruleId === 18 || rule.ruleId === "18"
-        );
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        if (!ruleEighteen) {
-          // Create new rule with ruleId = 18 if it doesn't exist
-          ruleEighteen = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "18", // string
-            ruleStatus: 1, // number
-            param1: "1",
-            param2: hourlyRate, // string containing hourly rate value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleEighteen object - preserve all other properties
-          ruleEighteen.empId = empId; // string
-          ruleEighteen.param2 = hourlyRate; // update with new hourly rate value
-          // Keep all other properties as they are
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 18
+          let ruleEighteen = existingRules.find(
+            (rule) => rule.ruleId === 18 || rule.ruleId === "18",
+          );
+
+          if (!ruleEighteen) {
+            // Create new rule with ruleId = 18 if it doesn't exist
+            ruleEighteen = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "18", // string
+              ruleStatus: 1, // number
+              param1: "1",
+              param2: hourlyRate, // string containing hourly rate value
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleEighteen object - preserve all other properties
+            ruleEighteen.empId = empId; // string
+            ruleEighteen.param2 = hourlyRate; // update with new hourly rate value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 18 || r.ruleId === "18",
+              newValue: ruleEighteen, // update ruleId=18 object
+            },
+          });
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 18 || r.ruleId === "18",
-            newValue: ruleEighteen, // update ruleId=18 object
-          },
-        });
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
 
       setGlobalRulesIds(18);
-      toast.success("Hourly late penalty rate updated successfully!");
+      // toast.success("Hourly late penalty rate updated successfully!");
     } catch (error) {
       console.error("Error saving hourly late penalty rate:", error);
       toast.error("Failed to update hourly late penalty rate.");

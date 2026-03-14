@@ -5,12 +5,15 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const FlexibleWork = () => {
   const [lateMinutes, setLateMinutes] = useState("");
   const [leaveLateMinutes, setLeaveLateMinutes] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { setGlobalRulesIds } = useUserStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
@@ -33,75 +36,93 @@ export const FlexibleWork = () => {
       parseInt(leaveLateMinutes) < 0
     ) {
       toast.error(
-        "Please enter a valid positive number for leave late minutes"
+        "Please enter a valid positive number for leave late minutes",
       );
       return;
     }
-
+    updateProgressStore.startUpdate(Employees, "Flexible Work");
     try {
       const updatePromises = Employees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 5
-        let ruleFive = existingRules.find(
-          (rule) => rule.ruleId === 5 || rule.ruleId === "5"
-        );
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        if (!ruleFive) {
-          // Create new rule with ruleId = 5 if it doesn't exist
-          ruleFive = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "5", // string
-            ruleStatus: 1, // number
-            param1: lateMinutes, // string containing late minutes value
-            param2: leaveLateMinutes, // string containing leave late minutes value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleFive object - preserve all other properties
-          ruleFive.empId = empId; // string
-          ruleFive.param1 = lateMinutes; // update with new late minutes value
-          ruleFive.param2 = leaveLateMinutes; // update with new leave late minutes value
-          // Keep all other properties as they are
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 5
+          let ruleFive = existingRules.find(
+            (rule) => rule.ruleId === 5 || rule.ruleId === "5",
+          );
+
+          if (!ruleFive) {
+            // Create new rule with ruleId = 5 if it doesn't exist
+            ruleFive = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "5", // string
+              ruleStatus: 1, // number
+              param1: lateMinutes, // string containing late minutes value
+              param2: leaveLateMinutes, // string containing leave late minutes value
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleFive object - preserve all other properties
+            ruleFive.empId = empId; // string
+            ruleFive.param1 = lateMinutes; // update with new late minutes value
+            ruleFive.param2 = leaveLateMinutes; // update with new leave late minutes value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 5 || r.ruleId === "5",
+              newValue: ruleFive, // update ruleId=5 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 5 || r.ruleId === "5",
-            newValue: ruleFive, // update ruleId=5 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
 
       setGlobalRulesIds(5);
-      toast.success("Flexible work settings updated successfully!");
+      // toast.success("Flexible work settings updated successfully!");
     } catch (error) {
       console.error("Error saving flexible work settings:", error);
       toast.error("Failed to update flexible work settings.");

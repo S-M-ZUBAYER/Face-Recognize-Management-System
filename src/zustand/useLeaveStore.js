@@ -7,7 +7,7 @@ const useLeaveStore = create((set) => ({
     set({ leaves: leavesArray });
   },
 
-  updateLeave: ({ employeeId, deviceMAC, updatedLeave }) =>
+  updateLeave: ({ Id, employeeId, deviceMAC, updatedLeave }) =>
     set((state) => {
       // console.group("🟡 updateLeave DEBUG");
       // console.log("Incoming employeeId:", employeeId);
@@ -23,6 +23,7 @@ const useLeaveStore = create((set) => ({
       // console.log("Matched leave:", matchedLeave);
 
       const updatedLeaves = state.leaves.map((leave) =>
+        String(leave.id) === String(Id) &&
         String(leave.employeeId) === String(employeeId) &&
         leave.deviceMAC === deviceMAC
           ? { ...leave, ...updatedLeave }

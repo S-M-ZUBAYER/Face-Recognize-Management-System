@@ -81,7 +81,7 @@ export default function Signin() {
         userEmail: "",
         userPassword: "",
       }),
-      []
+      [],
     ),
   });
 
@@ -113,13 +113,13 @@ export default function Signin() {
           throw new Error(
             typeof signInData.error === "string"
               ? signInData.error
-              : "Login failed"
+              : "Login failed",
           );
         }
 
         // Get user info
         const userInfoResponse = await fetch(
-          `${API_ENDPOINTS.userInfo}?email=${trimmedEmail}`
+          `${API_ENDPOINTS.userInfo}?email=${trimmedEmail}`,
         );
         const userInfo = await userInfoResponse.json();
 
@@ -132,11 +132,14 @@ export default function Signin() {
           userInfo.devices?.map((device) => ({
             deviceMAC: device.deviceMAC,
             deviceName: device.deviceName,
+            deviceDescription: device.deviceDescription,
           })) || [];
 
         // Update Zustand store
         setUser(signInData.data);
         setDeviceMACs(deviceMACs);
+        const now = Date.now();
+        localStorage.setItem("lastActivityAt", now.toString());
 
         toast.success("Login successful");
         navigate("/Face_Attendance_Management_System", { replace: true });
@@ -147,7 +150,7 @@ export default function Signin() {
         setLoading(false);
       }
     },
-    [navigate, setUser, setDeviceMACs]
+    [navigate, setUser, setDeviceMACs],
   );
 
   return (

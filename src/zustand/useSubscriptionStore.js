@@ -7,6 +7,10 @@ const useSubscriptionStore = create((set) => ({
   paymentStatus: true,
   setPaymentStatus: (value) => set({ paymentStatus: value }),
 
+  subScriptionDaysRemaining: 0,
+  setSubScriptionDaysRemaining: (value) =>
+    set({ subScriptionDaysRemaining: value }),
+
   // For subscription modal
   isSubscriptionModal: false,
   setIsSubscriptionModal: (value) => set({ isSubscriptionModal: value }),

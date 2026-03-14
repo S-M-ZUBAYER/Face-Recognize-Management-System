@@ -17,7 +17,7 @@ const fetchEmployeeDetails = async ({ employeeId, mac }) => {
     getApiUrl("/employee/by/mac-employeId"),
     {
       params: { employeeId, mac },
-    }
+    },
   );
   return data;
 };
@@ -29,7 +29,7 @@ const patchEmployeeDetails = async ({ mac, id, payload }) => {
 
   const { data } = await apiClient.patch(
     getApiUrl(`/employee/update/${mac}/${id}`),
-    payload
+    payload,
   );
   return data;
 };
@@ -57,7 +57,7 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
         const emp = await fetchEmployeeDetails({ employeeId, mac });
 
         const matchedPayPeriod = payPeriodData?.find(
-          (d) => d.deviceMAC === mac
+          (d) => d.deviceMAC === mac,
         );
         const matchedRule = globalRules?.find((rule) => rule.deviceMAC === mac);
 
@@ -118,7 +118,7 @@ export const useSingleEmployeeDetails = (employeeId, mac) => {
   const updateEmployeeMutation = useMutation({
     mutationFn: patchEmployeeDetails,
     onSuccess: (data, variables) => {
-      console.log("✅ Employee updated successfully:", data);
+      // console.log("✅ Employee updated successfully:", data);
 
       queryClient.invalidateQueries({
         queryKey: ["employee-details", variables.id, variables.mac],

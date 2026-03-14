@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import image from "@/constants/image";
 import {
   Accordion,
   AccordionContent,
@@ -12,10 +11,12 @@ import { Checkbox } from "../ui/checkbox";
 import OvertimeModal from "./OvertimeModal";
 import toast from "react-hot-toast";
 import { useSingleEmployeeDetails } from "@/hook/useSingleEmployeeDetails";
+import MoveEmployeeModal from "./MoveEmployeeModal";
 
-function EmployeeModal({ employee }) {
-  const [isOpen, setIsOpen] = useState(false);
+function EmployeeModal({ employee, isOpen, setIsOpen }) {
+  // const [isOpen, setIsOpen] = useState(false);
   const [showOvertime, setShowOvertime] = useState(false);
+  const [showMove, setShowMove] = useState(false);
 
   const [selectedValues, setSelectedValues] = useState({
     workType: "",
@@ -172,9 +173,6 @@ function EmployeeModal({ employee }) {
   return (
     <>
       {/* Trigger Button */}
-      <button onClick={() => setIsOpen(true)}>
-        <img src={image.settingIcon} alt="settings" />
-      </button>
 
       {/* Employee Modal */}
       <AnimatePresence>
@@ -272,6 +270,37 @@ function EmployeeModal({ employee }) {
                   ))}
                 </Accordion>
               </div>
+              <div className="mt-4">
+                <div
+                  onClick={() => {
+                    setShowMove(true);
+                    setIsOpen(false);
+                  }}
+                  className="
+      flex items-center justify-between
+      w-full
+      rounded-md
+      border
+      border-gray-200
+      px-4 py-3
+      text-sm font-medium
+      text-[#004368]
+      cursor-pointer
+      transition
+      hover:bg-gray-50
+      hover:border-gray-300
+      focus:outline-none
+      focus:ring-2 focus:ring-[#004368]/30
+    "
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span>Move Employee to Another Device</span>
+
+                  {/* optional arrow for affordance */}
+                  <span className="text-gray-400 text-xs">→</span>
+                </div>
+              </div>
 
               {/* Preview of selected values */}
               {/* {(selectedValues.workType || selectedValues.attendanceMethod) && (
@@ -327,6 +356,15 @@ function EmployeeModal({ employee }) {
         }}
         onConfirm={() => setShowOvertime(false)}
         {...employee}
+      />
+
+      <MoveEmployeeModal
+        isOpen={showMove}
+        onClose={() => {
+          setShowMove(false);
+          // setIsOpen(true);
+        }}
+        emp={employee}
       />
     </>
   );

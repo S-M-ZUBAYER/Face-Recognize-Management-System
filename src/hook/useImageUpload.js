@@ -10,9 +10,17 @@ export const useImageUpload = () => {
     if (!file) return null;
 
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Only image files (JPEG, PNG, GIF, WebP) are allowed");
+      toast.error(
+        "Only image and PDF files (JPEG, PNG, GIF, WebP, PDF) are allowed",
+      );
       return null;
     }
 
@@ -38,7 +46,7 @@ export const useImageUpload = () => {
             "Content-Type": "multipart/form-data",
           },
           timeout: 60000, // 60 seconds for file uploads
-        }
+        },
       );
 
       // apiClient automatically handles response parsing and errors
@@ -62,7 +70,7 @@ export const useImageUpload = () => {
         fileUrl = `${getApiUrl("")}${fileUrl}`;
       }
 
-      toast.success("Image uploaded successfully!");
+      // toast.success("Image uploaded successfully!");
       return fileUrl;
     } catch (error) {
       console.error("Image upload error:", error);

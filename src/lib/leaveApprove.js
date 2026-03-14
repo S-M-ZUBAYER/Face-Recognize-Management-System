@@ -35,7 +35,7 @@ function leaveApprove({ salaryRules, leave }) {
     p_leaves: "Paternity Leave",
     s_leaves: "Sick Leave",
     c_leaves: "Casual Leave",
-    e_leaves: "Earned Leave",
+    e_leaves: "Earned leave",
     w_leaves: "Without Pay Leave",
     r_leaves: "Rest Leave",
     o_leaves: "Others",

@@ -1,3 +1,4 @@
+import useResponsiveStore from "@/zustand/useResponsiveStore";
 import React, { useRef, useState, useEffect, useCallback, memo } from "react";
 
 // Constants
@@ -128,6 +129,7 @@ FilterButton.displayName = "FilterButton";
 const EmployeeFilterTabs = ({ filters, activeFilter, onFilterChange }) => {
   const containerRef = useRef(null);
   const { isDragging } = useDragScroll(containerRef);
+  const { isSmallLaptop } = useResponsiveStore();
 
   const handleFilterClick = useCallback(
     (filter) => {
@@ -143,7 +145,9 @@ const EmployeeFilterTabs = ({ filters, activeFilter, onFilterChange }) => {
   }
 
   return (
-    <div className="relative w-[78vw] parent-hover">
+    <div
+      className={`relative ${isSmallLaptop ? "w-[92vw]" : "w-[78vw]"}  parent-hover`}
+    >
       <div className="relative">
         <div
           ref={containerRef}

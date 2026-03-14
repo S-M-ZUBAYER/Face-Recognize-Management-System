@@ -5,12 +5,15 @@ import finalJsonForUpdate from "@/lib/finalJsonForUpdate";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useUserStore } from "@/zustand/useUserStore";
 import { parseNormalData } from "@/lib/parseNormalData";
+import useUpdateProgressStore from "@/zustand/updateProgressStore";
 
 export const LateArrivalFine4 = () => {
   const [latenessTime, setLatenessTime] = useState("");
   const [fixedPenalty, setFixedPenalty] = useState("");
   const { updateEmployee, updating } = useSingleEmployeeDetails();
   const { setGlobalRulesIds } = useUserStore();
+
+  const updateProgressStore = useUpdateProgressStore();
 
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
@@ -32,71 +35,91 @@ export const LateArrivalFine4 = () => {
       return;
     }
 
+    updateProgressStore.startUpdate(Employees, "Late Arrival Fine");
+
     try {
       const updatePromises = Employees.map(async (selectedEmployee) => {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
         }
-        const salaryRules = selectedEmployee.salaryRules;
-        const existingRules = salaryRules.rules || [];
-        const empId = selectedEmployee.employeeId.toString();
 
-        // Find or create rule with ruleId = 19
-        let ruleNineteen = existingRules.find(
-          (rule) => rule.ruleId === 19 || rule.ruleId === "19"
-        );
+        const employeeName =
+          selectedEmployee.name || selectedEmployee.employeeId;
 
-        if (!ruleNineteen) {
-          // Create new rule with ruleId = 19 if it doesn't exist
-          ruleNineteen = {
-            id: Math.floor(10 + Math.random() * 90), // number
-            empId: empId, // string
-            ruleId: "19", // string
-            ruleStatus: 1, // number
-            param1: latenessTime, // string containing lateness time value (minutes)
-            param2: fixedPenalty, // string containing fixed penalty value
-            param3: "",
-            param4: "",
-            param5: "",
-            param6: "",
-          };
-        } else {
-          // Update ONLY the ruleNineteen object - preserve all other properties
-          ruleNineteen.empId = empId; // string
-          ruleNineteen.param1 = latenessTime; // update with new lateness time value
-          ruleNineteen.param2 = fixedPenalty; // update with new fixed penalty value
-          // Keep all other properties as they are
+        // Mark as processing
+        updateProgressStore.updateProgress(employeeName, "processing");
+
+        try {
+          const salaryRules = selectedEmployee.salaryRules;
+          const existingRules = salaryRules.rules || [];
+          const empId = selectedEmployee.employeeId.toString();
+
+          // Find or create rule with ruleId = 19
+          let ruleNineteen = existingRules.find(
+            (rule) => rule.ruleId === 19 || rule.ruleId === "19",
+          );
+
+          if (!ruleNineteen) {
+            // Create new rule with ruleId = 19 if it doesn't exist
+            ruleNineteen = {
+              id: Math.floor(10 + Math.random() * 90), // number
+              empId: empId, // string
+              ruleId: "19", // string
+              ruleStatus: 1, // number
+              param1: latenessTime, // string containing lateness time value (minutes)
+              param2: fixedPenalty, // string containing fixed penalty value
+              param3: "",
+              param4: "",
+              param5: "",
+              param6: "",
+            };
+          } else {
+            // Update ONLY the ruleNineteen object - preserve all other properties
+            ruleNineteen.empId = empId; // string
+            ruleNineteen.param1 = latenessTime; // update with new lateness time value
+            ruleNineteen.param2 = fixedPenalty; // update with new fixed penalty value
+            // Keep all other properties as they are
+          }
+
+          // Generate final JSON using your helper
+          const updatedJSON = finalJsonForUpdate(salaryRules, {
+            empId: empId,
+            rules: {
+              filter: (r) => r.ruleId === 19 || r.ruleId === "19",
+              newValue: ruleNineteen, // update ruleId=19 object
+            },
+          });
+
+          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+
+          await updateEmployee({
+            mac: selectedEmployee?.deviceMAC || "",
+            id: selectedEmployee?.employeeId,
+            payload,
+          });
+          storeEmployeeUpdate(
+            selectedEmployee.employeeId,
+            selectedEmployee.deviceMAC || "",
+            { salaryRules: parseNormalData(updatedJSON) },
+          );
+          updateProgressStore.updateProgress(employeeName, "success");
+        } catch (error) {
+          console.error(`Error updating employee ${employeeName}:`, error);
+          // Mark as failed with error message
+          updateProgressStore.updateProgress(
+            employeeName,
+            "failed",
+            error.message || "Update failed",
+          );
         }
-
-        // Generate final JSON using your helper
-        const updatedJSON = finalJsonForUpdate(salaryRules, {
-          empId: empId,
-          rules: {
-            filter: (r) => r.ruleId === 19 || r.ruleId === "19",
-            newValue: ruleNineteen, // update ruleId=19 object
-          },
-        });
-
-        const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-        await updateEmployee({
-          mac: selectedEmployee?.deviceMAC || "",
-          id: selectedEmployee?.employeeId,
-          payload,
-        });
-        storeEmployeeUpdate(
-          selectedEmployee.employeeId,
-          selectedEmployee.deviceMAC || "",
-          { salaryRules: parseNormalData(updatedJSON) }
-        );
       });
 
       await Promise.all(updatePromises);
 
       setGlobalRulesIds(19);
 
-      toast.success("Late arrival fine settings updated successfully!");
+      // toast.success("Late arrival fine settings updated successfully!");
     } catch (error) {
       console.error("Error saving late arrival fine settings:", error);
       toast.error("Failed to update late arrival fine settings.");

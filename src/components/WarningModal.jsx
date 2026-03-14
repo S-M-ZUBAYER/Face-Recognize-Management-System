@@ -122,7 +122,7 @@ const ModalFooter = memo(({ dontShowAgain, onToggleDontShow, onClose }) => (
         type="checkbox"
         checked={dontShowAgain}
         onChange={(e) => onToggleDontShow(e.target.checked)}
-        className="w-4 h-4 text-[#004368] border-gray-300 rounded focus:ring-[#004368]"
+        className="data-[state=checked]:bg-[#004368] data-[state=checked]:border-[#004368] data-[state=checked]:text-white"
       />
       <span className="text-sm text-gray-700">
         Don't show this warning again
@@ -156,6 +156,11 @@ const WarningModal = () => {
   useEffect(() => {
     const show = shouldShowWarning(location.pathname);
     setIsOpen(show);
+
+    // ✅ Reset dontShowAgain to false when modal opens
+    if (show) {
+      setDontShowAgain(false);
+    }
   }, [location.pathname]);
 
   const handleClose = useCallback(() => {
