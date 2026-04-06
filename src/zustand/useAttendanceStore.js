@@ -263,8 +263,17 @@ const processEmployeeData = (employees, attendance, overTime, dateRange) => {
         if (!actualCheckIn || !expectedTime) return;
 
         const toMinutes = (time) => {
-          const [h, m] = time.split(":").map(Number);
-          return h * 60 + m;
+          try {
+            if (!time || typeof time !== "string") return null;
+
+            const [h, m] = time.split(":").map(Number);
+
+            if (isNaN(h) || isNaN(m)) return null;
+
+            return h * 60 + m;
+          } catch {
+            return null; // stop everything here
+          }
         };
 
         const actualMin = toMinutes(actualCheckIn);

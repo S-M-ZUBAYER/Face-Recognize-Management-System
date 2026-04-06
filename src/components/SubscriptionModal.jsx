@@ -357,9 +357,9 @@ const SubscriptionModal = () => {
                                   {currencySymbols[currency]}
                                   {price}
                                 </span>
-                                <span className="text-gray-500 ml-1">
+                                {/* <span className="text-gray-500 ml-1">
                                   / month
-                                </span>
+                                </span> */}
                               </div>
                               <p className="text-xs text-gray-500 mt-1">
                                 Billed every {pkg.duration_months} months
