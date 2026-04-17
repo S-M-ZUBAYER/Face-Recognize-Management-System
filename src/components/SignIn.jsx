@@ -123,7 +123,7 @@ export default function Signin() {
         );
         const userInfo = await userInfoResponse.json();
 
-        if (!userInfo?.id) {
+        if (!userInfo?.id || userInfo.devices?.length === 0) {
           throw new Error("You are not authorized to access this page");
         }
 
