@@ -41,6 +41,7 @@ export const WeekendForm = () => {
     }
   };
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save weekend configuration
   const handleSave = async () => {
     try {
@@ -52,7 +53,7 @@ export const WeekendForm = () => {
 
       updateProgressStore.startUpdate(Employees, "Weekend Days");
 
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -107,7 +108,7 @@ export const WeekendForm = () => {
           });
 
           const payload = { salaryRules: JSON.stringify(updatedJSON) };
-          updateEmployee({
+          await updateEmployee({
             mac: selectedEmployee?.deviceMAC || "",
             id: selectedEmployee?.employeeId,
             payload,
@@ -118,6 +119,8 @@ export const WeekendForm = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -127,9 +130,8 @@ export const WeekendForm = () => {
             error.message || "Update failed",
           );
         }
-      });
+      }
 
-      await Promise.all(updatePromises);
       setGlobalRulesIds(2);
       // toast.success("Weekend days updated successfully!");
     } catch (error) {

@@ -115,6 +115,7 @@ export const SetTotalLeaveDays = () => {
     }
   };
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save leave configuration
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -131,7 +132,7 @@ export const SetTotalLeaveDays = () => {
     updateProgressStore.startUpdate(Employees, "Leave Settings");
 
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -203,6 +204,8 @@ export const SetTotalLeaveDays = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -212,9 +215,7 @@ export const SetTotalLeaveDays = () => {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       setGlobalRulesIds(24);
       // toast.success("Leave settings updated successfully!");

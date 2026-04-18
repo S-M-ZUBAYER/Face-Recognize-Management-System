@@ -20,6 +20,8 @@ export const AbsenceForm = () => {
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
   // Save penalty days configuration
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+  // Save penalty days configuration
   const handleSave = async () => {
     if (selectedEmployees.length === 0) {
       toast.error("Please select at least one employee!");
@@ -34,7 +36,7 @@ export const AbsenceForm = () => {
     updateProgressStore.startUpdate(selectedEmployees, "Absence Penalty");
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of selectedEmployees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -100,6 +102,8 @@ export const AbsenceForm = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -109,8 +113,7 @@ export const AbsenceForm = () => {
             error.message || "Update failed",
           );
         }
-      });
-      await Promise.all(updatePromises);
+      }
 
       setRulesIds(13);
       // toast.success("Penalty days updated successfully!");

@@ -45,6 +45,7 @@ export const HolidayForm = () => {
     return `${y}-${m}-${d}T00:00:00.000`;
   };
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // 🟦 Save handler
   const handleSave = async () => {
     try {
@@ -56,7 +57,7 @@ export const HolidayForm = () => {
 
       updateProgressStore.startUpdate(selectedEmployees, "Holiday Settings");
 
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of selectedEmployees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -135,6 +136,8 @@ export const HolidayForm = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -144,9 +147,7 @@ export const HolidayForm = () => {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       setRulesIds(1);
 

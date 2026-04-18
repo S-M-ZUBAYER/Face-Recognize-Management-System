@@ -42,38 +42,39 @@ export const HolidayForm = () => {
   };
 
   // 🟦 Save handler
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
   const handleSave = async () => {
     try {
-      // Check if any employees are selected
       if (Employees.length === 0) {
         toast.error("Please select at least one employee!");
         return;
       }
+
       updateProgressStore.startUpdate(Employees, "Holidays");
 
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         const employeeName =
           selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Mark as processing
-        updateProgressStore.updateProgress(employeeName, "processing");
         try {
+          updateProgressStore.updateProgress(employeeName, "processing");
+
           if (!selectedEmployee?.employeeId) {
-            toast.error("No employee selected");
-            return;
+            throw new Error("No employee selected");
           }
+
           const empId = selectedEmployee.employeeId.toString();
           const salaryRules = selectedEmployee.salaryRules || {};
           const existingRules = Array.isArray(salaryRules.rules)
             ? salaryRules.rules
             : [];
-          const alreadyExistHoliday =
-            selectedEmployee.salaryRules.holidays || [];
+          const alreadyExistHoliday = salaryRules.holidays || [];
 
-          // Find or create ruleId "1"
           let ruleOne = existingRules.find(
             (r) => r.ruleId === "1" || r.ruleId === 1,
           );
+
           if (!ruleOne) {
             ruleOne = {
               id: Math.floor(10 + Math.random() * 90),
@@ -93,53 +94,50 @@ export const HolidayForm = () => {
 
           const formattedHolidays = specialDates.map(formatDateForStorage);
           const finalHoliday = [...formattedHolidays, ...alreadyExistHoliday];
-          // console.log(formattedHolidays, alreadyExistHoliday, finalHoliday);
 
-          // 🧩 Build final JSON
           const updatedJSON = finalJsonForUpdate(salaryRules, {
-            empId: empId,
-            holidays: finalHoliday, // raw array, helper stringifies
+            empId,
+            holidays: finalHoliday,
             rules: {
               filter: (r) => r.ruleId === 1 || r.ruleId === "1",
               newValue: ruleOne,
             },
           });
 
-          // console.log("rules:", {
-          //   filter: (r) => r.ruleId === "1" || r.ruleId === 1,
-          //   newValue: ruleOne,
-          // });
+          const payload = {
+            salaryRules: JSON.stringify(updatedJSON),
+          };
 
-          const payload = { salaryRules: JSON.stringify(updatedJSON) };
-
-          updateEmployee({
+          // 🚀 IMPORTANT: await the request
+          await updateEmployee({
             mac: selectedEmployee.deviceMAC || "",
             id: selectedEmployee.employeeId,
             payload,
           });
+
           storeEmployeeUpdate(
             selectedEmployee.employeeId,
             selectedEmployee.deviceMAC || "",
             { salaryRules: parseNormalData(updatedJSON) },
           );
-          // Mark as successful
+
           updateProgressStore.updateProgress(employeeName, "success");
+
+          // optional small delay (prevents backend overload)
+          await delay(500); // 0.5s (adjust if needed)
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
-          // Mark as failed with error message
+
           updateProgressStore.updateProgress(
             employeeName,
             "failed",
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       setGlobalRulesIds(1);
-
-      // toast.success("Holidays updated successfully!");
+      toast.success("Holidays updated successfully!");
     } catch (error) {
       console.error("Error saving holidays:", error);
       toast.error("Failed to update holidays.");

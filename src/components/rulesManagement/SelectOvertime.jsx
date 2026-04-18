@@ -20,6 +20,7 @@ export const SelectOvertime = () => {
 
   const { setGlobalRulesIds } = useUserStore();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save overtime configuration
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -39,7 +40,7 @@ export const SelectOvertime = () => {
     updateProgressStore.startUpdate(Employees, "Overtime Settings");
 
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -107,6 +108,8 @@ export const SelectOvertime = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -116,8 +119,8 @@ export const SelectOvertime = () => {
             error.message || "Update failed",
           );
         }
-      });
-      await Promise.all(updatePromises);
+      }
+
       setGlobalRulesIds(23);
       // toast.success("Overtime settings updated successfully!");
     } catch (error) {

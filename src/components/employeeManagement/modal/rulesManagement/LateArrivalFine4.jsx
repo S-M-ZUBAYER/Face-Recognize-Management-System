@@ -21,6 +21,7 @@ export const LateArrivalFine4 = () => {
 
   const updateProgressStore = useUpdateProgressStore();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save lateness time and fixed penalty configuration
   const handleSave = async () => {
     if (selectedEmployees.length === 0) {
@@ -42,7 +43,7 @@ export const LateArrivalFine4 = () => {
       "Late Arrival Fine Settings",
     );
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of selectedEmployees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -112,6 +113,8 @@ export const LateArrivalFine4 = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -121,9 +124,8 @@ export const LateArrivalFine4 = () => {
             error.message || "Update failed",
           );
         }
-      });
+      }
 
-      await Promise.all(updatePromises);
       setRulesIds(19);
       // toast.success("Late arrival fine settings updated successfully!");
     } catch (error) {

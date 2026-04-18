@@ -63,6 +63,8 @@ function FlexibleWorkForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  // Save penalty days configuration
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save handler - following the same pattern
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -71,7 +73,7 @@ function FlexibleWorkForm() {
     }
     updateProgressStore.startUpdate(Employees, "Flexible Work Pay Period");
     try {
-      const updatePromises = Employees.map(async (employee) => {
+      for (const employee of Employees) {
         if (!employee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -113,6 +115,8 @@ function FlexibleWorkForm() {
           });
 
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -122,9 +126,7 @@ function FlexibleWorkForm() {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
       // toast.success(`Successfully updated ${Employees.length} employee(s)`);
     } catch (error) {
       console.error("Update error:", error);

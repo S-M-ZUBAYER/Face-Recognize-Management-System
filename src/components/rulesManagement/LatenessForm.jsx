@@ -17,6 +17,7 @@ export const LatenessForm = () => {
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save lateness configuration
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -31,7 +32,7 @@ export const LatenessForm = () => {
     updateProgressStore.startUpdate(Employees, "Lateness");
 
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -96,6 +97,8 @@ export const LatenessForm = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -105,9 +108,7 @@ export const LatenessForm = () => {
             error.message || "Update failed",
           );
         }
-      });
-      await Promise.all(updatePromises);
-
+      }
       setGlobalRulesIds(4);
 
       // toast.success("Lateness setting updated successfully!");

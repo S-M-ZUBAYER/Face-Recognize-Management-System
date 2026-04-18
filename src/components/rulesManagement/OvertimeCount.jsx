@@ -17,6 +17,7 @@ export const OvertImeCount = () => {
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save minimum overtime unit configuration
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -37,7 +38,7 @@ export const OvertImeCount = () => {
     updateProgressStore.startUpdate(Employees, "Minimum Overtime Unit");
 
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -99,6 +100,8 @@ export const OvertImeCount = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -108,8 +111,7 @@ export const OvertImeCount = () => {
             error.message || "Update failed",
           );
         }
-      });
-      await Promise.all(updatePromises);
+      }
 
       setGlobalRulesIds(7);
       // toast.success("Minimum overtime unit updated successfully!");
