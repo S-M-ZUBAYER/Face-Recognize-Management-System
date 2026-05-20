@@ -9,11 +9,25 @@ import toast from "react-hot-toast";
 import getUpdatedName from "@/lib/getUpdatedName";
 import parseAddress from "@/lib/parseAddress";
 
+const calculateTotalSalary = (payPeriod) => {
+  const baseSalary = Number(payPeriod?.salary || 0);
+  const otherSalaryInfo = Array.isArray(payPeriod?.otherSalary)
+    ? payPeriod.otherSalary
+    : [];
+
+  const otherSalary = otherSalaryInfo.reduce((total, item) => {
+    // if (item.isChecked === false) return total;
+    return total + Number(item.amount || 0);
+  }, 0);
+
+  return baseSalary + otherSalary;
+};
+
 const EditEmployeeDetails = () => {
   const { id, deviceMac } = useParams();
   const { data, isLoading, isError, error, updateEmployee, updating } =
     useSingleEmployeeDetails(id, deviceMac);
-  console.log(data);
+  // console.log(data);
   const { setSelectedEmployee } = useEditEmployeeStore();
   const navigate = useNavigate();
 
@@ -38,10 +52,12 @@ const EditEmployeeDetails = () => {
   useEffect(() => {
     if (data) {
       const emailParts = data.email?.split("|") || [];
+      const totalSalary = calculateTotalSalary(data.payPeriod);
+
       setEmployeeData({
         employeeId: emailParts[1] || "",
         joiningDate: data.startDate || "",
-        monthlySalary: data.payPeriod?.salary || "",
+        monthlySalary: totalSalary || "",
         designation: data.designation || "",
         contactNumber: data.contactNumber || "",
         shift: data.payPeriod?.shift || "",
@@ -106,10 +122,12 @@ const EditEmployeeDetails = () => {
   const handleCancel = () => {
     if (data) {
       const emailParts = data.email?.split("|") || [];
+      const totalSalary = calculateTotalSalary(data.payPeriod);
+
       setEmployeeData({
         employeeId: emailParts[1] || "",
         joiningDate: data.startDate || "",
-        monthlySalary: data.payPeriod?.salary || "",
+        monthlySalary: totalSalary || "",
         designation: data.designation || "",
         contactNumber: data.contactNumber || "",
         shift: data.payPeriod?.shift || "",
@@ -177,7 +195,7 @@ const EditEmployeeDetails = () => {
           <div
             onClick={() => {
               navigate(
-                "/Face_Attendance_Management_System/employee-management"
+                "/Face_Attendance_Management_System/employee-management",
               );
             }}
           >

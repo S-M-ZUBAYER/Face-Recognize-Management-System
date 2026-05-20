@@ -39,9 +39,9 @@ function Dashboard() {
     },
   ];
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 relative ">
       <div className="flex justify-between items-center">
-        <p className="text-[22px] font-[600] capitalize font-poppins-regular  text-[#1F1F1F] mb-5">
+        <p className="text-[22px] font-[600] capitalize font-poppins-regular text-[#1F1F1F] mb-5">
           Attendance Overview
         </p>
         <DashboardDatePicker />
@@ -60,8 +60,12 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* <DailyActivities /> */}
         <LeaveSummary />
+      </div>
+
+      {/* Version text - absolutely positioned */}
+      <div className="absolute  right-6 text-sm text-gray-400 font-medium">
+        v3.1
       </div>
     </div>
   );
