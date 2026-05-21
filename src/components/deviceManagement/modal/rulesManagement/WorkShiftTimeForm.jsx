@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, Download } from "lucide-react";
 import { TimeRangePicker } from "@/components/TimePicker";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -393,7 +393,22 @@ export const WorkShiftTimeForm = () => {
       const minutes = (totalMinutes % 60).toString().padStart(2, "0");
       return `${hours}:${minutes}`;
     }
-    return excelTime || "00:00";
+    const timeString = excelTime?.toString().trim();
+    if (!timeString) return "00:00";
+
+    const [hours = "00", minutes = "00"] = timeString.split(":");
+    return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
+  };
+
+  const downloadExcelFormat = () => {
+    const worksheet = XLSX.utils.json_to_sheet([
+      { type: "working", start: "6:00", end: "10:00" },
+      { type: "working", start: "12:15", end: "17:15" },
+      { type: "overtime", start: "17:30", end: "19:00" },
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Work Shift Time");
+    XLSX.writeFile(workbook, "work-shift-time-format.xlsx");
   };
 
   const handleExcelUpload = async (e) => {
@@ -407,7 +422,8 @@ export const WorkShiftTimeForm = () => {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      const header = rows[0]?.map((h) => h?.toString().toLowerCase()) || [];
+      const header =
+        rows[0]?.map((h) => h?.toString().trim().toLowerCase()) || [];
       if (
         !header?.includes("type") ||
         !header?.includes("start") ||
@@ -430,7 +446,7 @@ export const WorkShiftTimeForm = () => {
         if (!row || row.length < Math.max(typeIndex, startIndex, endIndex) + 1)
           return;
 
-        const type = (row[typeIndex] || "").toString().toLowerCase();
+        const type = (row[typeIndex] || "").toString().trim().toLowerCase();
         const start = excelTimeToString(row[startIndex]);
         const end = excelTimeToString(row[endIndex]);
 
@@ -456,35 +472,47 @@ export const WorkShiftTimeForm = () => {
         return;
       }
 
-      if (newWorking.length > 0) {
-        setWorkingTimes(newWorking);
-        if (shiftType === "special" && selectedDate) {
-          setDateConfigs((prev) => ({
-            ...prev,
-            [selectedDate]: {
-              ...prev[selectedDate],
-              workingTimes: newWorking,
-            },
-          }));
-        }
-      }
-      if (newOvertime.length > 0) {
-        setOvertimes(newOvertime);
-        if (shiftType === "special" && selectedDate) {
-          setDateConfigs((prev) => ({
-            ...prev,
-            [selectedDate]: {
-              ...prev[selectedDate],
-              overtimes: newOvertime,
-            },
-          }));
-        }
-      }
+      if (shiftType === "special") {
+        const targetDates = specialDates.map(formatDateForDisplay);
 
-      toast.success("Shift times imported successfully!");
+        if (targetDates.length === 0) {
+          toast.error("Please select at least one special date first!");
+          return;
+        }
+
+        setDateConfigs((prev) => {
+          const newConfigs = { ...prev };
+          targetDates.forEach((dateStr) => {
+            newConfigs[dateStr] = {
+              ...newConfigs[dateStr],
+              workingTimes:
+                newWorking.length > 0
+                  ? newWorking.map((wt) => ({ ...wt }))
+                  : newConfigs[dateStr]?.workingTimes || [],
+              overtimes: newOvertime.map((ot) => ({ ...ot })),
+            };
+          });
+          return newConfigs;
+        });
+
+        if (targetDates.length === 1) {
+          if (newWorking.length > 0) setWorkingTimes(newWorking);
+          setOvertimes(newOvertime);
+        }
+
+        toast.success(
+          `Excel data applied to ${targetDates.length} special date(s)`,
+        );
+      } else {
+        if (newWorking.length > 0) setWorkingTimes(newWorking);
+        setOvertimes(newOvertime);
+        toast.success("Shift times imported successfully!");
+      }
     } catch (err) {
       console.error("Excel read error:", err);
       toast.error("Failed to read Excel file. Please check the format.");
+    } finally {
+      e.target.value = "";
     }
   };
 
@@ -950,9 +978,17 @@ export const WorkShiftTimeForm = () => {
 
       {/* Excel Import */}
       <div>
-        <h3 className="text-sm font-semibold mb-3">
-          Set Time by Importing Excel
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Set Time by Importing Excel</h3>
+          <button
+            type="button"
+            onClick={downloadExcelFormat}
+            className="inline-flex h-8 items-center gap-1.5 rounded-sm border px-3 text-xs font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download format
+          </button>
+        </div>
         <div>
           <label className="flex flex-col items-center justify-center h-20 border rounded-lg cursor-pointer transition mb-2.5">
             <input
