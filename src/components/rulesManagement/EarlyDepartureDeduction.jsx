@@ -16,35 +16,40 @@ export const EarlyDepartureDeduction = () => {
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
   // Save penalty amount configuration
+
+  // Save penalty days configuration
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   const handleSave = async () => {
-    if (Employees.length === 0) {
-      toast.error("Please select at least one employee!");
-      return;
-    }
-
-    if (
-      !penaltyAmount ||
-      isNaN(penaltyAmount) ||
-      parseFloat(penaltyAmount) < 0
-    ) {
-      toast.error("Please enter a valid positive number for penalty amount");
-      return;
-    }
-
-    updateProgressStore.startUpdate(Employees, "Early Departure Penalty");
-
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
+      if (Employees.length === 0) {
+        toast.error("Please select at least one employee!");
+        return;
+      }
+
+      if (
+        !penaltyAmount ||
+        isNaN(penaltyAmount) ||
+        parseFloat(penaltyAmount) < 0
+      ) {
+        toast.error("Please enter a valid positive number for penalty amount");
+        return;
+      }
+
+      updateProgressStore.startUpdate(Employees, "Early Departure Penalty");
+      for (const selectedEmployee of Employees) {
         const employeeName =
           selectedEmployee.name || selectedEmployee.employeeId;
-
-        // Mark as processing
-        updateProgressStore.updateProgress(employeeName, "processing");
         try {
+          if (!selectedEmployee?.employeeId) {
+            toast.error("No employee selected");
+            return;
+          }
+          const employeeName =
+            selectedEmployee.name || selectedEmployee.employeeId;
+
+          // Mark as processing
+          updateProgressStore.updateProgress(employeeName, "processing");
+
           const salaryRules = selectedEmployee.salaryRules;
           const existingRules = salaryRules.rules || [];
           const empId = selectedEmployee.employeeId.toString();
@@ -98,6 +103,9 @@ export const EarlyDepartureDeduction = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          // ✅ small delay (prevents network overload)
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -107,9 +115,8 @@ export const EarlyDepartureDeduction = () => {
             error.message || "Update failed",
           );
         }
-      });
+      }
 
-      await Promise.all(updatePromises);
       setGlobalRulesIds(16);
       // toast.success("Early departure penalty updated successfully!");
     } catch (error) {

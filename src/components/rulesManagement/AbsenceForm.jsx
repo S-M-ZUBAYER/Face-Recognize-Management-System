@@ -18,97 +18,105 @@ export const AbsenceForm = () => {
   const Employees = employees();
 
   // Save penalty days configuration
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
   const handleSave = async () => {
-    if (Employees.length === 0) {
-      toast.error("Please select at least one employee!");
-      return;
-    }
-
-    if (!penaltyDays || isNaN(penaltyDays) || parseInt(penaltyDays) <= 0) {
-      toast.error("Please enter a valid positive number for penalty days");
-      return;
-    }
-
-    updateProgressStore.startUpdate(Employees, "Absence Penalty");
-
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
-        if (!selectedEmployee?.employeeId) {
-          toast.error("No employee selected");
-          return;
-        }
+      if (Employees.length === 0) {
+        toast.error("Please select at least one employee!");
+        return;
+      }
 
+      if (!penaltyDays || isNaN(penaltyDays) || parseInt(penaltyDays) <= 0) {
+        toast.error("Please enter a valid positive number for penalty days");
+        return;
+      }
+
+      updateProgressStore.startUpdate(Employees, "Absence Penalty");
+
+      for (const selectedEmployee of Employees) {
         const employeeName =
           selectedEmployee.name || selectedEmployee.employeeId;
 
-        // Mark as processing
-        updateProgressStore.updateProgress(employeeName, "processing");
         try {
-          const salaryRules = selectedEmployee.salaryRules;
-          const existingRules = salaryRules.rules || [];
+          if (!selectedEmployee?.employeeId) {
+            toast.error(`Skipping invalid employee`);
+            continue; // ✅ FIXED (don't break loop)
+          }
+
+          updateProgressStore.updateProgress(employeeName, "processing");
+
+          const salaryRules = selectedEmployee.salaryRules || {}; // ✅ safe fallback
+          const existingRules = Array.isArray(salaryRules.rules)
+            ? salaryRules.rules
+            : [];
+
           const empId = selectedEmployee.employeeId.toString();
 
-          // Find or create rule with ruleId = 13
           let ruleThirteen = existingRules.find(
             (rule) => rule.ruleId === 13 || rule.ruleId === "13",
           );
 
           if (!ruleThirteen) {
-            // Create new rule with ruleId = 13 if it doesn't exist
             ruleThirteen = {
-              id: Math.floor(10 + Math.random() * 90), // number
-              empId: empId, // string
-              ruleId: "13", // string
-              ruleStatus: 1, // number
+              id: Math.floor(10 + Math.random() * 90),
+              empId,
+              ruleId: "13",
+              ruleStatus: 1,
               param1: "",
-              param2: penaltyDays, // string containing penalty days value
+              param2: penaltyDays,
               param3: "",
               param4: "",
               param5: "",
               param6: "",
             };
           } else {
-            // Update ONLY the ruleThirteen object - preserve all other properties
-            ruleThirteen.empId = empId; // string
-            ruleThirteen.param2 = penaltyDays; // update with new penalty days value
-            // Keep all other properties as they are
+            ruleThirteen.empId = empId;
+            ruleThirteen.param2 = penaltyDays;
           }
 
-          // Generate final JSON using your helper
           const updatedJSON = finalJsonForUpdate(salaryRules, {
-            empId: empId,
+            empId,
             rules: {
               filter: (r) => r.ruleId === 13 || r.ruleId === "13",
-              newValue: ruleThirteen, // update ruleId=13 object
+              newValue: ruleThirteen,
             },
           });
 
-          const payload = { salaryRules: JSON.stringify(updatedJSON) };
+          const payload = {
+            salaryRules: JSON.stringify(updatedJSON),
+          };
 
+          // ✅ IMPORTANT: await API call
           await updateEmployee({
-            mac: selectedEmployee?.deviceMAC || "",
-            id: selectedEmployee?.employeeId,
+            mac: selectedEmployee.deviceMAC || "",
+            id: selectedEmployee.employeeId,
             payload,
           });
+
           storeEmployeeUpdate(
             selectedEmployee.employeeId,
             selectedEmployee.deviceMAC || "",
             { salaryRules: parseNormalData(updatedJSON) },
           );
+
           updateProgressStore.updateProgress(employeeName, "success");
+
+          // ✅ small delay (prevents network overload)
+          await delay(500);
         } catch (error) {
-          console.error(`Error updating employee ${employeeName}:`, error);
-          // Mark as failed with error message
+          console.error(`Error updating ${employeeName}:`, error);
+
           updateProgressStore.updateProgress(
             employeeName,
             "failed",
             error.message || "Update failed",
           );
         }
-      });
-      await Promise.all(updatePromises);
+      }
+
       setGlobalRulesIds(13);
-      // toast.success("Penalty days updated successfully!");
+      toast.success("Penalty days updated successfully!");
     } catch (error) {
       console.error("Error saving penalty days:", error);
       toast.error("Failed to update penalty days.");

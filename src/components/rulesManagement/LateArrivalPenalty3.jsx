@@ -17,6 +17,7 @@ export const LateArrivalPenalty3 = () => {
   const Employees = employees();
   const { updateEmployee, updating } = useSingleEmployeeDetails();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save hourly rate configuration
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -31,7 +32,7 @@ export const LateArrivalPenalty3 = () => {
     updateProgressStore.startUpdate(Employees, "Late Arrival Fine");
 
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -96,6 +97,8 @@ export const LateArrivalPenalty3 = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500); // ✅ small delay (prevents network overload)
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -105,9 +108,7 @@ export const LateArrivalPenalty3 = () => {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       setGlobalRulesIds(18);
       // toast.success("Hourly late penalty rate updated successfully!");

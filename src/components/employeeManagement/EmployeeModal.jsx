@@ -20,7 +20,7 @@ function EmployeeModal({ employee, isOpen, setIsOpen }) {
 
   const [selectedValues, setSelectedValues] = useState({
     workType: "",
-    attendanceMethod: "",
+    // attendanceMethod: "",
     visibleInfo: [],
     overtimeStatus: "",
   });
@@ -149,12 +149,20 @@ function EmployeeModal({ employee, isOpen, setIsOpen }) {
         "workType",
         selectedValues.workType,
       ),
-      allowedAttendanceActions: getActualValues(
-        "attendanceMethod",
-        selectedValues.attendanceMethod,
-      ),
+      // allowedAttendanceActions: getActualValues(
+      //   "attendanceMethod",
+      //   selectedValues.attendanceMethod,
+      // ),
       visibleDataTypes: selectedValues.visibleInfo.join(","),
     };
+
+    const filteredPayload = Object.fromEntries(
+      Object.entries(payload).filter(([_, value]) => {
+        if (value === undefined || value === null) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      }),
+    );
 
     // console.log("Payload with processed values:", payload);
 
@@ -162,7 +170,7 @@ function EmployeeModal({ employee, isOpen, setIsOpen }) {
       await updateEmployee({
         mac: employee.deviceMAC || "",
         id: employee.employeeId || employee.id,
-        payload,
+        payload: filteredPayload,
       });
       toast.success("Employee updated successfully");
     } catch {

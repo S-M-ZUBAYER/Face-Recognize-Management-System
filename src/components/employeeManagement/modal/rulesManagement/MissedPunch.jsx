@@ -20,6 +20,8 @@ export const MissedPunch = () => {
   const updateProgressStore = useUpdateProgressStore();
 
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
+
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save missed punch configuration
   const handleSave = async () => {
     if (selectedEmployees.length === 0) {
@@ -54,7 +56,7 @@ export const MissedPunch = () => {
     );
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of selectedEmployees) {
         const employeeName =
           selectedEmployee.name || selectedEmployee.employeeId;
 
@@ -117,6 +119,8 @@ export const MissedPunch = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -126,8 +130,8 @@ export const MissedPunch = () => {
             error.message || "Update failed",
           );
         }
-      });
-      await Promise.all(updatePromises);
+      }
+
       setRulesIds(22);
       // toast.success("Missed punch settings updated successfully!");
     } catch (error) {

@@ -44,6 +44,8 @@ const LeaveApprovalPage = () => {
 
   const leaves = useLeaveStore((state) => state.leaves);
 
+  // console.log(leaves);
+
   // Safe date range setter to handle undefined values
   const handleDateRangeChange = useCallback((range) => {
     setDateRange(range || { from: null, to: null });
@@ -98,7 +100,12 @@ const LeaveApprovalPage = () => {
     if (query) {
       filtered = filtered.filter((leave) => {
         const employeeName = leave.employeeName?.toLowerCase() || "";
-        return employeeName.includes(query);
+        const companyEmployeeId =
+          leave.companyEmployeeId?.toString().toLowerCase() || "";
+
+        return (
+          employeeName.includes(query) || companyEmployeeId.includes(query)
+        );
       });
     }
 
@@ -247,7 +254,7 @@ const LeaveApprovalPage = () => {
             />
             <input
               type="text"
-              placeholder="Search by employee name..."
+              placeholder="Search by name or company ID..."
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -286,7 +293,7 @@ const LeaveApprovalPage = () => {
           </span>
           {searchQuery && (
             <span className="px-2 py-1 bg-blue-50 rounded text-blue-700">
-              Name: "{searchQuery}"
+              Search: "{searchQuery}"
             </span>
           )}
           {dateRange?.from && (

@@ -22,6 +22,7 @@ export const LateArrivalPenalty6 = () => {
 
   const { updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save shift penalty configuration
   const handleSave = async () => {
     if (selectedEmployees.length === 0) {
@@ -54,7 +55,7 @@ export const LateArrivalPenalty6 = () => {
     );
 
     try {
-      const updatePromises = selectedEmployees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of selectedEmployees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -122,6 +123,8 @@ export const LateArrivalPenalty6 = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -131,9 +134,8 @@ export const LateArrivalPenalty6 = () => {
             error.message || "Update failed",
           );
         }
-      });
+      }
 
-      await Promise.all(updatePromises);
       setRulesIds(21);
       // toast.success("Shift penalty settings updated successfully!");
     } catch (error) {

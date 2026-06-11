@@ -10,13 +10,13 @@ const ExcelFormatExample = () => {
           <thead>
             <tr className="bg-gray-300 text-gray-800 font-semibold">
               <th className="p-2 border border-gray-400 text-left w-1/3">
-                Type
+                type
               </th>
               <th className="p-2 border border-gray-400 text-left w-1/3">
-                Start
+                start
               </th>
               <th className="p-2 border border-gray-400 text-left w-1/3">
-                End
+                end
               </th>
             </tr>
           </thead>

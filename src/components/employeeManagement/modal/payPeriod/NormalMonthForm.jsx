@@ -171,6 +171,7 @@ function NormalMonthForm() {
     [additionalSalaries],
   );
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save handler
   const handleSave = async () => {
     if (selectedEmployees.length === 0) {
@@ -182,7 +183,7 @@ function NormalMonthForm() {
     updateProgressStore.startUpdate(selectedEmployees, "Bi-Weekly Pay Period");
 
     try {
-      const updatePromises = selectedEmployees.map(async (employee) => {
+      for (const employee of selectedEmployees) {
         if (!employee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -244,6 +245,8 @@ function NormalMonthForm() {
           });
 
           updateProgressStore.updateProgress(employeeName, "success");
+
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -253,9 +256,7 @@ function NormalMonthForm() {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
       // toast.success(
       //   `Successfully updated ${selectedEmployees.length} employee(s)`,
       // );
