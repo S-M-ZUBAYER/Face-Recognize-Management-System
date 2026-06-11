@@ -1,102 +1,64 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import AttendanceTable from "./AttendanceTable";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 import { useAttendanceData } from "@/hook/useAttendanceData";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useOverTimeData } from "@/hook/useOverTimeData";
 import { useDateRangeStore } from "@/zustand/useDateRangeStore";
+import {
+  getAttendanceRows,
+  getFilteredEmployees,
+} from "@/utils/attendance/processAttendanceData";
 
 const EmployeeAttendance = () => {
   // Get all data from hooks
-  const { Attendance } = useAttendanceData();
+  const { Attendance, isLoading: attendanceLoading } = useAttendanceData();
   const { employees } = useEmployeeStore();
   const Employees = employees();
   const { startDate, endDate } = useDateRangeStore();
-  const { overTime } = useOverTimeData();
+  const { overTime, isLoading: overTimeLoading } = useOverTimeData();
+  const activeFilter = useAttendanceStore((state) => state.activeFilter);
+  const setAttendanceSummary = useAttendanceStore(
+    (state) => state.setAttendanceSummary,
+  );
 
-  // Get store state and actions
-  const {
-    allEmployees,
-    activeFilter,
-    isProcessing,
-    processAttendanceData,
-    getFilteredEmployees,
-  } = useAttendanceStore();
+  const attendanceRows = useMemo(() => {
+    if (!Employees?.length) {
+      return {
+        allEmployees: [],
+        punchData: [],
+        presentEmployees: [],
+        absentEmployees: [],
+        lateEmployees: [],
+        overTimeEmployees: [],
+      };
+    }
 
-  // Local state for displayed employees
-  const [displayedEmployees, setDisplayedEmployees] = useState([]);
-
-  // Refs to track previous values and prevent infinite loops
-  const processedRef = useRef(false);
-  const prevDataRef = useRef({
-    employees: null,
-    attendance: null,
-    overtime: null,
-    startDate: null,
-    endDate: null,
-  });
-
-  // Process data only when dependencies actually change
-  useEffect(() => {
-    // Skip if no employees or already processing
-    if (!Employees?.length || isProcessing) return;
-
-    const currentData = {
+    return getAttendanceRows({
       employees: Employees,
       attendance: Attendance,
       overtime: overTime,
       startDate,
       endDate,
-    };
+    });
+  }, [Employees, Attendance, overTime, startDate, endDate]);
 
-    // Check if data has actually changed
-    const hasDataChanged =
-      JSON.stringify(currentData.employees) !==
-        JSON.stringify(prevDataRef.current.employees) ||
-      JSON.stringify(currentData.attendance) !==
-        JSON.stringify(prevDataRef.current.attendance) ||
-      JSON.stringify(currentData.overtime) !==
-        JSON.stringify(prevDataRef.current.overtime) ||
-      currentData.startDate !== prevDataRef.current.startDate ||
-      currentData.endDate !== prevDataRef.current.endDate;
+  const allEmployees = attendanceRows.allEmployees;
+  const displayedEmployees = useMemo(
+    () => getFilteredEmployees(attendanceRows, activeFilter),
+    [attendanceRows, activeFilter],
+  );
+  const isProcessing = attendanceLoading || overTimeLoading;
 
-    if (hasDataChanged && !processedRef.current) {
-      // console.log("🔄 Data changed, processing attendance...");
-      processedRef.current = true;
-
-      processAttendanceData(
-        Employees,
-        Attendance || [],
-        overTime || [],
-        startDate,
-        endDate,
-      );
-
-      // Update previous data reference
-      prevDataRef.current = currentData;
-    }
-  }, [
-    Employees,
-    Attendance,
-    overTime,
-    startDate,
-    endDate,
-    isProcessing,
-    processAttendanceData,
-  ]);
-
-  // Reset processed flag when processing completes
   useEffect(() => {
-    if (!isProcessing) {
-      processedRef.current = false;
-    }
-  }, [isProcessing]);
-
-  // Update displayed employees when filter or data changes
-  useEffect(() => {
-    const filtered = getFilteredEmployees();
-    setDisplayedEmployees(filtered);
-  }, [activeFilter, allEmployees, getFilteredEmployees]);
+    setAttendanceSummary({
+      totalCount: allEmployees.length,
+      presentCount: attendanceRows.presentEmployees.length,
+      absentCount: attendanceRows.absentEmployees.length,
+      lateCount: attendanceRows.lateEmployees.length,
+      isProcessing,
+    });
+  }, [allEmployees.length, attendanceRows, isProcessing, setAttendanceSummary]);
 
   // Show loading during processing
   if (isProcessing && allEmployees.length === 0) {

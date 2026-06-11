@@ -5,14 +5,12 @@ import { getApiUrl } from "@/config/config";
 import { ALWAYS_FRESH_CONFIG } from "./queryConfig";
 import { useEffect, useRef } from "react";
 import isEqual from "lodash.isequal";
-import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
+import { setAttendanceArray } from "@/utils/attendance/attendanceDataCache";
 
 export const useAttendanceData = () => {
   const queryClient = useQueryClient();
   const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
   const prevRef = useRef([]);
-
-  const { setAttendanceArray } = useAllAttendanceStore();
 
   // Attendance per deviceMAC
   const attendanceQueries = useQueries({
@@ -50,14 +48,14 @@ export const useAttendanceData = () => {
   const isError = attendanceQueries.some((q) => q.isError);
   const isFetching = attendanceQueries.some((q) => q.isFetching);
 
-  // ✅ FIX: update Zustand AFTER render
+  // Keep latest raw attendance available to normal salary utilities.
   useEffect(() => {
     // avoid unnecessary updates
     if (!isEqual(prevRef.current, Attendance)) {
       prevRef.current = Attendance;
       setAttendanceArray(Attendance);
     }
-  }, [Attendance, setAttendanceArray]);
+  }, [Attendance]);
   // ✅ Manual refresh only
   const refresh = async () => {
     const refreshPromises = deviceMACs.map((mac) =>

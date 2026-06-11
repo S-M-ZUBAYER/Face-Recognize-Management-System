@@ -18,6 +18,25 @@ import formatDateForStorage from "@/lib/formatDateForStorage";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { parseNormalData } from "@/lib/parseNormalData";
 
+// Leave type mappings
+const leaveMappings = {
+  "Maternity Leave": "m_leaves",
+  "For Marriage": "mar_leaves",
+  "Paternity Leave": "p_leaves",
+  "Sick Leave": "s_leaves",
+  "Casual Leave": "c_leaves",
+  "Earned Leave": "e_leaves",
+  "Without Pay Leave": "w_leaves",
+  "Rest Leave": "r_leaves",
+  Others: "o_leaves",
+};
+
+const ruleTenMappings = {
+  "Sick Leave": 4,
+  "Without Pay Leave": 7,
+  Others: 9,
+};
+
 export const LeaveForm = () => {
   const [selectedLeaves, setSelectedLeaves] = useState([]);
   const [openPopovers, setOpenPopovers] = useState({});
@@ -32,25 +51,6 @@ export const LeaveForm = () => {
   // Helper function to get consistent date string
   const getDateString = (date) => {
     return date.toISOString().split("T")[0];
-  };
-
-  // Leave type mappings
-  const leaveMappings = {
-    "Maternity Leave": "m_leaves",
-    "For Marriage": "mar_leaves",
-    "Paternity Leave": "p_leaves",
-    "Sick Leave": "s_leaves",
-    "Casual Leave": "c_leaves",
-    "Earned Leave": "e_leaves",
-    "Without Pay Leave": "w_leaves",
-    "Rest Leave": "r_leaves",
-    Others: "o_leaves",
-  };
-
-  const ruleTenMappings = {
-    "Sick Leave": 4,
-    "Without Pay Leave": 7,
-    Others: 9,
   };
 
   // Load existing leave data
@@ -272,35 +272,30 @@ export const LeaveForm = () => {
     }
   };
 
-  const handleDateChange = (leave, newDates) => {
-    if (!newDates) return;
+  const handleDateChange = (leave, newDates = []) => {
+    const selectedDates = newDates || [];
 
     // Initialize time ranges for new dates with consistent date strings
     const currentTimeRanges = leaveDetails[leave]?.timeRanges || {};
-    const newTimeRanges = { ...currentTimeRanges };
+    const newTimeRanges = {};
 
-    newDates.forEach((date) => {
+    selectedDates.forEach((date) => {
       const dateStr = getDateString(date);
-      if (!newTimeRanges[dateStr]) {
-        newTimeRanges[dateStr] = {
+      newTimeRanges[dateStr] =
+        currentTimeRanges[dateStr] || {
           startTime: null,
           endTime: null,
         };
-      }
     });
-
-    // console.log("Updated time ranges for dates:", newDates);
-    // console.log("New time ranges:", newTimeRanges);
 
     setLeaveDetails((prev) => ({
       ...prev,
       [leave]: {
         ...prev[leave],
-        dates: newDates,
+        dates: selectedDates,
         timeRanges: newTimeRanges,
       },
     }));
-    togglePopover(leave, false);
   };
 
   const removeDate = (leave, dateToRemove) => {
@@ -706,19 +701,37 @@ export const LeaveForm = () => {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="multiple"
-                            selected={leaveDetails[leave]?.dates || []}
-                            onSelect={(dates) => handleDateChange(leave, dates)}
-                            initialFocus
-                            className="p-3"
-                            modifiersStyles={{
-                              today: {
-                                backgroundColor: "transparent",
-                                color: "inherit",
-                              },
-                            }}
-                          />
+                          <div>
+                            <Calendar
+                              mode="multiple"
+                              selected={leaveDetails[leave]?.dates || []}
+                              onSelect={(dates) =>
+                                handleDateChange(leave, dates)
+                              }
+                              initialFocus
+                              className="p-3"
+                              modifiersStyles={{
+                                today: {
+                                  backgroundColor: "transparent",
+                                  color: "inherit",
+                                },
+                              }}
+                            />
+                            <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
+                              <span className="text-xs text-gray-500">
+                                {leaveDetails[leave]?.dates?.length || 0} date(s)
+                                selected
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => togglePopover(leave, false)}
+                                className="h-8 bg-[#004368] text-white hover:bg-[#003452]"
+                              >
+                                Done
+                              </Button>
+                            </div>
+                          </div>
                         </PopoverContent>
                       </Popover>
 
