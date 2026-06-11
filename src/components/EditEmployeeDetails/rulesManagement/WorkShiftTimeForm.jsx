@@ -7,6 +7,7 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { TimeRangePicker } from "../../TimePicker";
 import { Label } from "@/components/ui/label";
@@ -529,7 +530,22 @@ export const WorkShiftTimeForm = () => {
       const minutes = (totalMinutes % 60).toString().padStart(2, "0");
       return `${hours}:${minutes}`;
     }
-    return excelTime || "00:00";
+    const timeString = excelTime?.toString().trim();
+    if (!timeString) return "00:00";
+
+    const [hours = "00", minutes = "00"] = timeString.split(":");
+    return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
+  };
+
+  const downloadExcelFormat = () => {
+    const worksheet = XLSX.utils.json_to_sheet([
+      { type: "working", start: "6:00", end: "10:00" },
+      { type: "working", start: "12:15", end: "17:15" },
+      { type: "overtime", start: "17:30", end: "19:00" },
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Work Shift Time");
+    XLSX.writeFile(workbook, "work-shift-time-format.xlsx");
   };
 
   const handleExcelUpload = async (e) => {
@@ -543,7 +559,8 @@ export const WorkShiftTimeForm = () => {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      const header = rows[0]?.map((h) => h?.toString().toLowerCase()) || [];
+      const header =
+        rows[0]?.map((h) => h?.toString().trim().toLowerCase()) || [];
       if (
         !header?.includes("type") ||
         !header?.includes("start") ||
@@ -566,7 +583,7 @@ export const WorkShiftTimeForm = () => {
         if (!row || row.length < Math.max(typeIndex, startIndex, endIndex) + 1)
           return;
 
-        const type = (row[typeIndex] || "").toString().toLowerCase();
+        const type = (row[typeIndex] || "").toString().trim().toLowerCase();
         const start = excelTimeToString(row[startIndex]);
         const end = excelTimeToString(row[endIndex]);
 
@@ -592,36 +609,46 @@ export const WorkShiftTimeForm = () => {
         return;
       }
 
-      // If multiple dates are selected, apply to all
-      if (shiftType === "special" && selectedDates.length > 0) {
+      if (shiftType === "special") {
+        const targetDates =
+          selectedDates.length > 1
+            ? selectedDates
+            : specialDates.map(formatDateForDisplay);
+
+        if (targetDates.length === 0) {
+          toast.error("Please select at least one special date first!");
+          return;
+        }
+
         const newConfigs = { ...dateConfigs };
-        selectedDates.forEach((dateStr) => {
+        targetDates.forEach((dateStr) => {
           newConfigs[dateStr] = {
             workingTimes:
               newWorking.length > 0
-                ? newWorking
+                ? newWorking.map((wt) => ({ ...wt }))
                 : dateConfigs[dateStr]?.workingTimes || [],
-            overtimes:
-              newOvertime.length > 0
-                ? newOvertime
-                : dateConfigs[dateStr]?.overtimes || [],
+            overtimes: newOvertime.map((ot) => ({ ...ot })),
           };
         });
         setDateConfigs(newConfigs);
 
-        if (selectedDates.length === 1) {
+        if (targetDates.length === 1) {
           if (newWorking.length > 0) setWorkingTimes(newWorking);
-          if (newOvertime.length > 0) setOvertimes(newOvertime);
+          setOvertimes(newOvertime);
         }
+        toast.success(
+          `Excel data applied to ${targetDates.length} special date(s)`,
+        );
       } else {
         if (newWorking.length > 0) setWorkingTimes(newWorking);
-        if (newOvertime.length > 0) setOvertimes(newOvertime);
+        setOvertimes(newOvertime);
+        toast.success("Shift times imported successfully!");
       }
-
-      toast.success("Shift times imported successfully!");
     } catch (err) {
       console.error("Excel read error:", err);
       toast.error("Failed to read Excel file. Please check the format.");
+    } finally {
+      e.target.value = "";
     }
   };
 
@@ -1452,9 +1479,21 @@ export const WorkShiftTimeForm = () => {
       {/* Excel Import */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700">
-            Import from Excel
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-gray-700">
+              Import from Excel
+            </h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={downloadExcelFormat}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download format
+            </Button>
+          </div>
         </div>
         <div className="p-4">
           <label className="flex flex-col items-center justify-center h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#004368]/30 transition-colors">

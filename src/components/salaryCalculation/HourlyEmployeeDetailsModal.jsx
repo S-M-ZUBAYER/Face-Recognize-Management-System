@@ -11,13 +11,13 @@ import { CalendarIcon, RefreshCw, RotateCcw } from "lucide-react";
 import { addDays, format, parseISO } from "date-fns";
 import { useDateStore } from "@/zustand/useDateStore";
 import calculateHourlySalary from "@/lib/calculateSalary/calculateHourlySalary";
-import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
+import { getAttendanceArray } from "@/utils/attendance/attendanceDataCache";
 import isNightShiftSimple from "@/lib/isNightShiftSimple";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const HourlyEmployeeDetailsModal = ({ selectedEmp, setSelectedEmp }) => {
   const { selectedMonth, selectedYear } = useDateStore();
-  const allAttendance = useAllAttendanceStore.getState().attendanceArray;
+  const allAttendance = getAttendanceArray();
 
   const [employeeData, setEmployeeData] = useState({
     hourlySalaryRate: "",

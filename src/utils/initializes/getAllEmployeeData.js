@@ -12,29 +12,33 @@ export const getAllEmployeeData = async () => {
     const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs"));
 
     // Fetch pay period data
-    const payPeriodResponse = deviceMACs.map(async (device) => {
+    const payPeriodData = [];
+
+    for (const device of deviceMACs) {
       try {
         const res = await apiClient.get(
           getApiUrl(`/payPeriod/check/${device.deviceMAC}`),
         );
 
-        return {
+        payPeriodData.push({
           deviceMAC: device.deviceMAC,
           payPeriod: parseNormalData(res.data.payPeriod),
-        };
+        });
       } catch (error) {
         console.error(
           `Failed to fetch employees for ${device.deviceMAC}:`,
           error,
         );
-        return [];
+        payPeriodData.push([]);
       }
-    });
-    const payPeriodData = await Promise.all(payPeriodResponse);
+    }
+
     setPayPeriodData(payPeriodData);
 
     // Fetch global salary rules
-    const salaryRulesResponse = deviceMACs.map(async (device) => {
+    const globalSalaryRules = [];
+
+    for (const device of deviceMACs) {
       try {
         const res = await apiClient.get(
           getApiUrl(`/salaryRules/check/${device.deviceMAC}`),
@@ -42,53 +46,53 @@ export const getAllEmployeeData = async () => {
 
         const parsedSalaryRules = parseNormalData(res.data.salaryRules);
 
-        return {
+        globalSalaryRules.push({
           deviceMAC: device.deviceMAC,
           salaryRules: parsedSalaryRules,
-        };
+        });
       } catch (error) {
         console.error(
           `Failed to fetch employees for ${device.deviceMAC}:`,
           error,
         );
-        return [];
+        globalSalaryRules.push([]);
       }
-    });
-    const globalSalaryRules = await Promise.all(salaryRulesResponse);
+    }
+
     setGlobalRules(globalSalaryRules);
     // Fetch employees for each device
-    const employeePromises = deviceMACs.map(async (device) => {
+    const employees = [];
+
+    for (const device of deviceMACs) {
       try {
         const res = await apiClient.get(
           getApiUrl(`/employee/all/${device.deviceMAC}`),
         );
 
-        return res.data.map((emp) => ({
-          name: emp.name,
-          employeeId: emp.employeeId,
-          companyEmployeeId: emp.email?.split("|")[1],
-          department: emp.department,
-          email: emp.email?.split("|")[0],
-          image: getApiUrl(`/media/${emp.imageFile}`),
-          designation: emp.designation,
-          deviceMAC: device.deviceMAC,
-          address: parseAddress(emp.address),
-          contactNumber: emp.contactNumber,
-          joiningDate: emp.startDate,
-          salaryRules: emp.salaryRules,
-          salaryInfo: JSON.parse(emp.payPeriod || "{}"),
-        }));
+        for (const emp of res.data) {
+          employees.push({
+            name: emp.name,
+            employeeId: emp.employeeId,
+            companyEmployeeId: emp.email?.split("|")[1],
+            department: emp.department,
+            email: emp.email?.split("|")[0],
+            image: getApiUrl(`/media/${emp.imageFile}`),
+            designation: emp.designation,
+            deviceMAC: device.deviceMAC,
+            address: parseAddress(emp.address),
+            contactNumber: emp.contactNumber,
+            joiningDate: emp.startDate,
+            salaryRules: emp.salaryRules,
+            salaryInfo: JSON.parse(emp.payPeriod || "{}"),
+          });
+        }
       } catch (error) {
         console.error(
           `Failed to fetch employees for ${device.deviceMAC}:`,
           error,
         );
-        return [];
       }
-    });
-
-    const employeesArrays = await Promise.all(employeePromises);
-    const employees = employeesArrays.flat();
+    }
 
     // Helper functions (same as your existing logic)
     const getPayInfoByDevice = (mac) => {
@@ -127,7 +131,9 @@ export const getAllEmployeeData = async () => {
     };
 
     // Process employees (same as your existing logic)
-    const processedEmployees = employees.map((emp) => {
+    const processedEmployees = [];
+
+    for (const emp of employees) {
       let payPeriod, salaryRules;
 
       const hasInvalidSalaryInfo = isInvalidSalaryInfo(emp.salaryInfo);
@@ -170,29 +176,45 @@ export const getAllEmployeeData = async () => {
         parsedPayPeriod = {};
       }
 
-      return {
+      processedEmployees.push({
         ...emp,
         salaryInfo: parsedPayPeriod,
         salaryRules: parsedSalaryRules,
-      };
-    });
+      });
+    }
 
     const today = new Date().toISOString().split("T")[0];
 
-    const employeeCounts = deviceMACs.map((mac) => ({
-      deviceMAC: mac.deviceMAC,
-      count: processedEmployees.filter(
-        (item) =>
-          item.deviceMAC === mac.deviceMAC &&
-          (item.address?.type !== "resigned" || item.address?.r_date >= today),
-      ).length,
-      resignCount: processedEmployees.filter(
-        (item) =>
-          item.deviceMAC === mac.deviceMAC &&
+    const employeeCounts = [];
+
+    for (const mac of deviceMACs) {
+      let count = 0;
+      let resignCount = 0;
+
+      for (const item of processedEmployees) {
+        if (item.deviceMAC !== mac.deviceMAC) continue;
+
+        if (
+          item.address?.type !== "resigned" ||
+          item.address?.r_date >= today
+        ) {
+          count++;
+        }
+
+        if (
           item.address?.type === "resigned" &&
-          item.address?.r_date < today,
-      ).length,
-    }));
+          item.address?.r_date < today
+        ) {
+          resignCount++;
+        }
+      }
+
+      employeeCounts.push({
+        deviceMAC: mac.deviceMAC,
+        count,
+        resignCount,
+      });
+    }
 
     // console.log(employeeCounts);
 

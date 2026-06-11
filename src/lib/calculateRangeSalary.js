@@ -1,4 +1,4 @@
-import { useAllAttendanceStore } from "@/zustand/useAllAttendanceStore";
+import { getAttendanceArray } from "@/utils/attendance/attendanceDataCache";
 import calculateLeaveDeductions from "./calculateSalary/calculateLeaveDeductions";
 import calculateWorkedTime from "./calculateSalary/calculateWorkedTime";
 import countWorkingMissPunch from "./calculateSalary/countWorkingMissPunch";
@@ -581,7 +581,7 @@ export function calculateRangeSalary(
       endDate = firstWeekRange.endDate;
     }
   }
-  const allAttendance = useAllAttendanceStore.getState().attendanceArray;
+  const allAttendance = getAttendanceArray();
 
   let attendanceRecords;
 

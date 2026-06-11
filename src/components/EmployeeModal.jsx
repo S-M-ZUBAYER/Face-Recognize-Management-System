@@ -38,7 +38,7 @@ import { Button } from "@/components/ui/button";
 
 const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
   const [selectedStatus, setSelectedStatus] = useState(
-    selectedEmp?.address?.type || "active"
+    selectedEmp?.address?.type || "active",
   );
   const [employeeData, setEmployeeData] = useState([]);
   const [effectiveDate, setEffectiveDate] = useState(null);
@@ -88,7 +88,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
   // Pre-computed data
   const employeeName = useMemo(
     () => employeeData?.name?.split("<")[0] || "",
-    [employeeData?.name]
+    [employeeData?.name],
   );
 
   const basicInfoFields = useMemo(
@@ -142,7 +142,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         animationDelay: 0.35,
       },
     ],
-    [employeeData, employeeName]
+    [employeeData, employeeName],
   );
 
   const contactInfoFields = useMemo(
@@ -166,14 +166,27 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         animationDelay: 0.1,
       },
     ],
-    [employeeData]
+    [employeeData],
   );
+
+  const totalSalary = useMemo(() => {
+    if (!employeeData?.salaryInfo) return null;
+    const baseSalary = Number(employeeData.salaryInfo.salary || 0);
+    const otherSalaryInfo = Array.isArray(employeeData?.salaryInfo.otherSalary)
+      ? employeeData.salaryInfo.otherSalary
+      : [];
+    const otherSalary = otherSalaryInfo.reduce((total, item) => {
+      // if (item.isChecked === false) return total;
+      return total + Number(item.amount || 0);
+    }, 0);
+    return baseSalary + otherSalary;
+  }, [employeeData?.salaryInfo]);
 
   const salaryInfoFields = useMemo(
     () => [
       {
         label: "Salary",
-        value: employeeData?.salaryInfo?.salary,
+        value: totalSalary,
         icon: DollarSign,
         animationDelay: 0,
       },
@@ -190,7 +203,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         animationDelay: 0.1,
       },
     ],
-    [employeeData, overtimeSalaryRate]
+    [employeeData, overtimeSalaryRate],
   );
 
   const handleStatusChange = useCallback((newStatus) => {
@@ -229,7 +242,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
         employeeData.deviceMAC,
         {
           address: JSON.parse(payload.address),
-        }
+        },
       );
 
       toast.success("Status updated successfully");
@@ -453,7 +466,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                               transition={{ delay: field.animationDelay }}
                               className={cn(
                                 "border border-gray-200 rounded-lg p-4",
-                                field.label === "Address" && "md:col-span-2"
+                                field.label === "Address" && "md:col-span-2",
                               )}
                               whileHover={{
                                 scale: 1.02,
@@ -546,7 +559,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                                       {field.value
                                         ? isMoney
                                           ? `${Number(
-                                              field.value
+                                              field.value,
                                             ).toLocaleString()}`
                                           : field.value
                                         : "—"}
@@ -608,7 +621,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                                   "border rounded-lg p-4 text-left transition-all",
                                   selectedStatus === status
                                     ? `${getStatusColor(status)} border-2`
-                                    : "border-gray-200 hover:border-gray-300"
+                                    : "border-gray-200 hover:border-gray-300",
                                 )}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
@@ -642,7 +655,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                                     "font-medium",
                                     getStatusColor(selectedStatus)
                                       .replace("bg-", "text-")
-                                      .split(" ")[0]
+                                      .split(" ")[0],
                                   )}
                                 >
                                   {selectedStatus.toUpperCase()}
@@ -681,7 +694,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                                         variant="outline"
                                         className={cn(
                                           "w-full justify-start text-left font-normal h-11",
-                                          !effectiveDate && "text-gray-400"
+                                          !effectiveDate && "text-gray-400",
                                         )}
                                       >
                                         <Calendar size={16} className="mr-2" />
@@ -764,7 +777,7 @@ const EmployeeModal = ({ selectedEmp, setSelectedEmp }) => {
                     "px-5 py-2.5 text-white rounded font-medium text-sm flex items-center justify-center gap-2 flex-1 sm:flex-none",
                     (updating ||
                       (selectedStatus === "resigned" && !effectiveDate)) &&
-                      "opacity-50"
+                      "opacity-50",
                   )}
                   style={{ backgroundColor: primaryColor }}
                   whileHover={{

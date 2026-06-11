@@ -19,6 +19,7 @@ export const HolidayOvertime = () => {
   const { employees, updateEmployee: storeEmployeeUpdate } = useEmployeeStore();
   const Employees = employees();
 
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   // Save holiday overtime configuration
   const handleSave = async () => {
     if (Employees.length === 0) {
@@ -51,7 +52,7 @@ export const HolidayOvertime = () => {
     updateProgressStore.startUpdate(Employees, "Holiday Overtime");
 
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -117,6 +118,9 @@ export const HolidayOvertime = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+
+          // ✅ small delay (prevents network overload)
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -126,9 +130,7 @@ export const HolidayOvertime = () => {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       setGlobalRulesIds(9);
       // toast.success("Holiday overtime settings updated successfully!");

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
-import { DEFAULT_QUERY_CONFIG, INFINITE_QUERY_CONFIG } from "./queryConfig";
+import { DEFAULT_QUERY_CONFIG } from "./queryConfig";
 import { useEmployeeStore } from "@/zustand/useEmployeeStore";
 import { useAttendanceStore } from "@/zustand/useAttendanceStore";
 
@@ -12,29 +12,45 @@ export const useLeaveData = () => {
   const { employees } = useEmployeeStore();
   const Employees = employees();
   const queryClient = useQueryClient();
+  const deviceMACKeys = [];
+
+  for (const mac of deviceMACs || []) {
+    deviceMACKeys.push(mac.deviceMAC);
+  }
 
   const fetchLeaves = async () => {
     if (!deviceMACs || deviceMACs.length === 0) return [];
 
     try {
-      const response = await Promise.all(
-        deviceMACs.map((mac) =>
-          apiClient
-            .get(getApiUrl(`/leave/all/by-mac/${mac.deviceMAC}`))
-            .catch((error) => {
-              console.error(
-                `❌ Failed to fetch leaves for device ${mac.deviceMAC}:`,
-                error,
-              );
-              return { data: [] }; // Return empty array for failed requests
-            }),
-        ),
-      );
+      const response = [];
 
-      const leavesData = response.flatMap((res) => res.data || []);
+      for (const mac of deviceMACs) {
+        try {
+          const res = await apiClient.get(
+            getApiUrl(`/leave/all/by-mac/${mac.deviceMAC}`),
+          );
+          response.push(res);
+        } catch (error) {
+          console.error(
+            `❌ Failed to fetch leaves for device ${mac.deviceMAC}:`,
+            error,
+          );
+          response.push({ data: [] }); // Return empty array for failed requests
+        }
+      }
+
+      const leavesData = [];
+
+      for (const res of response) {
+        for (const leave of res.data || []) {
+          leavesData.push(leave);
+        }
+      }
 
       // Process leaves with employee data
-      return leavesData.map((leave) => {
+      const processedLeaves = [];
+
+      for (const leave of leavesData) {
         // Find matching employee by employeeId
         const matchingEmployee = Employees?.find(
           (emp) => emp.employeeId === leave.employeeId,
@@ -62,15 +78,17 @@ export const useLeaveData = () => {
           );
         }
 
-        return {
+        processedLeaves.push({
           ...leave,
           approverName,
           description,
           // Add employee image if found
           employeeImage: matchingEmployee?.image || null,
           employeeName: matchingEmployee?.name || leave.employeeName, // Fallback to leave data
-        };
-      });
+        });
+      }
+
+      return processedLeaves;
     } catch (error) {
       console.error("❌ Failed to fetch leave data:", error);
       return [];
@@ -85,11 +103,7 @@ export const useLeaveData = () => {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: [
-      "leaves",
-      deviceMACs.map((mac) => mac.deviceMAC),
-      Employees?.length,
-    ],
+    queryKey: ["leaves", deviceMACKeys, Employees?.length],
     queryFn: fetchLeaves,
     enabled: !!deviceMACs && deviceMACs.length > 0 && !macsLoading,
     ...DEFAULT_QUERY_CONFIG,
@@ -112,7 +126,7 @@ export const useLeaveData = () => {
     onSuccess: () => {
       // Invalidate and refetch leaves data after successful update
       queryClient.invalidateQueries({
-        queryKey: ["leaves", deviceMACs.map((mac) => mac.deviceMAC)],
+        queryKey: ["leaves", deviceMACKeys],
       });
     },
     onError: (error) => {
@@ -144,12 +158,14 @@ export const useLeaveData = () => {
   }, {});
 
   // Convert counts into array
-  const leaveCategoryArray = Object.entries(leaveCategoryCounts).map(
-    ([category, count]) => ({
+  const leaveCategoryArray = [];
+
+  for (const [category, count] of Object.entries(leaveCategoryCounts)) {
+    leaveCategoryArray.push({
       category,
       count,
-    }),
-  );
+    });
+  }
 
   const isLoading = leavesLoading || macsLoading;
   const isRefetching = isFetching;

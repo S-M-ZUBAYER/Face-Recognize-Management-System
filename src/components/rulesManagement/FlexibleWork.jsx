@@ -19,30 +19,33 @@ export const FlexibleWork = () => {
   const Employees = employees();
 
   // Save flexible work configuration
+
+  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
   const handleSave = async () => {
-    if (Employees.length === 0) {
-      toast.error("Please select at least one employee!");
-      return;
-    }
-
-    if (!lateMinutes || isNaN(lateMinutes) || parseInt(lateMinutes) < 0) {
-      toast.error("Please enter a valid positive number for late minutes");
-      return;
-    }
-
-    if (
-      !leaveLateMinutes ||
-      isNaN(leaveLateMinutes) ||
-      parseInt(leaveLateMinutes) < 0
-    ) {
-      toast.error(
-        "Please enter a valid positive number for leave late minutes",
-      );
-      return;
-    }
-    updateProgressStore.startUpdate(Employees, "Flexible Work");
     try {
-      const updatePromises = Employees.map(async (selectedEmployee) => {
+      if (Employees.length === 0) {
+        toast.error("Please select at least one employee!");
+        return;
+      }
+
+      if (!lateMinutes || isNaN(lateMinutes) || parseInt(lateMinutes) < 0) {
+        toast.error("Please enter a valid positive number for late minutes");
+        return;
+      }
+
+      if (
+        !leaveLateMinutes ||
+        isNaN(leaveLateMinutes) ||
+        parseInt(leaveLateMinutes) < 0
+      ) {
+        toast.error(
+          "Please enter a valid positive number for leave late minutes",
+        );
+        return;
+      }
+      updateProgressStore.startUpdate(Employees, "Flexible Work");
+
+      for (const selectedEmployee of Employees) {
         if (!selectedEmployee?.employeeId) {
           toast.error("No employee selected");
           return;
@@ -108,6 +111,8 @@ export const FlexibleWork = () => {
             { salaryRules: parseNormalData(updatedJSON) },
           );
           updateProgressStore.updateProgress(employeeName, "success");
+          // ✅ small delay (prevents network overload)
+          await delay(500);
         } catch (error) {
           console.error(`Error updating employee ${employeeName}:`, error);
           // Mark as failed with error message
@@ -117,9 +122,7 @@ export const FlexibleWork = () => {
             error.message || "Update failed",
           );
         }
-      });
-
-      await Promise.all(updatePromises);
+      }
 
       setGlobalRulesIds(5);
       // toast.success("Flexible work settings updated successfully!");

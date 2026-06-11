@@ -25,12 +25,26 @@ function calculateWorkedTime(workingArray, punchArray) {
 
     // Case 2: one punch missing → count FULL working shift
     if (punchInRaw === "00:00" || punchOutRaw === "00:00") {
-      totalMinutes += workEndMin - workStartMin;
+      totalMinutes += Math.max(0, workEndMin - workStartMin);
       // missPunch = true;
       continue;
     }
+    // Case 2: one punch missing → count FULL working shift
+    // if (punchInRaw === "00:00" || punchOutRaw === "00:00") {
+    //   let start = workStartMin;
+    //   let end = workEndMin;
 
-    // Case 3: normal punches → calculate overlap
+    //   // ✅ Fix: handle overnight shift
+    //   if (end < start) {
+    //     end += 24 * 60; // add 24 hours
+    //   }
+
+    //   totalMinutes += end - start;
+
+    //   continue;
+    // }
+
+    // // Case 3: normal punches → calculate overlap
     const punchInMin = toMinutes(punchInRaw);
     const punchOutMin = toMinutes(punchOutRaw);
 
@@ -38,8 +52,37 @@ function calculateWorkedTime(workingArray, punchArray) {
     const overlapEnd = Math.min(punchOutMin, workEndMin);
 
     if (overlapStart < overlapEnd) {
-      totalMinutes += overlapEnd - overlapStart;
+      totalMinutes += Math.max(0, workEndMin - workStartMin);
     }
+
+    // const punchInMin = toMinutes(punchInRaw);
+    // const punchOutMin = toMinutes(punchOutRaw);
+
+    // let start = workStartMin;
+    // let end = workEndMin;
+    // let inTime = punchInMin;
+    // let outTime = punchOutMin;
+
+    // // ✅ Fix shift crossing midnight
+    // if (end < start) {
+    //   end += 1440;
+
+    //   if (inTime < start) inTime += 1440;
+    //   if (outTime < start) outTime += 1440;
+    // }
+
+    // // ✅ Fix punch crossing midnight
+    // if (outTime < inTime) {
+    //   outTime += 1440;
+    // }
+
+    // // Now safe overlap calculation
+    // const overlapStart = Math.max(inTime, start);
+    // const overlapEnd = Math.min(outTime, end);
+
+    // if (overlapStart < overlapEnd) {
+    //   totalMinutes += overlapEnd - overlapStart;
+    // }
   }
 
   // return {
