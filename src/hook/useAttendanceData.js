@@ -1,52 +1,151 @@
-import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useDeviceMACs } from "./useDeviceMACs";
 import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
-import { ALWAYS_FRESH_CONFIG } from "./queryConfig";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import isEqual from "lodash.isequal";
 import { setAttendanceArray } from "@/utils/attendance/attendanceDataCache";
 
-export const useAttendanceData = () => {
-  const queryClient = useQueryClient();
-  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
-  const prevRef = useRef([]);
+let cachedAttendance = [];
+let cachedDeviceKey = "";
+let hasCachedAttendance = false;
+let pendingAttendanceRequest = null;
 
-  // Attendance per deviceMAC
-  const attendanceQueries = useQueries({
-    queries: deviceMACs.map((mac) => ({
-      queryKey: ["attendance-data", mac.deviceMAC], // Changed key to avoid conflicts
-      queryFn: async () => {
-        try {
-          const res = await apiClient.get(
-            getApiUrl("/attendance/attendance-by-device"),
-            {
-              params: { deviceId: mac.deviceMAC },
-            }
-          );
-          return res.data;
-        } catch (error) {
-          console.error(
-            `❌ Failed to fetch attendance data for device ${mac.deviceMAC}:`,
-            error
-          );
-          // Return empty array instead of failing completely
-          return [];
-        }
-      },
-      ...ALWAYS_FRESH_CONFIG,
-      enabled: deviceMACs.length > 0 && !macsLoading,
-    })),
+const getDeviceKey = (deviceMACs) =>
+  deviceMACs
+    .map((mac) => mac.deviceMAC)
+    .filter(Boolean)
+    .sort()
+    .join("|");
+
+const fetchAttendanceForDevice = async (deviceMAC) => {
+  try {
+    const res = await apiClient.get(getApiUrl("/attendance/attendance-by-device"), {
+      params: { deviceId: deviceMAC },
+    });
+
+    return { data: res.data || [], hasError: false };
+  } catch (error) {
+    console.error(
+      `❌ Failed to fetch attendance data for device ${deviceMAC}:`,
+      error,
+    );
+
+    return { data: [], hasError: true };
+  }
+};
+
+const fetchAttendanceForDevices = async (deviceMACs, { force = false } = {}) => {
+  const deviceKey = getDeviceKey(deviceMACs);
+
+  if (!force && hasCachedAttendance && cachedDeviceKey === deviceKey) {
+    return { data: cachedAttendance, hasError: false };
+  }
+
+  if (
+    !force &&
+    pendingAttendanceRequest &&
+    pendingAttendanceRequest.deviceKey === deviceKey
+  ) {
+    return pendingAttendanceRequest.promise;
+  }
+
+  const promise = Promise.all(
+    deviceMACs.map((mac) => fetchAttendanceForDevice(mac.deviceMAC)),
+  ).then((results) => {
+    const data = results.flatMap((result) => result.data);
+    const hasError = results.some((result) => result.hasError);
+
+    cachedDeviceKey = deviceKey;
+    cachedAttendance = data;
+    hasCachedAttendance = true;
+
+    return { data, hasError };
   });
 
-  const Attendance = attendanceQueries
-    .map((q) => q.data)
-    .filter(Boolean)
-    .flat();
+  pendingAttendanceRequest = { deviceKey, promise };
 
-  const isLoading = attendanceQueries.some((q) => q.isLoading) || macsLoading;
-  const isError = attendanceQueries.some((q) => q.isError);
-  const isFetching = attendanceQueries.some((q) => q.isFetching);
+  try {
+    return await promise;
+  } finally {
+    if (pendingAttendanceRequest?.promise === promise) {
+      pendingAttendanceRequest = null;
+    }
+  }
+};
+
+export const useAttendanceData = () => {
+  const { deviceMACs, isLoading: macsLoading } = useDeviceMACs();
+  const deviceKey = useMemo(() => getDeviceKey(deviceMACs), [deviceMACs]);
+  const [Attendance, setAttendance] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const prevRef = useRef([]);
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const loadAttendance = useCallback(
+    async ({ force = false } = {}) => {
+      if (macsLoading) return [];
+
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+
+      if (deviceMACs.length === 0) {
+        cachedAttendance = [];
+        cachedDeviceKey = "";
+        hasCachedAttendance = false;
+
+        if (mountedRef.current) {
+          setAttendance([]);
+          setIsError(false);
+          setIsLoading(false);
+          setIsFetching(false);
+        }
+
+        return [];
+      }
+
+      if (mountedRef.current) {
+        const hasMatchingCache =
+          !force && hasCachedAttendance && cachedDeviceKey === deviceKey;
+
+        setIsFetching(true);
+        setIsLoading(!hasMatchingCache);
+      }
+
+      const { data, hasError } = await fetchAttendanceForDevices(deviceMACs, {
+        force,
+      });
+
+      if (mountedRef.current && requestIdRef.current === requestId) {
+        setAttendance(data);
+        setIsError(hasError);
+        setIsFetching(false);
+        setIsLoading(false);
+      }
+
+      return data;
+    },
+    [deviceKey, deviceMACs, macsLoading],
+  );
+
+  useEffect(() => {
+    if (macsLoading) {
+      setIsLoading(true);
+      return;
+    }
+
+    loadAttendance();
+  }, [deviceKey, loadAttendance, macsLoading]);
 
   // Keep latest raw attendance available to normal salary utilities.
   useEffect(() => {
@@ -56,22 +155,18 @@ export const useAttendanceData = () => {
       setAttendanceArray(Attendance);
     }
   }, [Attendance]);
-  // ✅ Manual refresh only
-  const refresh = async () => {
-    const refreshPromises = deviceMACs.map((mac) =>
-      queryClient.refetchQueries({
-        queryKey: ["attendance-data", mac.deviceMAC],
-        exact: true,
-      })
-    );
-    await Promise.all(refreshPromises);
-  };
+
+  const refresh = useCallback(
+    () => loadAttendance({ force: true }),
+    [loadAttendance],
+  );
 
   return {
     Attendance,
-    isLoading,
+    isLoading: isLoading || macsLoading,
     isError,
     isFetching,
     refresh,
+    refetch: refresh,
   };
 };

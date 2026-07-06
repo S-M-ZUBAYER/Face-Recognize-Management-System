@@ -22,7 +22,6 @@ const FileViewerModal = () => {
     useFileViewerStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  console.log(fileUrl);
   // Image transformation states
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);

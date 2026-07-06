@@ -268,52 +268,57 @@ export default function Signin() {
 
               {/* Submit Button */}
               <motion.div variants={itemVariants}>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  style={{ backgroundColor: "#004368", width: "100%" }}
-                  className="relative overflow-hidden"
+                <motion.div
                   variants={buttonVariants}
                   initial="initial"
                   whileHover={loading ? "loading" : "hover"}
                   whileTap={loading ? "loading" : "tap"}
                   animate={loading ? "loading" : "initial"}
+                  className="w-full"
                 >
-                  <AnimatePresence mode="wait">
-                    {loading ? (
-                      <motion.div
-                        key="loading"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center justify-center"
-                      >
-                        <Loader2 className="animate-spin mr-2" size={18} />
-                        Please wait...
-                      </motion.div>
-                    ) : (
-                      <motion.span
-                        key="login"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        Log In
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    style={{ backgroundColor: "#004368", width: "100%" }}
+                    className="relative overflow-hidden text-white disabled:opacity-100"
+                  >
+                    <AnimatePresence mode="wait">
+                      {loading ? (
+                        <motion.div
+                          key="loading"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="relative z-10 flex items-center justify-center"
+                        >
+                          <Loader2 className="animate-spin mr-2" size={18} />
+                          Please wait...
+                        </motion.div>
+                      ) : (
+                        <motion.span
+                          key="login"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="relative z-10"
+                        >
+                          Log In
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
 
-                  {/* Loading overlay */}
-                  {loading && (
-                    <motion.div
-                      className="absolute inset-0 bg-[#004368]"
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ duration: 2, ease: "easeInOut" }}
-                      style={{ originX: 0 }}
-                    />
-                  )}
-                </Button>
+                    {/* Loading overlay */}
+                    {loading && (
+                      <motion.div
+                        className="absolute inset-0 z-0 bg-[#004368]"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 2, ease: "easeInOut" }}
+                        style={{ originX: 0 }}
+                      />
+                    )}
+                  </Button>
+                </motion.div>
               </motion.div>
             </form>
           </Form>

@@ -1,4 +1,12 @@
-import React, { memo, useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  memo,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { AutoSizer, MultiGrid } from "react-virtualized";
 import "react-virtualized/styles.css";
 import AttendanceFilters from "./AttendanceFilters";
@@ -87,6 +95,7 @@ const AttendanceTable = ({ employees = [] }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [tableWidth, setTableWidth] = useState(0);
+  const gridRef = useRef(null);
 
   // Track when initial load is complete
   useEffect(() => {
@@ -266,6 +275,18 @@ const AttendanceTable = ({ employees = [] }) => {
     return [...baseColumns, ...punchColumns];
   }, [maxPunchCount, calculateColumnWidths, tableWidth]);
 
+  const columnWidthsKey = useMemo(
+    () => columns.map(({ width }) => Math.round(width)).join("|"),
+    [columns],
+  );
+
+  useLayoutEffect(() => {
+    if (!gridRef.current || tableWidth <= 0) return;
+
+    gridRef.current.recomputeGridSize({ columnIndex: 0, rowIndex: 0 });
+    gridRef.current.forceUpdateGrids();
+  }, [columnWidthsKey, filteredData.length, tableWidth]);
+
   // Selection logic
   const selectedEmployeeIdsSet = useMemo(
     () => new Set(selectedEmployees),
@@ -367,11 +388,13 @@ const AttendanceTable = ({ employees = [] }) => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              boxSizing: "border-box",
               zIndex: isSticky ? 60 : 10,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
               padding: "0 8px",
+              textAlign: "center",
               backgroundColor: "#f8fafc",
             }}
           >
@@ -396,6 +419,7 @@ const AttendanceTable = ({ employees = [] }) => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              boxSizing: "border-box",
               backgroundColor: isSelected ? "#F0F9FF" : "white",
               zIndex: isSticky ? 40 : 1,
             }}
@@ -453,12 +477,13 @@ const AttendanceTable = ({ employees = [] }) => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            boxSizing: "border-box",
             backgroundColor: isSelected ? "#F0F9FF" : "white",
             fontSize: "14px",
             color: "#4B5563",
             zIndex: isSticky ? 40 : 1,
             whiteSpace: isLongTextColumn ? "normal" : "nowrap",
-            overflow: isLongTextColumn ? "visible" : "hidden",
+            overflow: "hidden",
             textOverflow: isLongTextColumn ? "clip" : "ellipsis",
             padding: isLongTextColumn ? "8px 12px" : "0 8px",
             textAlign: "center",
@@ -575,6 +600,7 @@ const AttendanceTable = ({ employees = [] }) => {
           <AutoSizer onResize={handleResize}>
             {({ height, width }) => (
               <MultiGrid
+                ref={gridRef}
                 fixedRowCount={1}
                 fixedColumnCount={4}
                 rowCount={filteredData.length + 1}

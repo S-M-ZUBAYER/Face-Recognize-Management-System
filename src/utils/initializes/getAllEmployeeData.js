@@ -5,6 +5,56 @@ import apiClient from "@/config/apiClient";
 import { getApiUrl } from "@/config/config";
 import { useGlobalStore } from "@/zustand/useGlobalStore";
 
+const parseEmployeePayPeriod = (payPeriod) => {
+  if (payPeriod === null || payPeriod === undefined || payPeriod === "") {
+    return {};
+  }
+
+  try {
+    return parseNormalData(payPeriod);
+  } catch (error) {
+    console.warn("Failed to parse employee pay period:", error);
+    return {};
+  }
+};
+
+const normalizeEmployeeResponse = (data) => {
+  const rows = Array.isArray(data) ? data : data?.data;
+
+  if (Array.isArray(rows)) {
+    return rows.flatMap((item) => {
+      if (Array.isArray(item?.employees)) {
+        return item.employees.map((employee) => ({
+          ...employee,
+          deviceMAC: employee.deviceMAC || item.deviceMAC,
+        }));
+      }
+
+      if (Array.isArray(item?.data)) {
+        return item.data.map((employee) => ({
+          ...employee,
+          deviceMAC: employee.deviceMAC || item.deviceMAC,
+        }));
+      }
+
+      return item ? [item] : [];
+    });
+  }
+
+  if (data && typeof data === "object") {
+    return Object.entries(data).flatMap(([deviceMAC, employees]) =>
+      Array.isArray(employees)
+        ? employees.map((employee) => ({
+            ...employee,
+            deviceMAC: employee.deviceMAC || deviceMAC,
+          }))
+        : [],
+    );
+  }
+
+  return [];
+};
+
 export const getAllEmployeeData = async () => {
   const setGlobalRules = useGlobalStore.getState().setGlobalRules;
   const setPayPeriodData = useGlobalStore.getState().setPayPeriodData;
@@ -60,38 +110,45 @@ export const getAllEmployeeData = async () => {
     }
 
     setGlobalRules(globalSalaryRules);
-    // Fetch employees for each device
+    // Fetch employees for all devices in one request
     const employees = [];
+    const deviceMacArray = deviceMACs.map((device) => device.deviceMAC);
+    // console.log(deviceMacArray);
 
-    for (const device of deviceMACs) {
-      try {
-        const res = await apiClient.get(
-          getApiUrl(`/employee/all/${device.deviceMAC}`),
-        );
+    try {
+      const res = await apiClient.post(
+        getApiUrl("/employee/all/web"),
+        deviceMacArray,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      const employeeRows = normalizeEmployeeResponse(res.data);
 
-        for (const emp of res.data) {
-          employees.push({
-            name: emp.name,
-            employeeId: emp.employeeId,
-            companyEmployeeId: emp.email?.split("|")[1],
-            department: emp.department,
-            email: emp.email?.split("|")[0],
-            image: getApiUrl(`/media/${emp.imageFile}`),
-            designation: emp.designation,
-            deviceMAC: device.deviceMAC,
-            address: parseAddress(emp.address),
-            contactNumber: emp.contactNumber,
-            joiningDate: emp.startDate,
-            salaryRules: emp.salaryRules,
-            salaryInfo: JSON.parse(emp.payPeriod || "{}"),
-          });
-        }
-      } catch (error) {
-        console.error(
-          `Failed to fetch employees for ${device.deviceMAC}:`,
-          error,
-        );
+      for (const emp of employeeRows) {
+        const [email, companyEmployeeId] = String(emp.email || "").split("|");
+        const imageFile = emp.image || emp.imageFile;
+
+        employees.push({
+          name: emp.name,
+          employeeId: emp.employeeId,
+          companyEmployeeId,
+          department: emp.department,
+          email,
+          image: imageFile ? getApiUrl(`/media/${imageFile}`) : "",
+          designation: emp.designation,
+          deviceMAC: emp.deviceMAC,
+          address: parseAddress(emp.address),
+          contactNumber: emp.contactNumber,
+          joiningDate: emp.startDate,
+          salaryRules: emp.salaryRules,
+          salaryInfo: parseEmployeePayPeriod(emp.payPeriod),
+        });
       }
+    } catch (error) {
+      console.error("Failed to fetch employees for devices:", error);
     }
 
     // Helper functions (same as your existing logic)
@@ -201,10 +258,7 @@ export const getAllEmployeeData = async () => {
           count++;
         }
 
-        if (
-          item.address?.type === "resigned" &&
-          item.address?.r_date < today
-        ) {
+        if (item.address?.type === "resigned" && item.address?.r_date < today) {
           resignCount++;
         }
       }
