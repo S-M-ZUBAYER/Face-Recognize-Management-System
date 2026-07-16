@@ -31,7 +31,9 @@ export const fetchLeavesData = async () => {
     // Process leaves with employee data
     const processedLeaves = leavesData.map((leave) => {
       const matchingEmployee = employees?.find(
-        (emp) => emp.employeeId === leave.employeeId,
+        (emp) =>
+          String(emp.employeeId) === String(leave.employeeId) &&
+          String(emp.deviceMAC) === String(leave.deviceMAC),
       );
 
       // Parse JSON fields safely

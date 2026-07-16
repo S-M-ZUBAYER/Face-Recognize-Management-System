@@ -51,9 +51,11 @@ export const useLeaveData = () => {
       const processedLeaves = [];
 
       for (const leave of leavesData) {
-        // Find matching employee by employeeId
+        // Find matching employee by employeeId and deviceMAC
         const matchingEmployee = Employees?.find(
-          (emp) => emp.employeeId === leave.employeeId,
+          (emp) =>
+            String(emp.employeeId) === String(leave.employeeId) &&
+            emp.deviceMAC === leave.deviceMAC,
         );
 
         // Safe JSON parsing with fallbacks
