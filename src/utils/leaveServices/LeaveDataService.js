@@ -6,11 +6,13 @@ import useLeaveStore from "@/zustand/useLeaveStore";
 export const fetchLeavesData = async () => {
   const deviceMACs = JSON.parse(localStorage.getItem("deviceMACs"));
   const employees = useEmployeeStore.getState().employees();
+  const resignedEmployees = useEmployeeStore.getState().resignedEmployees();
+  const allEmployees = [...employees, ...resignedEmployees];
   if (
     !deviceMACs ||
     deviceMACs.length === 0 ||
-    !employees ||
-    employees.length === 0
+    !allEmployees ||
+    allEmployees.length === 0
   ) {
     return [];
   }
@@ -30,7 +32,7 @@ export const fetchLeavesData = async () => {
 
     // Process leaves with employee data
     const processedLeaves = leavesData.map((leave) => {
-      const matchingEmployee = employees?.find(
+      const matchingEmployee = allEmployees?.find(
         (emp) =>
           String(emp.employeeId) === String(leave.employeeId) &&
           String(emp.deviceMAC) === String(leave.deviceMAC),

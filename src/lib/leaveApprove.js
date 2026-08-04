@@ -41,10 +41,24 @@ function leaveApprove({ salaryRules, leave }) {
     o_leaves: "Others",
   };
 
+  const normalizeLeaveCategory = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  const leaveAliases = {
+    "for marriage": "mar_leaves",
+    "personal leave": "p_leaves",
+    "other leave": "o_leaves",
+  };
+
   /* ---------------- Find leave key ---------------- */
-  const leaveKey = Object.keys(leaveMappings).find(
-    (key) => leaveMappings[key] === leaveCategory,
-  );
+  const normalizedLeaveCategory = normalizeLeaveCategory(leaveCategory);
+  const leaveKey =
+    Object.keys(leaveMappings).find(
+      (key) =>
+        normalizeLeaveCategory(leaveMappings[key]) === normalizedLeaveCategory,
+    ) || leaveAliases[normalizedLeaveCategory];
 
   if (!leaveKey) {
     throw new Error("Invalid leave type provided");
@@ -57,7 +71,22 @@ function leaveApprove({ salaryRules, leave }) {
   const empId = salaryRules.empId;
 
   /* ---------------- Helpers ---------------- */
-  const toDate = (d) => new Date(d + "T00:00:00.000");
+  const toDate = (d) => {
+    const dateString =
+      d instanceof Date
+        ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate(),
+          ).padStart(2, "0")}`
+        : String(d || "").split("T")[0];
+
+    const date = new Date(`${dateString}T00:00:00.000`);
+
+    if (isNaN(date.getTime())) {
+      throw new Error("Invalid leave date provided");
+    }
+
+    return date;
+  };
   const formatDateForStorage = (date) => {
     if (!date) return "";
 

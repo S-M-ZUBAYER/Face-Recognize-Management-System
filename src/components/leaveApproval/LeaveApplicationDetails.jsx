@@ -383,7 +383,7 @@ const LeaveApplicationDetails = ({ data }) => {
     let employeeUpdated = false;
 
     try {
-      setLoading(true, `Processing ${status} request...`, 10);
+      setLoading(true, `Processing ${status} request...`, 10, status);
 
       /* =====================================================
        * SECTION 1: UPDATE LEAVE STATUS
@@ -415,9 +415,103 @@ const LeaveApplicationDetails = ({ data }) => {
         status: `${status}_admin`,
       };
 
-      setLoading(true, "Updating leave status...", 40);
+      let employee = null;
+      let updatedSalaryRules = null;
+      let employeePayload = null;
+
+      if (status === "approved") {
+        /* =====================================================
+         * SECTION 2: PREPARE EMPLOYEE SALARY RULES
+         * ===================================================== */
+
+        setLoading(true, "Finding employee records...", 25);
+        employee = Employees.find(
+          (emp) =>
+            String(emp.employeeId) === String(leavePayload.employeeId) &&
+            String(emp.deviceMAC) === String(leavePayload.deviceMAC),
+        );
+
+        if (!employee) {
+          throw new Error("Employee not found");
+        }
+
+        setLoading(true, "Processing salary rules...", 30);
+
+        const empId = String(employee.employeeId);
+        const parsedSalaryRules = parseNormalData(employee.salaryRules || {});
+        const salaryRules = {
+          ...(parsedSalaryRules && typeof parsedSalaryRules === "object"
+            ? parsedSalaryRules
+            : {}),
+          empId,
+        };
+        const existingRules = salaryRules.rules || [];
+
+        // Ensure Rule #10 exists
+        const ruleTen = existingRules.find(
+          (rule) => rule.ruleId === 10 || rule.ruleId === "10",
+        ) || {
+          id: Math.floor(10 + Math.random() * 90),
+          empId,
+          ruleId: "10",
+          ruleStatus: 1,
+          param1: "",
+          param2: "",
+          param3: "",
+          param4: "",
+          param5: "",
+          param6: "",
+        };
+
+        ruleTen.empId = empId;
+
+        setLoading(true, "Applying leave salary rules...", 35);
+
+        const leaveSalaryRules = leaveApprove({
+          salaryRules,
+          leave: parseNormalData(leavePayload),
+        });
+
+        setLoading(true, "Preparing salary updates...", 38);
+
+        updatedSalaryRules = finalJsonForUpdate(salaryRules, {
+          empId,
+          rules: {
+            filter: (r) => r.ruleId === 10 || r.ruleId === "10",
+            newValue: ruleTen,
+          },
+          ...leaveSalaryRules,
+        });
+
+        employeePayload = {
+          salaryRules: JSON.stringify(updatedSalaryRules),
+        };
+
+        setLoading(true, "Saving employee updates...", 45);
+        await updateEmployee({
+          mac: employee.deviceMAC || "",
+          id: employee.employeeId,
+          payload: employeePayload,
+        });
+        employeeUpdated = true;
+
+        setLoading(true, "Storing employee data...", 55);
+        storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
+          salaryRules: parseNormalData(updatedSalaryRules),
+        });
+      }
+
+      setLoading(
+        true,
+        "Updating leave status...",
+        status === "approved" ? 70 : 40,
+      );
       await updateLeaveData(leavePayload);
-      setLoading(true, "Processing leave update...", 50);
+      setLoading(
+        true,
+        "Processing leave update...",
+        status === "approved" ? 80 : 50,
+      );
       const parseUpdateData = parseNormalData(leavePayload);
       updateLeave({
         Id: leavePayload.id,
@@ -430,77 +524,29 @@ const LeaveApplicationDetails = ({ data }) => {
       });
       leaveUpdated = true;
 
-      /* =====================================================
-       * SECTION 2: UPDATE EMPLOYEE SALARY RULES
-       * ===================================================== */
+      if (status === "rejected") {
+        setLoading(true, "Sending notification...", 95);
+        await sendNotificationToEmployee({
+          employeeId: data.employeeId,
+          deviceMAC: data.deviceMAC,
+          title: `Leave Application ${status} by ${user.userName}`,
+          messageBody: `Your leave application has been ${status}.`,
+        });
 
-      setLoading(true, "Finding employee records...", 60);
-      const employee = Employees.find(
-        (emp) => emp.employeeId === data.employeeId,
-      );
+        setLoading(true, "Complete!", 100);
 
-      if (!employee) {
-        throw new Error("Employee not found");
+        // Small delay to show 100% completion
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (leaveUpdated) {
+          toast.success(`Leave ${status} successfully updated`);
+        }
+        return;
       }
 
-      setLoading(true, "Processing salary rules...", 70);
-
-      const empId = String(employee.employeeId);
-      const salaryRules = employee.salaryRules || {};
-      const existingRules = salaryRules.rules || [];
-
-      // Ensure Rule #10 exists
-      const ruleTen = existingRules.find(
-        (rule) => rule.ruleId === 10 || rule.ruleId === "10",
-      ) || {
-        id: Math.floor(10 + Math.random() * 90),
-        empId,
-        ruleId: "10",
-        ruleStatus: 1,
-        param1: "",
-        param2: "",
-        param3: "",
-        param4: "",
-        param5: "",
-        param6: "",
-      };
-
-      ruleTen.empId = empId;
-
-      // Apply leave-based salary rules
-      setLoading(true, "Applying leave salary rules...", 75);
-
-      // Apply leave-based salary rules
-      const leaveSalaryRules = leaveApprove({
-        salaryRules,
-        leave: data,
-      });
-      setLoading(true, "Updating salary rules...", 80);
-
-      const updatedSalaryRules = finalJsonForUpdate(salaryRules, {
-        empId,
-        rules: {
-          filter: (r) => r.ruleId === 10 || r.ruleId === "10",
-          newValue: ruleTen,
-        },
-        ...leaveSalaryRules,
-      });
-
-      const payload = {
-        salaryRules: JSON.stringify(updatedSalaryRules),
-      };
-
-      setLoading(true, "Saving employee updates...", 85);
-      await updateEmployee({
-        mac: employee.deviceMAC || "",
-        id: employee.employeeId,
-        payload,
-      });
-
-      setLoading(true, "Storing employee data...", 90);
-      storeEmployeeUpdate(employee.employeeId, employee.deviceMAC || "", {
-        salaryRules: parseNormalData(updatedSalaryRules),
-      });
+      /* =====================================================
+       * SECTION 3: SEND NOTIFICATION
+       * ===================================================== */
 
       setLoading(true, "Sending notification...", 95);
       await sendNotificationToEmployee({

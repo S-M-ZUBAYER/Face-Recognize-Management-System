@@ -5,6 +5,11 @@ function checkLeaveDataChanges(oldLeave, newLeave) {
 
   // Format helper
   const fmt = (val) => (val || val === 0 ? val : "Empty");
+  const isLeaveImageChanged = () => oldLeave.documentUrl !== newLeave.documentUrl;
+
+  if (isLeaveImageChanged()) {
+    return "your image was change";
+  }
 
   // Check main fields
   const mainFields = [

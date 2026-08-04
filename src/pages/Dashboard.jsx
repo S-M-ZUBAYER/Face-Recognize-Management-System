@@ -65,7 +65,7 @@ function Dashboard() {
 
       {/* Version text - absolutely positioned */}
       <div className="absolute  right-6 text-sm text-gray-400 font-medium">
-        v3.7
+        v3.8
       </div>
     </div>
   );

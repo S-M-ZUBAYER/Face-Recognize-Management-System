@@ -4,8 +4,16 @@ const useLeaveLoadingStore = create((set) => ({
   isLoading: false,
   loadingMessage: "",
   loadingProgress: 0,
-  setLoading: (isLoading, message = "", progress = 0) =>
-    set({ isLoading, loadingMessage: message, loadingProgress: progress }),
+  loadingType: "default",
+  setLoading: (isLoading, message = "", progress = 0, loadingType) =>
+    set((state) => ({
+      isLoading,
+      loadingMessage: message,
+      loadingProgress: progress,
+      loadingType: !isLoading
+        ? "default"
+        : loadingType || state.loadingType || "default",
+    })),
 }));
 
 export default useLeaveLoadingStore;

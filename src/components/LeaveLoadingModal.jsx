@@ -1,11 +1,30 @@
 // components/LoadingModal.jsx
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 import useLeaveLoadingStore from "@/zustand/LeaveLoadingStore";
 
+const STEP_CONFIG = {
+  approved: [
+    { label: "Updating employee salary rules", completeAt: 55 },
+    { label: "Updating leave status", completeAt: 80 },
+    { label: "Sending notification", completeAt: 100 },
+  ],
+  rejected: [
+    { label: "Updating leave status", completeAt: 50 },
+    { label: "Sending notification", completeAt: 100 },
+  ],
+  default: [
+    { label: "Updating leave status", completeAt: 33 },
+    { label: "Updating employee salary rules", completeAt: 66 },
+    { label: "Sending notification", completeAt: 100 },
+  ],
+};
+
 const LeaveLoadingModal = () => {
-  const { isLoading, loadingMessage, loadingProgress } = useLeaveLoadingStore();
+  const { isLoading, loadingMessage, loadingProgress, loadingType } =
+    useLeaveLoadingStore();
+  const steps = STEP_CONFIG[loadingType] || STEP_CONFIG.default;
 
   return (
     <AnimatePresence>
@@ -70,74 +89,34 @@ const LeaveLoadingModal = () => {
 
                 {/* Steps */}
                 <div className="w-full mt-6 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        loadingProgress >= 33 ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    >
-                      {loadingProgress >= 33 ? (
-                        <CheckCircle className="w-4 h-4 text-white" />
-                      ) : (
-                        <span className="text-xs text-white">1</span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm ${
-                        loadingProgress >= 33
-                          ? "text-gray-900"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      Updating leave status
-                    </span>
-                  </div>
+                  {steps.map((step, index) => {
+                    const isComplete = loadingProgress >= step.completeAt;
 
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        loadingProgress >= 66 ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    >
-                      {loadingProgress >= 66 ? (
-                        <CheckCircle className="w-4 h-4 text-white" />
-                      ) : (
-                        <span className="text-xs text-white">2</span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm ${
-                        loadingProgress >= 66
-                          ? "text-gray-900"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      Updating employee salary rules
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        loadingProgress >= 100 ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    >
-                      {loadingProgress >= 100 ? (
-                        <CheckCircle className="w-4 h-4 text-white" />
-                      ) : (
-                        <span className="text-xs text-white">3</span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm ${
-                        loadingProgress >= 100
-                          ? "text-gray-900"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      Sending notification
-                    </span>
-                  </div>
+                    return (
+                      <div key={step.label} className="flex items-center gap-3">
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            isComplete ? "bg-green-500" : "bg-gray-300"
+                          }`}
+                        >
+                          {isComplete ? (
+                            <CheckCircle className="w-4 h-4 text-white" />
+                          ) : (
+                            <span className="text-xs text-white">
+                              {index + 1}
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          className={`text-sm ${
+                            isComplete ? "text-gray-900" : "text-gray-500"
+                          }`}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
